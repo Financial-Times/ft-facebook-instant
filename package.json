@@ -1,0 +1,24 @@
+{
+  "name": "ft-facebook-instant",
+  "version": "1.0.0",
+  "description": "Facebook Instant Articles",
+  "main": "main.js",
+  "scripts": {
+    "start": "nodemon main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Financial-Times/ft-facebook-instant.git"
+  },
+  "author": "George Crawford <george.crawford@ft.com>",
+  "bugs": {
+    "url": "https://github.com/Financial-Times/ft-facebook-instant/issues"
+  },
+  "homepage": "https://github.com/Financial-Times/ft-facebook-instant#readme",
+  "dependencies": {
+    "express": "^4.13.4",
+    "express-ftwebservice": "^2.1.2",
+    "nodemon": "^1.9.1"
+  }
+}
