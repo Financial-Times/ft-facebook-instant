@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 const path = require('path');
 
@@ -27,11 +27,11 @@ module.exports = {
 			},
 		],
 	},
-	goodToGoTest: function() {
+	goodToGoTest() {
 		const checks = [];
 		return Promise.all(checks);
 	},
-	healthCheck: function() {
+	healthCheck() {
 		const checks = [];
 		return Promise.all(checks);
 	},

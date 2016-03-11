@@ -1,15 +1,13 @@
-"use strict";
+'use strict';
 
 const feed = require('../lib/feed');
 const auth = require('basic-auth');
 
 const checkAuth = req => {
-
-	console.log('process.env.NODE_ENV', process.env.NODE_ENV);
-	if ('production' !== process.env.NODE_ENV) return true;
+	if(process.env.NODE_ENV !== 'production') return true;
 
 	const credentials = auth(req);
-	if (credentials && credentials.name === 'facebook' && credentials.pass === process.env.HTTP_AUTH_PASS) {
+	if(credentials && credentials.name === 'facebook' && credentials.pass === process.env.HTTP_AUTH_PASS) {
 		return true;
 	}
 
@@ -17,11 +15,12 @@ const checkAuth = req => {
 };
 
 module.exports = (req, res) => {
-	if (!checkAuth(req)) {
+	if(!checkAuth(req)) {
 		res.statusCode = 401;
 		res.setHeader('WWW-Authenticate', 'Basic realm="feed"');
 		return res.end('Access denied');
 	}
 
+	res.set('Content-Type', 'application/rss+xml');
 	res.send(feed.generate());
 };

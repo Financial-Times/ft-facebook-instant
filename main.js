@@ -26,5 +26,4 @@ app.use(authS3O);
 app.get('/admin', require('./server/controllers/admin.js'));
 
 
-
 app.listen(port, () => console.log('Up and running on port', port));
