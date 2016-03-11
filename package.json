@@ -19,6 +19,7 @@
   "dependencies": {
     "express": "^4.13.4",
     "express-ftwebservice": "^2.1.2",
+    "forever": "^0.15.1",
     "nodemon": "^1.9.1"
   }
 }
