@@ -1,71 +1,44 @@
-"use strict";
+'use strict';
 
 const RSS = require('rss');
 
 module.exports.generate = () => {
 	const feed = new RSS({
-		title: 'title',
-		description: 'description',
-		feed_url: 'http://example.com/rss.xml',
-		site_url: 'http://example.com',
-		image_url: 'http://example.com/icon.png',
-		docs: 'http://example.com/rss/docs.html',
-		managingEditor: 'Dylan Greene',
-		webMaster: 'Dylan Greene',
-		copyright: '2013 Dylan Greene',
-		language: 'en',
-		categories: ['Category 1','Category 2','Category 3'],
-		pubDate: 'May 20, 2012 04:00:00 GMT',
-		ttl: '60',
-		custom_namespaces: {
-			'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'
-		},
-		custom_elements: [
-			{'itunes:subtitle': 'A show about everything'},
-			{'itunes:author': 'John Doe'},
-			{'itunes:summary': 'All About Everything is a show about everything. Each week we dive into any subject known to man and talk about it as much as we can. Look for our podcast in the Podcasts app or in the iTunes Store'},
-			{'itunes:owner': [
-				{'itunes:name': 'John Doe'},
-				{'itunes:email': 'john.doe@example.com'}
-			]},
-			{'itunes:image': {
-				_attr: {
-					href: 'http://example.com/podcasts/everything/AllAboutEverything.jpg'
-				}
-			}},
-			{'itunes:category': [
-				{_attr: {
-					text: 'Technology'
-				}},
-				{'itunes:category': {
-					_attr: {
-						text: 'Gadgets'
-					}
-				}}
-			]}
-		]
+		title: 'Facebook Instant Articles feed for FT.com',
+		description: 'Facebook Instant Articles feed for FT.com',
+		site_url: 'https://facebookinstant.ft.com/feed',
+		generator: 'https://github.com/Financial-Times/ft-facebook-instant',
 	});
 
+	const fixturePath = require('path').resolve(__dirname, '../../test/fixtures/facebook-test-article.html');
+	const article = require('fs').readFileSync(fixturePath, 'utf8');
+
+	// See: https://developers.facebook.com/docs/instant-articles/publishing
 	feed.item({
-		title:  'item title',
-		description: 'use this for the content. It can include html.',
-		url: 'http://example.com/article4?this&that', // link to the item
-		guid: '1123', // optional - defaults to url
-		categories: ['Category 1','Category 2','Category 3','Category 4'], // optional - array of item categories
-		author: 'Guest Author', // optional - defaults to feed author property
-		date: 'May 27, 2012', // any format that js Date can parse.
-		lat: 33.417974, //optional latitude field for GeoRSS
-		long: -111.933231, //optional longitude field for GeoRSS
+		// The headline of the article.
+		title: 'The headline of the article.',
+
+		// A string that provides a unique identifier for this article in your feed.
+		guid: 'A string that provides a unique identifier for this article in your feed.',
+
 		custom_elements: [
-			{'itunes:author': 'John Doe'},
-			{'itunes:subtitle': 'A short primer on table spices'},
-			{'itunes:image': {
-				_attr: {
-					href: 'http://example.com/podcasts/everything/AllAboutEverything/Episode1.jpg'
-				}
-			}},
-			{'itunes:duration': '7:04'}
-		]
+			// A summary of your article, in plain text form.
+			{description: 'A summary of your article, in plain text form.'},
+
+			// 	Name of the person who wrote the article. Use multiple <author> elements for
+			// 	multiple authors.
+			{author: 'George Crawford'},
+
+			// The canonical URL for this article on your site.
+			{link: 'The canonical URL for this article on your site.'},
+
+			// The date of the article’s publication, in ISO-8601 format.
+			{pubDate: 'The date of the article’s publication, in ISO-8601 format.'},
+
+			// The full content of your article, in HTML form. Remember to escape all HTML
+			// content by wrapping it within a CDATA section.
+			{'content:encoded': article},
+		],
 	});
 
 	return feed.xml({indent: '\t'});
