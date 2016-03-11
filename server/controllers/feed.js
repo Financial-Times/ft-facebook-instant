@@ -5,6 +5,7 @@ const auth = require('basic-auth');
 
 const checkAuth = req => {
 
+	console.log('process.env.NODE_ENV', process.env.NODE_ENV);
 	if ('production' !== process.env.NODE_ENV) return true;
 
 	const credentials = auth(req);
