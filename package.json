@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/Financial-Times/ft-facebook-instant#readme",
   "dependencies": {
+    "@quarterto/assert-env": "^1.1.0",
+    "basic-auth": "^1.0.3",
     "express": "^4.13.4",
     "express-ftwebservice": "^2.1.2",
     "forever": "^0.15.1",
