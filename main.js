@@ -3,37 +3,10 @@ const express = require('express');
 const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
 
-const path = require('path');
-
 const port = process.env.PORT || 6247;
 const app = express();
 
-ftwebservice(app, {
-	manifestPath: path.join(__dirname, 'package.json'),
-	about: {
-		schemaVersion: 1,
-		name: 'facebook-instant',
-		purpose: 'Serve Facebook Instant Articles RSS feed and admin UI',
-		audience: 'private',
-		primaryUrl: 'https://facebookinstant.ft.com',
-		serviceTier: 'bronze',
-		appVersion: process.env.HEROKU_RELEASE_VERSION,
-		contacts: [
-			{
-				name: 'Richard Still',
-				email: 'richard.still@ft.com',
-			},
-			{
-				name: 'Matthew Brennan',
-				email: 'matthew.brennan@ft.com',
-			},
-			{
-				name: 'George Crawford',
-				email: 'george.crawford@ft.com',
-			},
-		],
-	},
-});
+ftwebservice(app, require('./server/controllers/ftwebservice.js'));
 
 // Routes which don't require Staff Single Sign-On
 app.get('/feed', require('./server/controllers/feed.js'));
@@ -41,5 +14,7 @@ app.get('/feed', require('./server/controllers/feed.js'));
 // Routes which require Staff Single Sign-On
 app.use(authS3O);
 app.get('/admin', require('./server/controllers/admin.js'));
+
+
 
 app.listen(port, () => console.log('Up and running on port', port));
