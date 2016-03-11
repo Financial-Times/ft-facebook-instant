@@ -30,10 +30,10 @@ module.exports.generate = () => {
 			{author: 'George Crawford'},
 
 			// The canonical URL for this article on your site.
-			{link: 'The canonical URL for this article on your site.'},
+			{link: 'http://www.ft.com/content/e8813dd4-d00d-11e5-831d-09f7778e7377'},
 
 			// The date of the article’s publication, in ISO-8601 format.
-			{pubDate: 'The date of the article’s publication, in ISO-8601 format.'},
+			{pubDate: '1994-11-05T13:15:30Z'},
 
 			// The full content of your article, in HTML form. Remember to escape all HTML
 			// content by wrapping it within a CDATA section.
