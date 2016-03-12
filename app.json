@@ -1,0 +1,18 @@
+{
+  "name": "ft-facebook-instant",
+  "scripts": {
+  },
+  "env": {
+    "HTTP_AUTH_PASS": {
+      "required": true
+    }
+  },
+  "addons": [
+
+  ],
+  "buildpacks": [
+    {
+      "url": "urn:buildpack:heroku/nodejs"
+    }
+  ]
+}
