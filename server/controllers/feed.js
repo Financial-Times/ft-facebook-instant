@@ -4,7 +4,6 @@ const feed = require('../lib/feed');
 const auth = require('basic-auth');
 
 const checkAuth = req => {
-	return true;
 	if(process.env.NODE_ENV !== 'production') return true;
 
 	const credentials = auth(req);
