@@ -9,6 +9,7 @@ const checkAuth = req => {
 
 	const credentials = auth(req);
 	console.log('credentials', credentials);
+	console.log('process.env.HTTP_AUTH_PASS', process.env.HTTP_AUTH_PASS);
 	if(credentials && credentials.name === 'facebook' && credentials.pass === process.env.HTTP_AUTH_PASS) {
 		return true;
 	}
