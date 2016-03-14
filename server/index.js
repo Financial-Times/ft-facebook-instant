@@ -1,7 +1,5 @@
 'use strict';
 
-console.log('process.cwd()', process.cwd());// @nocommit
-
 const express = require('express');
 const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
@@ -30,7 +28,7 @@ if(app.get('env') === 'development') {
 	]);
 }
 
-ftwebservice(app, require('./controllers/ftWebService.js'));
+ftwebservice(app, require('./controllers/ftWebService'));
 
 
 app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'dev' : 'combined')));
