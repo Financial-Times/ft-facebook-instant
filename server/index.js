@@ -27,7 +27,7 @@ if(app.get('env') === 'development') {
 	]);
 }
 
-ftwebservice(app, require('./controllers/ftwebservice.js'));
+ftwebservice(app, require('./controllers/ftWebService.js'));
 
 
 app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'dev' : 'combined')));
