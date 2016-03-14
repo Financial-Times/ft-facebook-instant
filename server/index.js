@@ -1,4 +1,7 @@
 'use strict';
+
+console.log('process.cwd()', process.cwd());// @nocommit
+
 const express = require('express');
 const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
