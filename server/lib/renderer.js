@@ -24,6 +24,7 @@ module.exports.outputPage = (data, res) => module.exports.renderTemplate('page',
 
 module.exports.outputError = (error, res) => {
 	console.log(error);
+	console.log(error.stack);
 
 	res.statusCode = 500;
 	res.send(`A script error stopped execution!<br /><pre>${error.stack || error.message || error}</pre>`);
