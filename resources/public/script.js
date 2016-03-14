@@ -1,4 +1,5 @@
 /* global $ */
+/* exported deleteArticle, localArticleAction, uploadArticle, loadTestArticle */
 
 'use strict';
 
