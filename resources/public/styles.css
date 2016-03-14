@@ -1,0 +1,99 @@
+html,
+body {
+	font-family: BentonSans, sans-serif;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+h4 {
+	margin: 0;
+	padding: 0;
+}
+
+pre {
+	white-space: normal;
+}
+
+.subheading {
+	padding: 5px 0;
+}
+
+.uuidform {
+	margin: 0 auto 48px auto;
+	max-width: 600px;
+}
+
+.o-forms-group {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.o-techdocs-card {
+	margin: 0 auto 1em auto;
+	max-width: 600px;
+}
+
+.o-forms-suffix button:disabled {
+	color: gray;
+	cursor: wait;
+}
+
+.o-forms-select {
+	padding: 3px;
+}
+
+a.o-techdocs-card__actionbutton {
+	color: #333;
+	text-decoration: none;
+}
+
+.conversion-errors {
+	color: red;
+}
+
+.sandbox-status-card .o-techdocs-card__icon > i {
+	color: #999;
+}
+
+.channel-target-options {
+	margin-bottom: 5px;
+}
+.channel-actions {
+	margin-top:10px;
+	text-align:right;
+}
+
+.channel-target-options small {
+	float: right;
+	color: #999;
+}
+
+.article-status-container {
+	text-align: center;
+}
+
+.article-status-container .o-buttons {
+	background-color: #fff1e0;
+	font-weight: initial;
+	margin-bottom: 64px;
+}
+
+.article-status-container .o-techdocs-card {
+	text-align: initial;
+}
+
+.activity::after {
+    content: '';
+    margin: 0 3px;
+    background: url(/images/loading.svg) no-repeat;
+    display: inline-block;
+    width: 32px;
+    height: 15px;
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
+.article-test-link {
+	color: #27757b;
+}
