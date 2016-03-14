@@ -28,9 +28,6 @@ if(app.get('env') === 'development') {
 	]);
 }
 
-console.log('trying...')// @nocommit
-console.log("require('./controllers/feed.js')", require('./controllers/feed.js'))// @nocommit
-console.log("require('./controllers/ftWebService.js')", require('./controllers/ftWebService.js'))// @nocommit
 ftwebservice(app, require('./controllers/ftWebService'));
 
 
