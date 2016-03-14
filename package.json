@@ -2,7 +2,7 @@
   "name": "ft-facebook-instant",
   "version": "1.0.0",
   "description": "Facebook Instant Articles",
-  "main": "build/server/index.js",
+  "main": "build/index.js",
   "scripts": {
     "lint": "scripts/lint.sh",
     "start": "nodemon build/index.js",
