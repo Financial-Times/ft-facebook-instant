@@ -1,1 +1,31 @@
-blah
+<form target="/" onsubmit="submitForm(); return false" class="uuidform o-forms">
+	<div class="o-forms-group js-uuid-group">
+		<label class="o-forms-label" for="uuid">Enter the article UUID or URL to process</label>
+		<div class="o-forms-affix-wrapper uuid-wrapper">
+			<input type="text" id="uuid" class="o-forms-text" {{#uuid}}value="{{uuid}}"{{/uuid}}/>
+			<div class="o-forms-suffix">
+				<button type="button" class="o-buttons js-uuid-submission-button" onclick="submitForm();">Process</button>
+			</div>
+		</div>
+		<div class="o-forms-errortext js-uuid-error"></div>
+	</div>
+</form>
+
+{{#IS_DEV}}
+<div class="o-techdocs-card">
+	<div class="o-techdocs-card__context">
+		<div class="o-techdocs-card__icon"><i class="fa fa-cogs"></i></div>
+		<div class="o-techdocs-card__heading">
+			<div class="o-techdocs-card__title">Test articles</div>
+			<div class="o-techdocs-card__subtitle">Only shown on development systems</div>
+		</div>
+	</div>
+	<div class="o-techdocs-card__content">
+		<ul class="fa-ul">
+			{{#testuuids}}
+				<li><i class="fa-li fa fa-hand-o-right"></i> <a class="article-test-link" href="javascript:loadTestArticle('{{uuid}}')">{{description}}</a></li>
+			{{/testuuids}}
+		</ul>
+	</div>
+</div>
+{{/IS_DEV}}
