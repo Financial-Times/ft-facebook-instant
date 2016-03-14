@@ -1,6 +1,7 @@
 'use strict';
 
-module.exports = grunt => {
+module.exports = function(grunt) {
+
 	require('load-grunt-tasks')(grunt);
 
 	grunt.initConfig({
@@ -18,7 +19,9 @@ module.exports = grunt => {
 					cwd: './',
 					src: ['server/**/*.js'],
 					dest: 'build',
-					rename: (dest, src) => dest + src.replace('server', ''),
+					rename: function(dest, src) {
+						return dest + src.replace('server', '');
+					},
 				}],
 			},
 		},
@@ -34,7 +37,7 @@ module.exports = grunt => {
 	});
 
 	grunt.registerTask('default', ['build']);
-	grunt.registerTask('build', () => {
+	grunt.registerTask('build', function() {
 		grunt.task.run([
 			'clean',
 			'babel:dist',

@@ -1,7 +1,3 @@
-/**
- * © The Financial Times Limited [All rights reserved]
- */
-
 'use strict';
 
 const readFile = require('denodeify')(require('fs').readFile);

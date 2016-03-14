@@ -1,4 +1,5 @@
-/*eslint-env browser, jquery*/
+/* global $ */
+
 'use strict';
 
 var uuidRegex = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/;
