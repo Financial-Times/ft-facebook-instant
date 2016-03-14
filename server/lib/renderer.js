@@ -23,17 +23,12 @@ function getTemplate(name) {
 module.exports.renderTemplate = (name, data = {}) => getTemplate(name)
 	.then(template => template(data));
 
-module.exports.outputPage = (data, response) => module.exports.renderTemplate('page', data)
-	.then(html => {
-		response.setHeader('Content-Type', 'text/html; charset=utf-8');
-		response.write(html);
-		response.end();
-	});
+module.exports.outputPage = (data, res) => module.exports.renderTemplate('page', data)
+	.then(res.send.bind(res));
 
-module.exports.outputError = (error, response) => {
-	response.setHeader('Content-Type', 'text/html; charset=utf-8');
-	response.statusCode = 500;
-	response.write(`A script error stopped execution!<br /><pre>${error.stack || error.message || error}</pre>`);
+module.exports.outputError = (error, res) => {
 	console.log(error);
-	response.end();
+
+	res.statusCode = 500;
+	res.send(`A script error stopped execution!<br /><pre>${error.stack || error.message || error}</pre>`);
 };

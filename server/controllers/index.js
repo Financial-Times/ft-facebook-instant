@@ -11,5 +11,5 @@ module.exports = (req, res) => renderer.renderTemplate('index-form', {
 	testuuids,
 	uuid: req.params.uuid,
 })
-	.then(formHTML => renderer.outputPage({body: formHTML}, res))
-	.catch(err => renderer.outputError(err, res));
+.then(formHTML => renderer.outputPage({body: formHTML}, res))
+.catch(err => renderer.outputError(err, res));
