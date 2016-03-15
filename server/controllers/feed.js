@@ -1,7 +1,10 @@
 'use strict';
 
+const renderer = require('../lib/renderer');
 const feed = require('../lib/feed');
 const auth = require('basic-auth');
+
+const types = ['development', 'production'];
 
 const checkAuth = req => {
 	if(!req.query.__forceauth && process.env.NODE_ENV !== 'production') return true;
@@ -21,6 +24,13 @@ module.exports = (req, res) => {
 		return res.send('Access denied');
 	}
 
-	res.set('Content-Type', 'application/rss+xml');
-	res.send(feed.generate());
+	const type = req.params.type || 'production';
+	feed.generate(type)
+	.then(rss => {
+		res.set('Content-Type', 'application/rss+xml');
+		res.send(rss);
+	})
+	.catch(err => renderer.outputError(err, res));
 };
+
+module.exports.types = types;

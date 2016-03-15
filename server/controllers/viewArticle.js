@@ -2,10 +2,10 @@
 
 const renderer = require('../lib/renderer');
 const fetchArticle = require('../lib/fetchArticle');
+const feedController = require('./feed');
 
 module.exports = (req, res) => {
 	const uuid = req.params.uuid;
-	const feeds = ['development', 'production'];
 
 	return fetchArticle(uuid)
 	.then(article => {
@@ -15,7 +15,7 @@ module.exports = (req, res) => {
 			errors: ['test1', 'test2'],
 		};
 
-		return Promise.all(feeds.map(feed => renderer.renderTemplate('article-feed-status', {
+		return Promise.all(feedController.types.map(feed => renderer.renderTemplate('article-feed-status', {
 			feed,
 			status: 'Not published',
 		})))

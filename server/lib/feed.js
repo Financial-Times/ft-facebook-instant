@@ -2,10 +2,10 @@
 
 const RSS = require('rss');
 
-module.exports.generate = () => {
+module.exports.generate = type => {
 	const feed = new RSS({
 		title: 'Facebook Instant Articles feed for FT.com',
-		description: 'Facebook Instant Articles feed for FT.com',
+		description: `Facebook Instant Articles feed for FT.com (${type})`,
 		site_url: 'https://facebookinstant.ft.com/feed',
 		generator: 'https://github.com/Financial-Times/ft-facebook-instant',
 	});
@@ -41,5 +41,6 @@ module.exports.generate = () => {
 		],
 	});
 
-	return feed.xml({indent: '\t'});
+	const rss = feed.xml({indent: '\t'});
+	return Promise.resolve(rss);
 };

@@ -13,9 +13,9 @@ const uuidRegex = require('./lib/uuid');
 const port = process.env.PORT || 6247;
 const app = express();
 
-const feedController = require('./controllers/feed.js');
-const indexController = require('./controllers/index.js');
-const viewArticleController = require('./controllers/viewArticle.js');
+const feedController = require('./controllers/feed');
+const indexController = require('./controllers/index');
+const viewArticleController = require('./controllers/viewArticle');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
 
 assertEnv([
@@ -39,7 +39,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 
 // Routes which don't require Staff Single Sign-On
-app.route('/feed').get(noCache).get(feedController);
+app.route(`/feed/:type(${feedController.types.join('|')})?`).get(noCache).get(feedController);
 
 
 // Add Staff Single Sign-On middleware
