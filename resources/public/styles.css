@@ -56,15 +56,15 @@ a.o-techdocs-card__actionbutton {
 	color: #999;
 }
 
-.channel-target-options {
+.feed-target-options {
 	margin-bottom: 5px;
 }
-.channel-actions {
+.feed-actions {
 	margin-top:10px;
 	text-align:right;
 }
 
-.channel-target-options small {
+.feed-target-options small {
 	float: right;
 	color: #999;
 }

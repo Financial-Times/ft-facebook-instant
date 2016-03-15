@@ -55,43 +55,43 @@ function restoreForm() {
 
 function initialiseStatusCards() {
 	$('.status-card').each(function() {
-		var channel = $(this).attr('data-channel');
+		var feed = $(this).attr('data-feed');
 
-		updateStatusCard(channel);
+		updateStatusCard(feed);
 	});
 }
 
-function updateStatusCard(channel) {
-	var card = $('.' + channel + '-status-card');
+function updateStatusCard(feed) {
+	var card = $('.' + feed + '-status-card');
 	var uploaded = card.attr('data-uploaded');
 
 	if (uploaded) {
-		$('.channel-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="deleteArticle(\'' + channel + '\');"><i class="fa fa-trash-o"></i> Delete</button><button class="o-techdocs-card__actionbutton" onclick="uploadArticle(\'' + channel + '\');"><i class="fa fa-arrow-circle-up"></i> Update</button>');
-		updateStatusIcon(channel, 'fa-square');
+		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="deleteArticle(\'' + feed + '\');"><i class="fa fa-trash-o"></i> Delete</button><button class="o-techdocs-card__actionbutton" onclick="uploadArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Update</button>');
+		updateStatusIcon(feed, 'fa-square');
 	} else {
-		$('.channel-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="uploadArticle(\'' + channel + '\');"><i class="fa fa-arrow-circle-up"></i> Upload</button>');
-		updateStatusIcon(channel, 'fa-square-o');
+		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="uploadArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Publish</button>');
+		updateStatusIcon(feed, 'fa-square-o');
 	}
 }
 
-function deleteArticle(channel) {
-	updateStatusIcon(channel, 'fa-spinner fa-spin');
-	setButtonState(channel, false);
-	$('.' + channel + '-status-text').html('Deleting, please wait...');
+function deleteArticle(feed) {
+	updateStatusIcon(feed, 'fa-spinner fa-spin');
+	setButtonState(feed, false);
+	$('.' + feed + '-status-text').html('Deleting, please wait...');
 
 	$.ajax({
 		type: 'POST',
-		url: '/delete/' + channel + '/' + $('.article-status-card').attr('data-uuid'),
+		url: '/delete/' + feed + '/' + $('.article-status-card').attr('data-uuid'),
 		success: function(data) {
-			updateStatusIcon(channel, 'fa-check');
-			$('.' + channel + '-status-text').html(data);
-			$('.' + channel + '-status-card').attr('data-uploaded', '');
-			setTimeout(function() { updateStatusCard(channel); }, 1000);
+			updateStatusIcon(feed, 'fa-check');
+			$('.' + feed + '-status-text').html(data);
+			$('.' + feed + '-status-card').attr('data-uploaded', '');
+			setTimeout(function() { updateStatusCard(feed); }, 1000);
 		},
 		error: function(jqXHR, status, error) {
-			updateStatusIcon(channel, 'fa-times');
-			setButtonState(channel, true);
-			$('.' + channel + '-status-text').html('Server returned error: ' + jqXHR.responseText);
+			updateStatusIcon(feed, 'fa-times');
+			setButtonState(feed, true);
+			$('.' + feed + '-status-text').html('Server returned error: ' + jqXHR.responseText);
 		}
 	});
 
@@ -119,32 +119,24 @@ function localArticleAction(link, action) {
 	});
 }
 
-function uploadArticle(channel) {
-	var sections = $('.' + channel + '-status-card select').val();
-
-	if (!sections) {
-		alert("Please select at least one channel to upload to.");
-		return;
-	}
-
-	updateStatusIcon(channel, 'fa-spinner fa-spin');
-	setButtonState(channel, false);
-	$('.' + channel + '-status-text').html('Uploading, please wait...');
+function uploadArticle(feed) {
+	updateStatusIcon(feed, 'fa-spinner fa-spin');
+	setButtonState(feed, false);
+	$('.' + feed + '-status-text').html('Uploading, please wait...');
 
 	$.ajax({
 		type: 'POST',
-		url: '/post/' + channel + '/' + $('.article-status-card').attr('data-uuid'),
-		data: { sections: sections },
+		url: '/post/' + feed + '/' + $('.article-status-card').attr('data-uuid'),
 		success: function(data) {
-			updateStatusIcon(channel, 'fa-check');
-			$('.' + channel + '-status-text').html(data);
-			$('.' + channel + '-status-card').attr('data-uploaded', '1');
-			setTimeout(function() { updateStatusCard(channel); }, 1000);
+			updateStatusIcon(feed, 'fa-check');
+			$('.' + feed + '-status-text').html(data);
+			$('.' + feed + '-status-card').attr('data-uploaded', '1');
+			setTimeout(function() { updateStatusCard(feed); }, 1000);
 		},
 		error: function(jqXHR, status, error) {
-			updateStatusIcon(channel, 'fa-times');
-			setButtonState(channel, true);
-			$('.' + channel + '-status-text').html('Server returned error: ' + jqXHR.responseText);
+			updateStatusIcon(feed, 'fa-times');
+			setButtonState(feed, true);
+			$('.' + feed + '-status-text').html('Server returned error: ' + jqXHR.responseText);
 		}
 	});
 
@@ -156,12 +148,12 @@ function loadTestArticle(uuid) {
 	submitForm();
 }
 
-function updateStatusIcon(channel, iconName) {
-	$('.' + channel + '-status i').removeClass().addClass('fa ' + iconName);
+function updateStatusIcon(feed, iconName) {
+	$('.' + feed + '-status i').removeClass().addClass('fa ' + iconName);
 }
 
-function setButtonState(channel, enabled) {
-	$('.' + channel + '-status-card .channel-actions button').each(function() {
+function setButtonState(feed, enabled) {
+	$('.' + feed + '-status-card .feed-actions button').each(function() {
 		if (enabled) {
 			$(this).removeAttr('disabled');
 		} else {
