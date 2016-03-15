@@ -37,6 +37,7 @@
     "load-grunt-tasks": "^3.4.1",
     "morgan": "^1.7.0",
     "nodemon": "^1.9.1",
+    "redis": "^2.5.1",
     "rss": "^1.2.1",
     "s3o-middleware": "^1.4.0",
     "signed-aws-es-fetch": "^1.1.0",
