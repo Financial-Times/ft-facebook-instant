@@ -18,11 +18,13 @@ const indexController = require('./controllers/index.js');
 const viewArticleController = require('./controllers/viewArticle.js');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
 
+assertEnv([
+	'AWS_ACCESS_KEY',
+	'AWS_SECRET_ACCESS_KEY',
+	'ELASTIC_SEARCH_DOMAIN',
+]);
 
-if(app.get('env') === 'development') {
-	assertEnv([
-	]);
-} else {
+if(app.get('env') !== 'development') {
 	assertEnv([
 		'HTTP_AUTH_PASS',
 	]);
