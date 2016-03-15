@@ -2,8 +2,9 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title>{{#title}}{{title}} - {{/title}}FT Facebook Instant Articles Tool</title>
+		<title>{{#if title}}{{title}} - {{/if}}FT Facebook Instant Articles Tool</title>
 		<link rel="stylesheet" href="//build.origami.ft.com/v2/bundles/css?modules=o-header@^3.0.6,o-techdocs@^4.0.4,o-colors@^3.0.0,o-fonts@^1,o-forms@^1.0.2,o-buttons@^3.0.0" />
+		<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 		<link rel="stylesheet" href="/styles.css" />
 	</head>
 	<body class="o-techdocs o-colors-page-text">
@@ -18,7 +19,7 @@
 							</a>
 						</div>
 					</div>
-					<div class="o-header__secondary">{{#title}}<div class="subheading">{{title}}</div>{{/title}}</div>
+					<div class="o-header__secondary">{{#if title}}<div class="subheading">{{title}}</div>{{/if}}</div>
 				</div>
 			</div>
 		</header>

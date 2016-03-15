@@ -11,6 +11,7 @@ module.exports = (req, res) => {
 		const templateData = {
 			uuid: article.id,
 			title: article.title,
+			errors: ['test1', 'test2']
 		};
 		return renderer.renderTemplate('article-status', templateData);
 	})

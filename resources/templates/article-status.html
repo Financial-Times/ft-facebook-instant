@@ -7,38 +7,11 @@
 		</div>
 	</div>
 	<div class="o-techdocs-card__content">
-		{{#errors.length}}
-			<div class="conversion-errors">
-				<h4>Article processing failed.</h4>
-				<ul class="fa-ul">
-					{{#errors}}
-						<li><i class="fa-li fa fa-times-circle"></i> {{.}}</li>
-					{{/errors}}
-				</ul>
-			</div>
-		{{/errors.length}}
-		{{^errors.length}}
-			<h4>Article processing succeeded.</h4>
-		{{/errors.length}}
-		{{#warnings.length}}
-			<div class="conversion-warnings">
-				<p>Warnings were encountered during processing:</p>
-				<ul class="fa-ul">
-					{{#warnings}}
-						<li><i class="fa-li fa fa-exclamation-triangle"></i> {{.}}</li>
-					{{/warnings}}
-				</ul>
-			</div>
-		{{/warnings.length}}
-		{{^warnings.length}}
-			<p><i class="fa fa-thumbs-up"></i> No errors or warnings were encountered.</p>
-		{{/warnings.length}}
+		<h4>Article processing succeeded.</h4>
 	</div>
 	<div class="o-techdocs-card__actions">
-		{{^errors.length}}
+		{{#unless errors}}
 			<a href="blah" class="o-techdocs-card__actionbutton"><i class="fa fa-archive"></i> George todo</a>
-		{{/errors.length}}
+		{{/unless}}
 	</div>
 </div>
-
-{{#targets}}{{{.}}}{{/targets}}

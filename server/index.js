@@ -50,7 +50,7 @@ if(app.get('env') !== 'development') {
 // Routes which require Staff Single Sign-On
 app.route('/').get(noCache).get(indexController);
 app.route(`^/${uuidParam}$`).post(noCache).post(viewArticleController);
-// app.route(`^/${uuidParam}$`).get(noCache).get(adminController);
+app.route(`^/${uuidParam}$`).get(noCache).get(indexController);
 
 
 app.listen(port, () => console.log('Up and running on port', port));
