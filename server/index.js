@@ -16,6 +16,7 @@ const app = express();
 const feedController = require('./controllers/feed');
 const indexController = require('./controllers/index');
 const viewArticleController = require('./controllers/viewArticle');
+const apiController = require('./controllers/api');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
 
 assertEnv([
@@ -42,7 +43,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // Routes which don't require Staff Single Sign-On
 app.route(`/feed/:type(${feedController.types.join('|')})?`).get(noCache).get(feedController);
-
+app.route(`/api/${uuidParam}$`).get(apiController);
 
 // Add Staff Single Sign-On middleware
 if(app.get('env') !== 'development') {
