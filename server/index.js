@@ -22,6 +22,8 @@ assertEnv([
 	'AWS_ACCESS_KEY',
 	'AWS_SECRET_ACCESS_KEY',
 	'ELASTIC_SEARCH_DOMAIN',
+	'HTTP_AUTH_PASS',
+	'REDIS_URL',
 ]);
 
 if(app.get('env') !== 'development') {

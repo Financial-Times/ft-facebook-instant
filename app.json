@@ -3,7 +3,19 @@
   "scripts": {
   },
   "env": {
+    "AWS_ACCESS_KEY": {
+      "required": true
+    },
+    "AWS_SECRET_ACCESS_KEY": {
+      "required": true
+    },
     "HTTP_AUTH_PASS": {
+      "required": true
+    },
+    "ELASTIC_SEARCH_DOMAIN": {
+      "required": true
+    },
+    "REDIS_URL": {
       "required": true
     }
   },
