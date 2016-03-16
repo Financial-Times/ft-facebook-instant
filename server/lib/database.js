@@ -3,7 +3,6 @@
 const url = require('url');
 const redis = require('redis');
 const bluebird = require('bluebird');
-const articleModel = require('../models/article');
 
 bluebird.promisifyAll(redis);
 
