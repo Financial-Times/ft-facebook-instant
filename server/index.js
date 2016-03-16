@@ -54,3 +54,8 @@ app.route(`^/${uuidParam}$`).get(noCache).get(indexController);
 
 
 app.listen(port, () => console.log('Up and running on port', port));
+
+
+// @nocommit
+const db = require('./lib/database');
+db().then(res => console.log(`Redis Instance: ${res}`));
