@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "scripts": {
     "lint": "scripts/lint.sh",
-    "start": "source scripts/env.sh && nodemon",
+    "start": "source scripts/env.sh && nodemon --delay 1",
     "postinstall": "grunt build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

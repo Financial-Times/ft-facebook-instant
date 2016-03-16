@@ -4,6 +4,11 @@
 		"package.json",
 		"gruntfile.js",
 		"resources",
+		"scripts",
+		"server",
+		"tests"
+	],
+	"ignore": [
 		"build"
 	]
 }
