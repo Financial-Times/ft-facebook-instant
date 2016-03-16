@@ -22,6 +22,8 @@ assertEnv([
 	'AWS_ACCESS_KEY',
 	'AWS_SECRET_ACCESS_KEY',
 	'ELASTIC_SEARCH_DOMAIN',
+	'HTTP_AUTH_PASS',
+	'REDIS_URL',
 ]);
 
 if(app.get('env') !== 'development') {
@@ -54,3 +56,8 @@ app.route(`^/${uuidParam}$`).get(noCache).get(indexController);
 
 
 app.listen(port, () => console.log('Up and running on port', port));
+
+
+// @nocommit
+const db = require('./lib/database');
+db().then(res => console.log(`Redis Instance: ${res}`));
