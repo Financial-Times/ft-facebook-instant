@@ -13,9 +13,13 @@ const uuidRegex = require('./lib/uuid');
 const port = process.env.PORT || 6247;
 const app = express();
 
+const feedModel = require('./models/feed');
+
+const devController = require('./controllers/dev');
 const feedController = require('./controllers/feed');
 const indexController = require('./controllers/index');
-const viewArticleController = require('./controllers/viewArticle');
+const articleController = require('./controllers/article');
+const apiController = require('./controllers/api');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
 
 assertEnv([
@@ -39,10 +43,15 @@ app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'de
 app.use(express.static(path.resolve(process.cwd(), 'resources/public')));
 app.use(bodyParser.urlencoded({extended: true}));
 
+// Dev-only routes
+if(app.get('env') === 'development') {
+	app.route('/:action(dbwipe)').get(devController);
+}
+
 
 // Routes which don't require Staff Single Sign-On
-app.route(`/feed/:type(${feedController.types.join('|')})?`).get(noCache).get(feedController);
-
+app.route(`/feed/:type(${feedModel.types.join('|')})?`).get(noCache).get(feedController);
+app.route(`/api/${uuidParam}$`).get(apiController);
 
 // Add Staff Single Sign-On middleware
 if(app.get('env') !== 'development') {
@@ -51,13 +60,8 @@ if(app.get('env') !== 'development') {
 
 // Routes which require Staff Single Sign-On
 app.route('/').get(noCache).get(indexController);
-app.route(`^/${uuidParam}$`).post(noCache).post(viewArticleController);
+app.route(`^/${uuidParam}$`).post(noCache).post(articleController);
 app.route(`^/${uuidParam}$`).get(noCache).get(indexController);
 
 
 app.listen(port, () => console.log('Up and running on port', port));
-
-
-// @nocommit
-const db = require('./lib/database');
-db().then(res => console.log(`Redis Instance: ${res}`));

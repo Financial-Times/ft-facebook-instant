@@ -4,8 +4,6 @@ const renderer = require('../lib/renderer');
 const feed = require('../lib/feed');
 const auth = require('basic-auth');
 
-const types = ['development', 'production'];
-
 const checkAuth = req => {
 	if(!req.query.__forceauth && process.env.NODE_ENV !== 'production') return true;
 
@@ -32,5 +30,3 @@ module.exports = (req, res) => {
 	})
 	.catch(err => renderer.outputError(err, res));
 };
-
-module.exports.types = types;
