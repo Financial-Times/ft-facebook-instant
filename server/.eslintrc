@@ -7,7 +7,7 @@
 		"sourceType": "script"
 	},
 	"rules": {
-		"indent": [2, "tab"],
+		"indent": [2, "tab", {"SwitchCase": 1}],
 		"comma-dangle": [2, "always-multiline"],
 		"keyword-spacing": [2, {
 			"before": true,
@@ -15,7 +15,9 @@
 			"overrides": {
 				"else": {"after": true},
 				"return": {"after": true},
-				"case": {"after": true}
+				"case": {"after": true},
+				"let": {"after": true},
+				"const": {"after": true}
 			}
 		}],
 		"max-len": [1, 120, 2],
