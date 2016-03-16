@@ -1,20 +1,17 @@
 'use strict';
 
-const denodeify = require('denodeify');
+const url = require('url');
 const redis = require('redis');
+const bluebird = require('bluebird');
 
-const promisify = (obj) => {
-	Object.keys(obj).forEach(key => (obj[`${key}Async`] = denodeify(obj[key])));
-};
+bluebird.promisifyAll(redis);
 
-promisify(redis.RedisClient.prototype);
-
+const redisParams = url.parse(process.env.REDIS_URL);
 const client = redis.createClient({
-	host: 'keen-rosewood-5711.redisgreen.net',
-	port: '11042',
-	password: '73d5c959b48e48f68f2f64bfd49a9375',
-	url: 'redis://x:73d5c959b48e48f68f2f64bfd49a9375@keen-rosewood-5711.redisgreen.net:11042/',
+	port: redisParams.port,
+	host: redisParams.hostname,
 });
 
-client.getAsync('foo')
-.then(res => console.log('done', res));
+client.auth(redisParams.auth.split(':')[1]);
+
+module.exports = () => client.getAsync('redis-instance');
