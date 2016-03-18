@@ -6,9 +6,7 @@
 		"resources",
 		"scripts",
 		"server",
-		"tests"
-	],
-	"ignore": [
+		"tests",
 		"build"
 	]
 }

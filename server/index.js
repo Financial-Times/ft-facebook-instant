@@ -43,12 +43,6 @@ app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'de
 app.use(express.static(path.resolve(process.cwd(), 'resources/public')));
 app.use(bodyParser.urlencoded({extended: true}));
 
-// Dev-only routes
-if(app.get('env') === 'development') {
-	app.route('/:action(dbwipe)').get(devController);
-}
-
-
 // Routes which don't require Staff Single Sign-On
 app.route(`/feed/:type(${feedModel.types.join('|')})?`).get(noCache).get(feedController);
 app.route(`/api/${uuidParam}$`).get(apiController);
@@ -62,6 +56,9 @@ if(app.get('env') !== 'development') {
 app.route('/').get(noCache).get(indexController);
 app.route(`^/${uuidParam}$`).post(noCache).post(articleController);
 app.route(`^/${uuidParam}$`).get(noCache).get(indexController);
+
+// Dev-only, to be removed
+app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController.action);
 
 
 app.listen(port, () => console.log('Up and running on port', port));
