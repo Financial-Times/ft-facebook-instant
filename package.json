@@ -36,6 +36,7 @@
     "grunt-contrib-watch": "^1.0.0",
     "handlebars": "^4.0.5",
     "load-grunt-tasks": "^3.4.1",
+    "moment": "^2.12.0",
     "morgan": "^1.7.0",
     "nodemon": "^1.9.1",
     "redis": "^2.5.1",
