@@ -15,12 +15,12 @@ module.exports.generate = type => {
 	let article = require('fs').readFileSync(fixturePath, 'utf8');
 
 	const now = moment();
-	const rfcTimestamp = now.format('YYYY-MM-DDTHH:mm:ssZ');
+	const isoTimestamp = now.format();
 	const humanTime = now.format('MMMM Do, YYYY');
 
 	article = article.replace(
 		'<time class="op-modified" datetime="2016-02-12T10:34:09Z">February 12, 2016</time>',
-		`<time class="op-modified" datetime="${rfcTimestamp}">${humanTime}</time>`
+		`<time class="op-modified" datetime="${isoTimestamp}">${humanTime}</time>`
 	);
 
 	feed.item({
