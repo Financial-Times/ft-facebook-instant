@@ -7,12 +7,10 @@
 		</div>
 	</div>
 	<div class="o-techdocs-card__content">
-		<h4>Article processing succeeded.</h4>
-	</div>
-	<div class="o-techdocs-card__actions">
-		{{#unless errors}}
-			<a href="blah" class="o-techdocs-card__actionbutton"><i class="fa fa-archive"></i> George todo</a>
-		{{/unless}}
+		<ul>
+			<li>Published on FT.com: <strong title="{{date_editorially_published}}">{{date_editorially_published_formatted}}</strong></li>
+			<li>Instant Articles last updated: <strong title="{{date_record_updated}}">{{date_record_updated_formatted}}</strong></li>
+		</ul>
 	</div>
 </div>
 

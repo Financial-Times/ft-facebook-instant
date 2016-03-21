@@ -3,71 +3,54 @@
 const renderer = require('../lib/renderer');
 const fetchArticle = require('../lib/fetchArticle');
 const database = require('../lib/database');
-// const articleModel = require('../models/article');
 const feedModel = require('../models/feed');
+const moment = require('moment');
+
+const getArticle = uuid => database.get(uuid)
+.then(databaseRecord => {
+	if(databaseRecord) return Promise.resolve(databaseRecord);
+
+	return fetchArticle(uuid)
+		.then(apiRecord => ({
+			uuid: apiRecord.id,
+			title: apiRecord.title,
+			date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
+		}))
+		.then(article => database.update(article))
+		.then(database.get(uuid));
+})
+.then(article => {
+	Object.keys(article).forEach(key => {
+		if(key.indexOf('date_') === 0 && /\d+/.test(article[key])) {
+			const date = moment(parseInt(article[key], 10));
+			article[key] = date.format();
+			article[`${key}_formatted`] = date.fromNow();
+		}
+	});
+
+	return article;
+});
 
 module.exports = (req, res) => {
 	const uuid = req.params.uuid;
 
-	let article;
-
-	return Promise.all([
-		fetchArticle(uuid),
-		database.get(uuid),
-	])
-	.then(items => {
-		const [apiRecord, databaseRecord] = items;
-		// const [apiRecord] = items;
-		// article = articleModel.merge(articleModel.fromDatabase(databaseRecord), apiRecord);
-
-		article = {
-			uuid: apiRecord.id,
-			title: apiRecord.title,
-			date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
-			date_updated: databaseRecord && databaseRecord.date_updated,
-		};
-
-		console.log('article apiRecord', apiRecord.title);
-		console.log('article databaseRecord', databaseRecord);
-		// console.log('article merged article', article);
-
-		const templateData = {
-			uuid: apiRecord.id,
-			title: apiRecord.title,
-		};
-
-		return Promise.all(feedModel.types.map(feed => renderer.renderTemplate('article-feed-status', {
-			feed,
-			status: 'Not published',
-		})))
+	return getArticle(uuid)
+	.then(article => Promise.all(
+			feedModel.types.map(feed => renderer.renderTemplate('article-feed-status', {
+				feed,
+				status: 'Not published',
+			}))
+		)
 		.then(feedHTML => {
-			templateData.feeds = feedHTML;
+			article.feeds = feedHTML;
 		})
-		.then(() => renderer.renderTemplate('article-status', templateData));
-	})
+		.then(() => renderer.renderTemplate('article-status', article))
+	)
 	.then(fragmentHTML => {
 		res.send(fragmentHTML);
-		return database.update(article);
 	})
-	// .then(database.list)
-	// .then(list => console.log('All articles:', list))
 	.catch(err => renderer.outputError(err, res));
 };
-
-const get = uuid => Promise.all([
-	fetchArticle(uuid),
-	database.get(uuid),
-])
-.then(items => {
-	const [apiRecord, databaseRecord] = items;
-
-	return {
-		uuid: apiRecord.id,
-		title: apiRecord.title,
-		date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
-		date_updated: databaseRecord && databaseRecord.date_updated,
-	};
-});
 
 module.exports.action = (req, res) => {
 	const uuid = req.params.uuid;
@@ -77,14 +60,14 @@ module.exports.action = (req, res) => {
 	.then(() => {
 		switch(action) {
 			case 'add-update':
-				return get(uuid)
+				return getArticle(uuid)
 					.then(database.update);
 
 			case 'list':
 				return database.list();
 
 			case 'get':
-				return database.get(uuid);
+				return database.getArticle(uuid);
 
 			case 'wipe':
 				return database.wipe();

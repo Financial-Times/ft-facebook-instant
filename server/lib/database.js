@@ -60,16 +60,16 @@ const getMulti = uuids => {
 };
 
 const update = article => {
-	article.date_updated = Date.now();
+	article.date_record_updated = Date.now();
 
 	return client.multi()
 		.hmset(`article:${article.uuid}`,
 			'uuid', article.uuid,
 			'title', article.title,
 			'date_editorially_published', article.date_editorially_published,
-			'date_updated', article.date_updated
+			'date_record_updated', article.date_record_updated
 		)
-		.zadd('articles', article.date_updated, article.uuid)
+		.zadd('articles', article.date_record_updated, article.uuid)
 		.execAsync()
 		.then(replies => {
 			const [articlereply, articles] = replies;
