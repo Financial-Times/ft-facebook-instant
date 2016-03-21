@@ -3,6 +3,8 @@
 const RSS = require('rss');
 const moment = require('moment');
 
+const forceUpdates = false;
+
 module.exports.generate = type => {
 	const feed = new RSS({
 		title: 'Facebook Instant Articles feed for FT.com',
@@ -14,14 +16,16 @@ module.exports.generate = type => {
 	const fixturePath = require('path').resolve(__dirname, '../../test/fixtures/94e97eee-ce9a-11e5-831d-09f7778e7377.html');
 	let article = require('fs').readFileSync(fixturePath, 'utf8');
 
-	const now = moment();
-	const isoTimestamp = now.format();
-	const humanTime = now.format('MMMM Do, YYYY');
+	if(forceUpdates) {
+		const now = moment();
+		const isoTimestamp = now.format();
+		const humanTime = now.format('MMMM Do, YYYY');
 
-	article = article.replace(
-		'<time class="op-modified" datetime="2016-02-12T10:34:09Z">February 12, 2016</time>',
-		`<time class="op-modified" datetime="${isoTimestamp}">${humanTime}</time>`
-	);
+		article = article.replace(
+			'<time class="op-modified" datetime="2016-02-12T10:34:09Z">February 12, 2016</time>',
+			`<time class="op-modified" datetime="${isoTimestamp}">${humanTime}</time>`
+		);
+	}
 
 	feed.item({
 		// The headline of the article.
