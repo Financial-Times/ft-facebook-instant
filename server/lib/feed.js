@@ -1,6 +1,7 @@
 'use strict';
 
 const RSS = require('rss');
+const moment = require('moment');
 
 module.exports.generate = type => {
 	const feed = new RSS({
@@ -11,7 +12,16 @@ module.exports.generate = type => {
 	});
 
 	const fixturePath = require('path').resolve(__dirname, '../../test/fixtures/94e97eee-ce9a-11e5-831d-09f7778e7377.html');
-	const article = require('fs').readFileSync(fixturePath, 'utf8');
+	let article = require('fs').readFileSync(fixturePath, 'utf8');
+
+	const now = moment();
+	const rfcTimestamp = now.format('YYYY-MM-DDTHH:mm:ssZ');
+	const humanTime = now.format('MMMM Do, YYYY');
+
+	article = article.replace(
+		'<time class="op-modified" datetime="2016-02-12T10:34:09Z">February 12, 2016</time>',
+		`<time class="op-modified" datetime="${rfcTimestamp}">${humanTime}</time>`
+	);
 
 	feed.item({
 		// The headline of the article.
