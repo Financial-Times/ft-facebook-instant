@@ -15,7 +15,7 @@
 {{#if article}}{{> article-status article}}{{/if}}
 </div>
 
-{{#if IS_DEV}}
+{{#if testUuids}}
 <div class="o-techdocs-card">
 	<div class="o-techdocs-card__context">
 		<div class="o-techdocs-card__icon"><i class="fa fa-cogs"></i></div>
@@ -26,7 +26,7 @@
 	</div>
 	<div class="o-techdocs-card__content">
 		<ul class="fa-ul">
-			{{#each testuuids}}
+			{{#each testUuids}}
 				<li><i class="fa-li fa fa-hand-o-right"></i> <a class="article-test-link" href="javascript:loadTestArticle('{{uuid}}')">{{description}}</a></li>
 			{{/each}}
 		</ul>

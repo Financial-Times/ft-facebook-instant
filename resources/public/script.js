@@ -27,7 +27,6 @@ function submitForm() {
 		success: function(article) {
 			restoreForm();
 			$('.article-status-container').html(Handlebars.partials['article-status'](article));
-			initialiseStatusCards();
 		},
 		error: function(jqXHR, status, error) {
 			handleFormError('Server returned error: ' + jqXHR.responseText);
@@ -45,34 +44,6 @@ function restoreForm() {
 	$('.js-uuid-submission-button').removeAttr('disabled').text('Process').removeClass('activity');
 }
 
-function initialiseStatusCards() {
-	$('.status-card').each(function() {
-		var feed = $(this).attr('data-feed');
-
-		updateStatusCard(feed);
-	});
-}
-
-function updateStatusCard(feed) {
-	var card = $('.' + feed + '-status-card');
-	var published = card.attr('data-published');
-	var imported = card.attr('data-imported');
-
-	if (imported) {
-		updateStatusIcon(feed, 'import', 'fa-check-square-o');
-	} else {
-		updateStatusIcon(feed, 'import', 'fa-square-o');
-	}
-
-	if (published) {
-		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="unpublishArticle(\'' + feed + '\');"><i class="fa fa-trash-o"></i> Remove from feed</button>');
-		updateStatusIcon(feed, 'publish', 'fa-check-square-o');
-	} else {
-		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="publishArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>');
-		updateStatusIcon(feed, 'publish', 'fa-square-o');
-	}
-}
-
 function unpublishArticle(feed) {
 	updateStatusIcon(feed, 'fa-spinner fa-spin');
 	setButtonState(feed, false);
@@ -83,7 +54,6 @@ function unpublishArticle(feed) {
 		url: '/' + $('.article-status-card').attr('data-uuid') + '/unpublish',
 		success: function(article) {
 			$('.article-status-container').html(Handlebars.partials['article-status'](article));
-			updateStatusCard(feed);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(feed, 'fa-times');
@@ -105,7 +75,6 @@ function publishArticle(feed) {
 		url: '/' + $('.article-status-card').attr('data-uuid') + '/publish',
 		success: function(article) {
 			$('.article-status-container').html(Handlebars.partials['article-status'](article));
-			updateStatusCard(feed);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(feed, 'fa-times');

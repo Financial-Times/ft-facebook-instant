@@ -68,8 +68,8 @@ app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(ar
 
 app.route(`^/${uuidParam}/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
-// // Dev-only, to be removed
-// app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);
+// Dev-only, to be removed
+app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);
 
 
 /* Errors */

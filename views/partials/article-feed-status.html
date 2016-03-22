@@ -9,7 +9,7 @@
 	<div class="o-techdocs-card__content">
 		<ul class="feed-status">
 			<li class="{{feed}}-publish-status">
-				<i class="fa {{feed}}-publish-status-icon"></i>
+				<i class="fa {{feed}}-publish-status-icon{{#if date_published}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
 				<span class="{{feed}}-publish-status-text">
 				{{#if date_published}}
 					Published in RSS feed: <strong title="{{date_published}}">{{date_published_formatted}}</strong>
@@ -19,7 +19,7 @@
 				</span>
 			</li>
 			<li class="{{feed}}-import-status">
-				<i class="fa {{feed}}-import-status-icon"></i>
+				<i class="fa {{feed}}-import-status-icon{{#if date_imported}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
 				<span class="{{feed}}-import-status-text">
 				{{#if date_imported}}
 					Last imported by Facebook: <strong title="{{date_imported}}">{{date_imported_formatted}}</strong>
@@ -32,6 +32,12 @@
 	</div>
 
 	<div class="o-techdocs-card__actions">
-		<div class="feed-actions"></div>
+		<div class="feed-actions">
+			{{#if date_published}}
+			<button class="o-techdocs-card__actionbutton" onclick="unpublishArticle('{{feed}}');"><i class="fa fa-trash-o"></i> Remove from feed</button>
+			{{else}}
+			<button class="o-techdocs-card__actionbutton" onclick="publishArticle('{{feed}}');"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>
+			{{/if}}
+		</div>
 	</div>
 </div>

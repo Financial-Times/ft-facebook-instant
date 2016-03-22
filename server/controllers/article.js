@@ -2,7 +2,7 @@
 
 const fetchArticle = require('../lib/fetchArticle');
 const database = require('../lib/database');
-const feedModel = require('../models/feed');
+const testUuids = require('../lib/testUuids');
 const moment = require('moment');
 
 
@@ -106,6 +106,7 @@ module.exports = (req, res, next) => {
 				.then(article => res.render('index', {
 					uuid,
 					article,
+					testUuids,
 				}))
 				.catch(next);
 		}
