@@ -11,7 +11,9 @@
 	</div>
 </form>
 
-<div class="article-status-container"></div>
+<div class="article-status-container">
+{{#if article}}{{> article-status article}}{{/if}}
+</div>
 
 {{#if IS_DEV}}
 <div class="o-techdocs-card">

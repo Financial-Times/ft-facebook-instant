@@ -38,6 +38,7 @@
 				'use strict';
 
 				Handlebars.templates = Handlebars.partials = Handlebars.templates || {};
+				Handlebars.partials = Handlebars.templates;
 
 				{{#templates}}
 					Handlebars.templates['{{{name}}}'] = {{{template}}};

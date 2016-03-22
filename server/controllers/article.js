@@ -103,7 +103,8 @@ module.exports = (req, res, next) => {
 		if(!action) {
 			return getArticle(uuid)
 				.then(article => (console.log(article), article))
-				.then(article => res.render('article', {
+				.then(article => res.render('index', {
+					uuid,
 					article,
 				}))
 				.catch(next);

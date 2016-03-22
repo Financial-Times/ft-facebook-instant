@@ -4,7 +4,7 @@ const expressHandlebars = require('express-handlebars');
 const swag = require('swag');
 const path = require('path');
 
-let templateOptions = {
+const templateOptions = {
 	cache: false,
 	precompiled: true,
 };
