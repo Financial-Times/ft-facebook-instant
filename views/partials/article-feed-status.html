@@ -1,0 +1,37 @@
+<div class="o-techdocs-card status-card {{feed}}-status-card" data-feed="{{feed}}" data-published="{{date_published}}" data-imported="{{date_imported}}">
+	<div class="o-techdocs-card__context">
+		<div class="o-techdocs-card__icon"><i class="fa fa-arrow-circle-o-up"></i></div>
+		<div class="o-techdocs-card__heading">
+			<div class="o-techdocs-card__title">{{capitalizeFirst feed}} feed</div>
+		</div>
+	</div>
+
+	<div class="o-techdocs-card__content">
+		<ul class="feed-status">
+			<li class="{{feed}}-publish-status">
+				<i class="fa {{feed}}-publish-status-icon"></i>
+				<span class="{{feed}}-publish-status-text">
+				{{#if date_published}}
+					Published in RSS feed: <strong title="{{date_published}}">{{date_published_formatted}}</strong>
+				{{else}}
+					Not published
+				{{/if}}
+				</span>
+			</li>
+			<li class="{{feed}}-import-status">
+				<i class="fa {{feed}}-import-status-icon"></i>
+				<span class="{{feed}}-import-status-text">
+				{{#if date_imported}}
+					Last imported by Facebook: <strong title="{{date_imported}}">{{date_imported_formatted}}</strong>
+				{{else}}
+					Not imported by Facebook
+				{{/if}}
+				</span>
+			</li>
+		</ul>
+	</div>
+
+	<div class="o-techdocs-card__actions">
+		<div class="feed-actions"></div>
+	</div>
+</div>

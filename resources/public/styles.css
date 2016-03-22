@@ -12,7 +12,7 @@ h4 {
 }
 
 pre {
-	white-space: normal;
+	white-space: pre-wrap;
 }
 
 .subheading {
@@ -54,6 +54,10 @@ a.o-techdocs-card__actionbutton {
 
 .sandbox-status-card .o-techdocs-card__icon > i {
 	color: #999;
+}
+
+.feed-status {
+	list-style-type: none;
 }
 
 .feed-target-options {

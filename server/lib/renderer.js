@@ -2,11 +2,7 @@
 
 const readFile = require('denodeify')(require('fs').readFile);
 const handlebars = require('handlebars');
-const swag = require('swag');
 
-swag.registerHelpers(handlebars);
-
-// TODO: https://github.com/ericf/express-handlebars
 const templateCache = {};
 
 function getTemplate(name) {

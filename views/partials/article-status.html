@@ -14,4 +14,6 @@
 	</div>
 </div>
 
-{{#each feedHTML}}{{{.}}}{{/each}}
+{{#each feeds}}
+	{{> article-feed-status .}}
+{{/each}}

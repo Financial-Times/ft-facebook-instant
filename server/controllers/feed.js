@@ -1,6 +1,5 @@
 'use strict';
 
-const renderer = require('../lib/renderer');
 const feed = require('../lib/feed');
 const auth = require('basic-auth');
 
@@ -15,7 +14,7 @@ const checkAuth = req => {
 	return false;
 };
 
-module.exports = (req, res) => {
+module.exports = (req, res, next) => {
 	if(!checkAuth(req)) {
 		res.statusCode = 401;
 		res.setHeader('WWW-Authenticate', 'Basic realm="feed"');
@@ -24,9 +23,9 @@ module.exports = (req, res) => {
 
 	const type = req.params.type || 'production';
 	feed.generate(type)
-	.then(rss => {
-		res.set('Content-Type', 'application/rss+xml');
-		res.send(rss);
-	})
-	.catch(err => renderer.outputError(err, res));
+		.then(rss => {
+			res.set('Content-Type', 'application/rss+xml');
+			res.send(rss);
+		})
+		.catch(next);
 };

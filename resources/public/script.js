@@ -5,14 +5,6 @@
 
 var uuidRegex = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/;
 
-$(function() {
-	if ($('#uuid').val()) {
-		submitForm();
-	} else {
-		$('#uuid').focus();
-	}
-});
-
 function submitForm() {
 	$('.js-uuid-error').text('');
 	$('.article-status-container').html('');
@@ -66,36 +58,39 @@ function updateStatusCard(feed) {
 	var published = card.attr('data-published');
 	var imported = card.attr('data-imported');
 
+	if (imported) {
+		updateStatusIcon(feed, 'import', 'fa-check-square-o');
+	} else {
+		updateStatusIcon(feed, 'import', 'fa-square-o');
+	}
+
 	if (published) {
 		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="unpublishArticle(\'' + feed + '\');"><i class="fa fa-trash-o"></i> Remove from feed</button>');
-		updateStatusIcon(feed, 'fa-plus-square-o');
-	} else if (imported) {
-		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="publishArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>');
-		updateStatusIcon(feed, 'fa-check-square-o');
+		updateStatusIcon(feed, 'publish', 'fa-check-square-o');
 	} else {
 		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="publishArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>');
-		updateStatusIcon(feed, 'fa-square-o');
+		updateStatusIcon(feed, 'publish', 'fa-square-o');
 	}
 }
 
 function unpublishArticle(feed) {
 	updateStatusIcon(feed, 'fa-spinner fa-spin');
 	setButtonState(feed, false);
-	$('.' + feed + '-status-text').html('Removing, please wait...');
+	$('.' + feed + '-publish-status-text').html('Removing, please wait...');
 
 	$.ajax({
 		type: 'POST',
 		url: '/' + $('.article-status-card').attr('data-uuid') + '/unpublish',
 		success: function(data) {
 			updateStatusIcon(feed, 'fa-square-o');
-			$('.' + feed + '-status-text').html(data);
-			$('.' + feed + '-status-card').attr('data-published', '');
+			$('.' + feed + '-publish-status-text').html(data);
+			$('.' + feed + '-publish-status-card').attr('data-published', '');
 			setTimeout(function() { updateStatusCard(feed); }, 1000);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(feed, 'fa-times');
 			setButtonState(feed, true);
-			$('.' + feed + '-status-text').html('Server returned error: ' + jqXHR.responseText);
+			$('.' + feed + '-publish-status-text').html('Server returned error: ' + jqXHR.responseText);
 		}
 	});
 
@@ -105,21 +100,19 @@ function unpublishArticle(feed) {
 function publishArticle(feed) {
 	updateStatusIcon(feed, 'fa-spinner fa-spin');
 	setButtonState(feed, false);
-	$('.' + feed + '-status-text').html('Publishing, please wait...');
+	$('.' + feed + '-publish-status-text').html('Publishing, please wait...');
 
 	$.ajax({
 		type: 'POST',
 		url: '/' + $('.article-status-card').attr('data-uuid') + '/publish',
 		success: function(data) {
-			updateStatusIcon(feed, 'fa-check');
-			$('.' + feed + '-status-text').html(data.text);
-			$('.' + feed + '-status-card').attr('data-published', data.published);
+			$('.' + feed + '-status-card').html(data);
 			setTimeout(function() { updateStatusCard(feed); }, 1000);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(feed, 'fa-times');
 			setButtonState(feed, true);
-			$('.' + feed + '-status-text').html('Server returned error: ' + jqXHR.responseText);
+			$('.' + feed + '-publish-status-text').html('Server returned error: ' + jqXHR.responseText);
 		}
 	});
 
@@ -147,37 +140,13 @@ function localArticleAction(link, action) {
 	});
 }
 
-function uploadArticle(feed) {
-	updateStatusIcon(feed, 'fa-spinner fa-spin');
-	setButtonState(feed, false);
-	$('.' + feed + '-status-text').html('Uploading, please wait...');
-
-	$.ajax({
-		type: 'POST',
-		url: '/post/' + feed + '/' + $('.article-status-card').attr('data-uuid'),
-		success: function(data) {
-			updateStatusIcon(feed, 'fa-check');
-			$('.' + feed + '-status-text').html(data);
-			$('.' + feed + '-status-card').attr('data-uploaded', '1');
-			setTimeout(function() { updateStatusCard(feed); }, 1000);
-		},
-		error: function(jqXHR, status, error) {
-			updateStatusIcon(feed, 'fa-times');
-			setButtonState(feed, true);
-			$('.' + feed + '-status-text').html('Server returned error: ' + jqXHR.responseText);
-		}
-	});
-
-	return false;
-}
-
 function loadTestArticle(uuid) {
 	$('#uuid').val(uuid);
 	submitForm();
 }
 
-function updateStatusIcon(feed, iconName) {
-	$('.' + feed + '-status i').removeClass().addClass('fa ' + iconName);
+function updateStatusIcon(feed, type, iconName) {
+	$('.' + feed + '-' + type + '-status i').removeClass().addClass('fa ' + iconName);
 }
 
 function setButtonState(feed, enabled) {

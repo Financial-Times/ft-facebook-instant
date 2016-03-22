@@ -1,6 +1,5 @@
 'use strict';
 
-const renderer = require('../lib/renderer');
 const fetchArticle = require('../lib/fetchArticle');
 const database = require('../lib/database');
 const feedModel = require('../models/feed');
@@ -37,25 +36,24 @@ const getArticle = uuid => database.get(uuid)
 		title: databaseRecord.title,
 		date_editorially_published: databaseRecord.date_editorially_published,
 		date_record_updated: databaseRecord.date_record_updated,
-		feeds: {
-			development: {
+		feeds: [
+			{
 				feed: 'development',
 				date_published: databaseRecord.date_published_development,
 				date_imported: databaseRecord.date_imported_development,
 				impressions: databaseRecord.development_impressions,
 			},
-			production: {
+			{
 				feed: 'production',
 				date_published: databaseRecord.date_published_production,
 				date_imported: databaseRecord.date_imported_production,
 				impressions: databaseRecord.production_impressions,
 			},
-		},
+		],
 	};
 
 	formatDates(article);
-	formatDates(article.feeds.development);
-	formatDates(article.feeds.production);
+	article.feeds.forEach(formatDates);
 
 	return article;
 });
@@ -84,12 +82,7 @@ const runAction = (action, uuid = null) => {
 			return database.wipe();
 
 		case 'publish':
-			return database.publish('development', uuid)
-				.then(() => getArticle(uuid))
-				.then(article => ({
-					text: 'Published in RSS feed: ',
-					published: article.feeds.development.date_published,
-				}));
+			return database.publish('development', uuid);
 
 		case 'unpublish':
 			return database.unpublish('development', uuid);
@@ -109,7 +102,7 @@ const runAction = (action, uuid = null) => {
 	}
 };
 
-module.exports = (req, res) => {
+module.exports = (req, res, next) => {
 	const uuid = req.params.uuid;
 	const action = req.params.action;
 
@@ -117,14 +110,19 @@ module.exports = (req, res) => {
 	.then(() => {
 		if(!action) {
 			return getArticle(uuid)
-				.then(renderStatus)
-				.then(fragmentHTML => {
-					res.send(fragmentHTML);
-				});
+				.then(article => (console.log(article), article))
+				.then(article => res.render('article', {
+					article,
+				}))
+				.catch(next);
 		}
 
 		return runAction(action, uuid)
-			.then(result => res.json(result));
+			.then(() => getArticle(uuid))
+			.then(renderStatus)
+			.then(fragmentHTML => {
+				res.send(fragmentHTML);
+			});
 	})
-	.catch(err => renderer.outputError(err, res));
+	.catch(next);
 };

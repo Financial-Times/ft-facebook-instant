@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const handlebars = require('./lib/handlebars');
 const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
 const assertEnv = require('@quarterto/assert-env');
@@ -35,14 +36,23 @@ if(app.get('env') !== 'development') {
 	]);
 }
 
+/* Middleware */
+
+// __about, __gtg, etc.
 ftwebservice(app, require('./controllers/ftWebService'));
 
+// Handlebars middleware
+handlebars(app);
 
+// Other
 app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'dev' : 'combined')));
 app.use(express.static(path.resolve(process.cwd(), 'resources/public')));
 app.use(bodyParser.urlencoded({extended: true}));
 
-// Routes which don't require Staff Single Sign-On
+
+/*  Routes */
+
+// // Routes which don't require Staff Single Sign-On
 app.route(`/feed/:type(${feedModel.types.join('|')})?`).get(noCache).get(feedController);
 app.route(`/api/${uuidParam}$`).get(apiController);
 
@@ -54,13 +64,45 @@ if(app.get('env') !== 'development') {
 // Routes which require Staff Single Sign-On
 app.route('/').get(noCache).get(indexController);
 
-app.route(`^/${uuidParam}$`).get(noCache).get(indexController);
+app.route(`^/${uuidParam}$`).get(noCache).get(articleController);
 
-app.route(`^/${uuidParam}$`).post(noCache).post(articleController);
-app.route(`^/${uuidParam}/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
+// app.route(`^/${uuidParam}$`).post(noCache).post(articleController);
+// app.route(`^/${uuidParam}/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
-// Dev-only, to be removed
-app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);
+// // Dev-only, to be removed
+// app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);
 
+
+/* Errors */
+
+const logErrors = (error, req, res, next) => {
+	console.error(error.stack);
+	next(error);
+};
+
+const clientErrorHandler = (error, req, res, next) => {
+	if(req.xhr) {
+		res.status(500).send({
+			error,
+		});
+	} else {
+		next(error);
+	}
+};
+
+const errorHandler = (error, req, res, next) => {
+	res.status(500);
+	res.render('error', {
+		error,
+		stack: (app.get('env') === 'development') && error.stack,
+	});
+};
+
+app.use(logErrors);
+app.use(clientErrorHandler);
+app.use(errorHandler);
+
+
+/* Start */
 
 app.listen(port, () => console.log('Up and running on port', port));
