@@ -6,6 +6,7 @@ const swag = require('swag');
 
 swag.registerHelpers(handlebars);
 
+// TODO: https://github.com/ericf/express-handlebars
 const templateCache = {};
 
 function getTemplate(name) {

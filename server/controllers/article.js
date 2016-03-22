@@ -6,6 +6,18 @@ const database = require('../lib/database');
 const feedModel = require('../models/feed');
 const moment = require('moment');
 
+
+// TODO: handlebars helper?
+const formatDates = obj => {
+	Object.keys(obj).forEach(key => {
+		if(key.indexOf('date_') === 0 && /\d+/.test(obj[key])) {
+			const date = moment(parseInt(obj[key], 10));
+			obj[key] = date.format();
+			obj[`${key}_formatted`] = date.fromNow();
+		}
+	});
+};
+
 const getArticle = uuid => database.get(uuid)
 .then(databaseRecord => {
 	if(databaseRecord) return Promise.resolve(databaseRecord);
@@ -17,81 +29,102 @@ const getArticle = uuid => database.get(uuid)
 			date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
 		}))
 		.then(article => database.update(article))
-		.then(database.get(uuid));
+		.then(() => database.get(uuid));
 })
-.then(article => {
-	Object.keys(article).forEach(key => {
-		if(key.indexOf('date_') === 0 && /\d+/.test(article[key])) {
-			const date = moment(parseInt(article[key], 10));
-			article[key] = date.format();
-			article[`${key}_formatted`] = date.fromNow();
-		}
-	});
+.then(databaseRecord => {
+	const article = {
+		uuid: databaseRecord.uuid,
+		title: databaseRecord.title,
+		date_editorially_published: databaseRecord.date_editorially_published,
+		date_record_updated: databaseRecord.date_record_updated,
+		feeds: {
+			development: {
+				feed: 'development',
+				date_published: databaseRecord.date_published_development,
+				date_imported: databaseRecord.date_imported_development,
+				impressions: databaseRecord.development_impressions,
+			},
+			production: {
+				feed: 'production',
+				date_published: databaseRecord.date_published_production,
+				date_imported: databaseRecord.date_imported_production,
+				impressions: databaseRecord.production_impressions,
+			},
+		},
+	};
+
+	formatDates(article);
+	formatDates(article.feeds.development);
+	formatDates(article.feeds.production);
 
 	return article;
 });
 
-module.exports = (req, res) => {
-	const uuid = req.params.uuid;
+const renderStatus = article => Promise.all(
+	feedModel.types.map(feed => (console.log(feed, article.feeds[feed]), renderer.renderTemplate('article-feed-status', article.feeds[feed])))
+)
+.then(feedHTML => {
+	article.feedHTML = feedHTML;
+})
+.then(() => renderer.renderTemplate('article-status', article));
 
-	return getArticle(uuid)
-	.then(article => Promise.all(
-			feedModel.types.map(feed => renderer.renderTemplate('article-feed-status', {
-				feed,
-				status: 'Not published',
-			}))
-		)
-		.then(feedHTML => {
-			article.feeds = feedHTML;
-		})
-		.then(() => renderer.renderTemplate('article-status', article))
-	)
-	.then(fragmentHTML => {
-		res.send(fragmentHTML);
-	})
-	.catch(err => renderer.outputError(err, res));
+const runAction = (action, uuid = null) => {
+	switch(action) {
+		case 'add-update':
+			return getArticle(uuid)
+				.then(database.update);
+
+		case 'list':
+			return database.list();
+
+		case 'get':
+			return getArticle(uuid);
+
+		case 'wipe':
+			return database.wipe();
+
+		case 'publish':
+			return database.publish('development', uuid)
+				.then(() => getArticle(uuid))
+				.then(article => ({
+					text: 'Published in RSS feed: ',
+					published: article.feeds.development.date_published,
+				}));
+
+		case 'unpublish':
+			return database.unpublish('development', uuid);
+
+		case 'feed':
+			return database.feed('development')
+				.then(articles => {
+					const promises = Object.keys(articles)
+						.map(thisUuid => database.impression('development', thisUuid));
+					return Promise.all(promises)
+						.then(impressionCounts => ({articles, impressionCounts}));
+				});
+
+
+		default:
+			return Promise.resolve(`Action ${action} not recognised.`);
+	}
 };
 
-module.exports.action = (req, res) => {
+module.exports = (req, res) => {
 	const uuid = req.params.uuid;
 	const action = req.params.action;
 
 	return Promise.resolve()
 	.then(() => {
-		switch(action) {
-			case 'add-update':
-				return getArticle(uuid)
-					.then(database.update);
-
-			case 'list':
-				return database.list();
-
-			case 'get':
-				return database.getArticle(uuid);
-
-			case 'wipe':
-				return database.wipe();
-
-			case 'publish':
-				return database.publish('development', uuid);
-
-			case 'unpublish':
-				return database.unpublish('development', uuid);
-
-			case 'feed':
-				return database.feed('development')
-					.then(articles => {
-						const promises = Object.keys(articles)
-							.map(thisUuid => database.impression('development', thisUuid));
-						return Promise.all(promises)
-							.then(impressionCounts => ({articles, impressionCounts}));
-					});
-
-
-			default:
-				return Promise.resolve(`Action ${action} not recognised.`);
+		if(!action) {
+			return getArticle(uuid)
+				.then(renderStatus)
+				.then(fragmentHTML => {
+					res.send(fragmentHTML);
+				});
 		}
+
+		return runAction(action, uuid)
+			.then(result => res.json(result));
 	})
-	.then(replies => res.send(`${action}<br /><code><pre>${JSON.stringify(replies, null, '\t')}`))
 	.catch(err => renderer.outputError(err, res));
 };

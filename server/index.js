@@ -15,7 +15,6 @@ const app = express();
 
 const feedModel = require('./models/feed');
 
-const devController = require('./controllers/dev');
 const feedController = require('./controllers/feed');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
@@ -54,11 +53,14 @@ if(app.get('env') !== 'development') {
 
 // Routes which require Staff Single Sign-On
 app.route('/').get(noCache).get(indexController);
-app.route(`^/${uuidParam}$`).post(noCache).post(articleController);
+
 app.route(`^/${uuidParam}$`).get(noCache).get(indexController);
 
+app.route(`^/${uuidParam}$`).post(noCache).post(articleController);
+app.route(`^/${uuidParam}/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
+
 // Dev-only, to be removed
-app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController.action);
+app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);
 
 
 app.listen(port, () => console.log('Up and running on port', port));

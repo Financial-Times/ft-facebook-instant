@@ -1,5 +1,5 @@
 /* global $ */
-/* exported deleteArticle, localArticleAction, uploadArticle, loadTestArticle */
+/* exported unpublishArticle, publishArticle, localArticleAction, uploadArticle, loadTestArticle */
 
 'use strict';
 
@@ -63,29 +63,57 @@ function initialiseStatusCards() {
 
 function updateStatusCard(feed) {
 	var card = $('.' + feed + '-status-card');
-	var uploaded = card.attr('data-uploaded');
+	var published = card.attr('data-published');
+	var imported = card.attr('data-imported');
 
-	if (uploaded) {
-		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="deleteArticle(\'' + feed + '\');"><i class="fa fa-trash-o"></i> Delete</button><button class="o-techdocs-card__actionbutton" onclick="uploadArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Update</button>');
-		updateStatusIcon(feed, 'fa-square');
+	if (published) {
+		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="unpublishArticle(\'' + feed + '\');"><i class="fa fa-trash-o"></i> Remove from feed</button>');
+		updateStatusIcon(feed, 'fa-plus-square-o');
+	} else if (imported) {
+		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="publishArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>');
+		updateStatusIcon(feed, 'fa-check-square-o');
 	} else {
-		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="uploadArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Publish</button>');
+		$('.feed-actions', card).html('<button class="o-techdocs-card__actionbutton" onclick="publishArticle(\'' + feed + '\');"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>');
 		updateStatusIcon(feed, 'fa-square-o');
 	}
 }
 
-function deleteArticle(feed) {
+function unpublishArticle(feed) {
 	updateStatusIcon(feed, 'fa-spinner fa-spin');
 	setButtonState(feed, false);
-	$('.' + feed + '-status-text').html('Deleting, please wait...');
+	$('.' + feed + '-status-text').html('Removing, please wait...');
 
 	$.ajax({
 		type: 'POST',
-		url: '/delete/' + feed + '/' + $('.article-status-card').attr('data-uuid'),
+		url: '/' + $('.article-status-card').attr('data-uuid') + '/unpublish',
+		success: function(data) {
+			updateStatusIcon(feed, 'fa-square-o');
+			$('.' + feed + '-status-text').html(data);
+			$('.' + feed + '-status-card').attr('data-published', '');
+			setTimeout(function() { updateStatusCard(feed); }, 1000);
+		},
+		error: function(jqXHR, status, error) {
+			updateStatusIcon(feed, 'fa-times');
+			setButtonState(feed, true);
+			$('.' + feed + '-status-text').html('Server returned error: ' + jqXHR.responseText);
+		}
+	});
+
+	return false;
+}
+
+function publishArticle(feed) {
+	updateStatusIcon(feed, 'fa-spinner fa-spin');
+	setButtonState(feed, false);
+	$('.' + feed + '-status-text').html('Publishing, please wait...');
+
+	$.ajax({
+		type: 'POST',
+		url: '/' + $('.article-status-card').attr('data-uuid') + '/publish',
 		success: function(data) {
 			updateStatusIcon(feed, 'fa-check');
-			$('.' + feed + '-status-text').html(data);
-			$('.' + feed + '-status-card').attr('data-uploaded', '');
+			$('.' + feed + '-status-text').html(data.text);
+			$('.' + feed + '-status-card').attr('data-published', data.published);
 			setTimeout(function() { updateStatusCard(feed); }, 1000);
 		},
 		error: function(jqXHR, status, error) {
