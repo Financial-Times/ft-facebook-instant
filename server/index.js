@@ -62,12 +62,12 @@ if(app.get('env') !== 'development') {
 }
 
 // Routes which require Staff Single Sign-On
-app.route('/').get(noCache).get(indexController);
+app.route('/').get(noCache).get(handlebars.exposeTemplates, indexController);
 
-app.route(`^/${uuidParam}$`).get(noCache).get(articleController);
+app.route(`^/${uuidParam}$`).get(noCache).get(articleController, handlebars.exposeTemplates);
 
 // app.route(`^/${uuidParam}$`).post(noCache).post(articleController);
-// app.route(`^/${uuidParam}/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
+app.route(`^/${uuidParam}/:action(get|publish|unpublish)$`).post(noCache).post(articleController, handlebars.exposeTemplates);
 
 // // Dev-only, to be removed
 // app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);

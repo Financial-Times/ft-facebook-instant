@@ -8,6 +8,5 @@ module.exports = (req, res, next) => Promise.resolve()
 .then(() => res.render('index', {
 	IS_DEV: (process.env.NODE_ENV === 'development'),
 	testuuids,
-	uuid: req.params.uuid,
 }))
 .catch(next);

@@ -58,14 +58,6 @@ const getArticle = uuid => database.get(uuid)
 	return article;
 });
 
-const renderStatus = article => Promise.all(
-	feedModel.types.map(feed => (console.log(feed, article.feeds[feed]), renderer.renderTemplate('article-feed-status', article.feeds[feed])))
-)
-.then(feedHTML => {
-	article.feedHTML = feedHTML;
-})
-.then(() => renderer.renderTemplate('article-status', article));
-
 const runAction = (action, uuid = null) => {
 	switch(action) {
 		case 'add-update':
@@ -119,7 +111,6 @@ module.exports = (req, res, next) => {
 
 		return runAction(action, uuid)
 			.then(() => getArticle(uuid))
-			.then(renderStatus)
 			.then(fragmentHTML => {
 				res.send(fragmentHTML);
 			});

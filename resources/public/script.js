@@ -1,4 +1,4 @@
-/* global $ */
+/* global $, Handlebars */
 /* exported unpublishArticle, publishArticle, localArticleAction, uploadArticle, loadTestArticle */
 
 'use strict';
@@ -23,10 +23,10 @@ function submitForm() {
 
 	$.ajax({
 		type: 'POST',
-		url: '/' + uuid[0],
-		success: function(data) {
+		url: '/' + uuid[0] + '/get',
+		success: function(article) {
 			restoreForm();
-			$('.article-status-container').html(data);
+			$('.article-status-container').html(Handlebars.partials['article-status'](article));
 			initialiseStatusCards();
 		},
 		error: function(jqXHR, status, error) {
@@ -81,11 +81,9 @@ function unpublishArticle(feed) {
 	$.ajax({
 		type: 'POST',
 		url: '/' + $('.article-status-card').attr('data-uuid') + '/unpublish',
-		success: function(data) {
-			updateStatusIcon(feed, 'fa-square-o');
-			$('.' + feed + '-publish-status-text').html(data);
-			$('.' + feed + '-publish-status-card').attr('data-published', '');
-			setTimeout(function() { updateStatusCard(feed); }, 1000);
+		success: function(article) {
+			$('.article-status-container').html(Handlebars.partials['article-status'](article));
+			updateStatusCard(feed);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(feed, 'fa-times');
@@ -105,9 +103,9 @@ function publishArticle(feed) {
 	$.ajax({
 		type: 'POST',
 		url: '/' + $('.article-status-card').attr('data-uuid') + '/publish',
-		success: function(data) {
-			$('.' + feed + '-status-card').html(data);
-			setTimeout(function() { updateStatusCard(feed); }, 1000);
+		success: function(article) {
+			$('.article-status-container').html(Handlebars.partials['article-status'](article));
+			updateStatusCard(feed);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(feed, 'fa-times');
