@@ -15,6 +15,7 @@ const generate = (type, articles) => {
 
 	articles.forEach(article => {
 		const published = moment(parseInt(article.date_editorially_published, 10));
+		console.log('PUBLISHED:', article.date_editorially_published, parseInt(article.date_editorially_published, 10), published.format());
 
 		feed.item({
 			// The headline of the article.
