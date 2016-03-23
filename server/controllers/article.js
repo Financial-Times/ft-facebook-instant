@@ -1,9 +1,9 @@
 'use strict';
 
+const moment = require('moment');
 const fetchArticle = require('../lib/fetchArticle');
 const database = require('../lib/database');
 const testUuids = require('../lib/testUuids');
-const moment = require('moment');
 
 // TODO: handlebars helper?
 const formatDates = obj => {
@@ -104,7 +104,7 @@ const runAction = params => {
 			return database.feed(feed)
 				.then(articles => {
 					const promises = Object.keys(articles)
-						.map(thisUuid => database.impression('development', thisUuid));
+						.map(thisUuid => database.impression(feed, thisUuid));
 					return Promise.all(promises)
 						.then(impressionCounts => ({articles, impressionCounts}));
 				});

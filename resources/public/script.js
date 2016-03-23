@@ -68,7 +68,7 @@ function setPublishState(feed, publish) {
 
 	$.ajax({
 		type: 'POST',
-		url: '/' + $('.article-status-card').attr('data-uuid') + (publish ? '/publish' : '/unpublish'),
+		url: '/' + $('.article-status-card').attr('data-uuid') + '/' + feed + '/' + (publish ? 'publish' : 'unpublish'),
 		success: function(article) {
 			updateStatus(article);
 		},

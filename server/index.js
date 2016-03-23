@@ -21,6 +21,7 @@ const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const apiController = require('./controllers/api');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
+const feedTypesList = feedModel.types.join('|');
 
 assertEnv([
 	'AWS_ACCESS_KEY',
@@ -52,8 +53,8 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 /*  Routes */
 
-// // Routes which don't require Staff Single Sign-On
-app.route(`/feed/:type(${feedModel.types.join('|')})?`).get(noCache).get(feedController);
+// Routes which don't require Staff Single Sign-On
+app.route(`/feed/:type(${feedTypesList})?`).get(noCache).get(feedController);
 app.route(`/api/${uuidParam}$`).get(apiController);
 
 // Add Staff Single Sign-On middleware
@@ -66,7 +67,7 @@ app.route('/').get(noCache).get(handlebars.exposeTemplates, indexController);
 
 app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
 
-app.route(`^/${uuidParam}/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
+app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
 // Dev-only, to be removed
 app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);
@@ -94,8 +95,21 @@ const clientErrorHandler = (error, req, res, next) => {
 	}
 };
 
+const notFoundHandler = (req, res) => {
+	const message = {
+		error: `Path [${req.originalUrl}] not recognised`,
+	};
+	res.status(404);
+	if(req.xhr) {
+		res.json(message);
+	} else {
+		res.render('error', message);
+	}
+};
+
 app.use(logErrors);
 app.use(clientErrorHandler);
+app.use(notFoundHandler);
 
 
 /* Start */
