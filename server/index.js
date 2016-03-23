@@ -16,6 +16,7 @@ const app = express();
 
 const feedModel = require('./models/feed');
 
+const devController = require('./controllers/dev');
 const feedController = require('./controllers/feed');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
@@ -55,7 +56,6 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // Routes which don't require Staff Single Sign-On
 app.route(`/feed/:type(${feedTypesList})?`).get(noCache).get(feedController);
-app.route(`/api/${uuidParam}$`).get(apiController);
 
 // Add Staff Single Sign-On middleware
 if(app.get('env') !== 'development') {
@@ -63,15 +63,18 @@ if(app.get('env') !== 'development') {
 }
 
 // Routes which require Staff Single Sign-On
+app.route(`/api/${uuidParam}$`).get(apiController);
+
 app.route('/').get(noCache).get(handlebars.exposeTemplates, indexController);
 
 app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
 
 app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
-// Dev-only, to be removed
-app.route(`^/${uuidParam}/:action`).get(noCache).get(articleController);
-
+// Dev-only route
+if(app.get('env') === 'development') {
+	app.route('^/dev/:action').get(noCache).get(devController);
+}
 
 /* Errors */
 

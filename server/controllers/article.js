@@ -38,12 +38,9 @@ const getArticle = uuid => database.get(uuid)
 
 const checkParams = params => {
 	const required = {
-		list: [],
-		wipe: [],
 		get: ['uuid'],
 		publish: ['uuid', 'feed'],
 		unpublish: ['uuid', 'feed'],
-		feed: ['uuid'],
 	};
 	const {action} = params;
 
@@ -64,29 +61,14 @@ const runAction = params => {
 	const {uuid, feed, action} = checkParams(params);
 
 	switch(action) {
-		case 'list':
-			return database.list();
-
 		case 'get':
 			return getArticle(uuid);
-
-		case 'wipe':
-			return database.wipe();
 
 		case 'publish':
 			return database.publish(feed, uuid);
 
 		case 'unpublish':
 			return database.unpublish(feed, uuid);
-
-		case 'feed':
-			return database.feed(feed)
-				.then(articles => {
-					const promises = Object.keys(articles)
-						.map(thisUuid => database.impression(feed, thisUuid));
-					return Promise.all(promises)
-						.then(impressionCounts => ({articles, impressionCounts}));
-				});
 
 		default:
 			throw Error(`Action [${action}] not recognised.`);

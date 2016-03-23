@@ -4,11 +4,9 @@ const database = require('../lib/database');
 
 module.exports = (req, res) => {
 	switch(req.params.action) {
-		case 'dbwipe':
-			database.wipe()
-				.then(result => console.log('Database wiped', result))
-				.then(() => res.send('wiped'));
-			break;
+		case 'wipe':
+			return database.wipe()
+				.then(result => res.send(`Database wiped: [${result}]`));
 		default:
 			res.sendStatus(404);
 			break;

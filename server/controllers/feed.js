@@ -1,6 +1,7 @@
 'use strict';
 
-const feed = require('../lib/feed');
+const feed = require('../models/feed');
+const database = require('../lib/database');
 const auth = require('basic-auth');
 
 const checkAuth = req => {
@@ -22,7 +23,12 @@ module.exports = (req, res, next) => {
 	}
 
 	const type = req.params.type || 'production';
-	feed.generate(type)
+	if(feed.types.indexOf(type) === -1) {
+		throw Error(`Unrecognised feed type [${type}]`);
+	}
+
+	return database.feed(type)
+		.then(articles => feed.generate(type, articles))
 		.then(rss => {
 			res.set('Content-Type', 'application/rss+xml');
 			res.send(rss);

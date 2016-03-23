@@ -41,7 +41,6 @@ const get = (multi, uuid) => multi
 	.lrange(`article:${uuid}:impressions:production`, 0, -1);
 
 const getMulti = uuids => {
-	console.log('List of uuids', uuids);
 	if(!uuids) return Promise.resolve([]);
 
 	const multi = client.multi();
@@ -52,11 +51,7 @@ const getMulti = uuids => {
 
 	return multi
 		.execAsync()
-		.then(replies => extractAllDetails(uuids, replies))
-		.then(articles => {
-			console.log('List of articles', articles);
-			return articles;
-		});
+		.then(replies => extractAllDetails(uuids, replies));
 };
 
 const update = article => {
@@ -71,11 +66,7 @@ const update = article => {
 		)
 		.zadd('articles', article.date_record_updated, article.uuid)
 		.execAsync()
-		.then(replies => {
-			const [articlereply, articles] = replies;
-			console.log('Update', {articlereply, articles});
-			return article;
-		});
+		.then(replies => article);
 };
 
 const publish = (feedType, uuid) => {
@@ -122,7 +113,6 @@ const impression = (feedType, uuid) => {
 	return client.lpushAsync(`article:${uuid}:impressions:${feedType}`, now)
 		.then(replies => {
 			const count = [replies];
-			console.log(`Impression count for ${uuid} in ${feedType}: ${count}`);
 			if(count >= maxImpressionCount) {
 				return client.multi()
 					.zadd(`date_imported_${feedType}`, now, uuid)
