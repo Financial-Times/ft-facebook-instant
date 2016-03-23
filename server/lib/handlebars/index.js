@@ -1,7 +1,7 @@
 'use strict';
 
 const expressHandlebars = require('express-handlebars');
-const swag = require('swag');
+const helpers = require('./helpers');
 const path = require('path');
 
 const templateOptions = {
@@ -14,6 +14,7 @@ const handlebarsHelper = expressHandlebars.create({
 	layoutsDir: path.resolve(process.cwd(), 'views/layouts/'),
 	partialsDir: path.resolve(process.cwd(), 'views/partials/'),
 	defaultLayout: 'page',
+	helpers,
 });
 
 // Middleware to expose the app's shared templates to the cliet-side of the app
@@ -48,7 +49,6 @@ module.exports = app => {
 	app.set('views', path.resolve(process.cwd(), 'views/templates/'));
 	app.engine('html', handlebarsHelper.engine);
 	app.set('view engine', 'html');
-	swag.registerHelpers(handlebarsHelper.handlebars);
 };
 
 module.exports.exposeTemplates = exposeTemplates;

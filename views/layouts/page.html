@@ -30,8 +30,6 @@
 		<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 		<script src="//build.origami.ft.com/v2/bundles/js?modules=o-header%404.0.0%2Co-techdocs%405.0.1%2Co-autoinit%401.2.0&shrinkwrap=ftdomdelegate%402.0.3%2CFinancial-Times/highlight.js-shim@5eb4727ba777e7683140de72ba01468e81639827%2Clodash%403.10.1-npm%2Co-assets%402.0.0%2Co-colors%403.3.1%2Co-dom%402.0.0%2Co-ft-icons%403.3.3%2Co-grid%404.0.7%2Co-hierarchical-nav%403.1.0%2Co-hoverable%403.0.0%2Co-layers%402.0.1%2Co-squishy-list%402.0.0%2Co-viewport%402.0.0%2Csass-mq%403.2.9"></script>
 
-
-		<script src="/swag.js"></script>
 		<script src="//cdn.jsdelivr.net/handlebarsjs/4.0.5/handlebars.runtime.min.js"></script>
 		<script>
 			(function setupTemplating() {
@@ -43,8 +41,6 @@
 				{{#templates}}
 					Handlebars.templates['{{{name}}}'] = {{{template}}};
 				{{/templates}}
-
-				Swag.registerHelpers(Handlebars);
 			})();
 		</script>
 

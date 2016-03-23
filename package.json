@@ -43,8 +43,7 @@
     "redis": "^2.5.1",
     "rss": "^1.2.1",
     "s3o-middleware": "^1.4.0",
-    "signed-aws-es-fetch": "^1.1.0",
-    "swag": "^0.7.0"
+    "signed-aws-es-fetch": "^1.1.0"
   },
   "devDependencies": {
     "eslint": "^2.3.0",
