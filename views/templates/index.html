@@ -1,6 +1,6 @@
 <form target="/" onsubmit="submitForm(); return false" class="uuidform o-forms">
 	<div class="o-forms-group js-uuid-group">
-		<label class="o-forms-label" for="uuid">Enter the article UUID or URL to process.</label>
+		<label class="o-forms-label" for="uuid">Enter the article UUID or URL to process:</label>
 		<div class="o-forms-affix-wrapper uuid-wrapper">
 			<input type="text" id="uuid" class="o-forms-text" {{#if uuid}}value="{{uuid}}"{{/if}}/>
 			<div class="o-forms-suffix">
@@ -11,9 +11,11 @@
 	</div>
 </form>
 
-<div class="article-status-container"></div>
+<div class="article-status-container">
+{{#if article}}{{> article-status article}}{{/if}}
+</div>
 
-{{#if IS_DEV}}
+{{#if testUuids}}
 <div class="o-techdocs-card">
 	<div class="o-techdocs-card__context">
 		<div class="o-techdocs-card__icon"><i class="fa fa-cogs"></i></div>
@@ -24,7 +26,7 @@
 	</div>
 	<div class="o-techdocs-card__content">
 		<ul class="fa-ul">
-			{{#each testuuids}}
+			{{#each testUuids}}
 				<li><i class="fa-li fa fa-hand-o-right"></i> <a class="article-test-link" href="javascript:loadTestArticle('{{uuid}}')">{{description}}</a></li>
 			{{/each}}
 		</ul>

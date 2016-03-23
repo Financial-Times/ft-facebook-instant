@@ -1,0 +1,43 @@
+<div class="o-techdocs-card status-card {{feed}}-status-card" data-feed="{{feed}}" data-published="{{date_published}}" data-imported="{{date_imported}}">
+	<div class="o-techdocs-card__context">
+		<div class="o-techdocs-card__icon"><i class="fa fa-arrow-circle-o-up"></i></div>
+		<div class="o-techdocs-card__heading">
+			<div class="o-techdocs-card__title">{{capitalizeFirst feed}} feed</div>
+		</div>
+	</div>
+
+	<div class="o-techdocs-card__content">
+		<ul class="feed-status">
+			<li class="{{feed}}-publish-status">
+				<i class="fa {{feed}}-publish-status-icon{{#if date_published}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
+				<span class="{{feed}}-publish-status-text">
+				{{#if date_published}}
+					Published in RSS feed: <strong title="{{rfcDate date_published}}">{{relativeDate date_published}}</strong>
+				{{else}}
+					Not published
+				{{/if}}
+				</span>
+			</li>
+			<li class="{{feed}}-import-status">
+				<i class="fa {{feed}}-import-status-icon{{#if date_imported}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
+				<span class="{{feed}}-import-status-text">
+				{{#if date_imported}}
+					Last imported by Facebook: <strong title="{{rfcDate date_imported}}">{{relativeDate date_imported}}</strong>
+				{{else}}
+					Not imported by Facebook
+				{{/if}}
+				</span>
+			</li>
+		</ul>
+	</div>
+
+	<div class="o-techdocs-card__actions">
+		<div class="feed-actions">
+			{{#if date_published}}
+			<button class="o-techdocs-card__actionbutton" onclick="setPublishState('{{feed}}', false);"><i class="fa fa-trash-o"></i> Remove from feed</button>
+			{{else}}
+			<button class="o-techdocs-card__actionbutton" onclick="setPublishState('{{feed}}', true);"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>
+			{{/if}}
+		</div>
+	</div>
+</div>

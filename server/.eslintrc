@@ -27,6 +27,10 @@
 		"no-else-return": 0,
 		"no-param-reassign": 0,
 		"no-console": 0,
+		"no-unused-vars": [2, {
+			"vars": "all",
+			"args": "none"
+		}],
 		"consistent-return": 0,
 		"object-shorthand": 1,
 		"prefer-rest-params": 0

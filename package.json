@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "scripts": {
     "lint": "scripts/lint.sh",
-    "start": "source scripts/env.sh && nodemon --delay 1",
+    "start": "source scripts/env.sh && nodemon",
     "postinstall": "grunt build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,9 +24,12 @@
     "basic-auth": "^1.0.3",
     "bluebird": "^3.3.4",
     "body-parser": "^1.15.0",
+    "cache-manager": "^2.0.0",
+    "cache-manager-fs": "^1.0.4",
     "denodeify": "^1.2.1",
     "express": "^4.13.4",
     "express-ftwebservice": "^2.1.2",
+    "express-handlebars": "^3.0.0",
     "fetchres": "^1.5.1",
     "forever": "^0.15.1",
     "grunt": "^0.4.5",
@@ -42,8 +45,7 @@
     "redis": "^2.5.1",
     "rss": "^1.2.1",
     "s3o-middleware": "^1.4.0",
-    "signed-aws-es-fetch": "^1.1.0",
-    "swag": "^0.7.0"
+    "signed-aws-es-fetch": "^1.1.0"
   },
   "devDependencies": {
     "eslint": "^2.3.0",
