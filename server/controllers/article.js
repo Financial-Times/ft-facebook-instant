@@ -5,20 +5,32 @@ const database = require('../lib/database');
 const testUuids = require('../lib/testUuids');
 const feedModel = require('../models/feed');
 
-const getArticle = uuid => database.get(uuid)
-.then(databaseRecord => {
-	if(databaseRecord) return Promise.resolve(databaseRecord);
-
-	return fetchArticle(uuid)
-		.then(apiRecord => ({
-			uuid: apiRecord.id,
-			title: apiRecord.title,
-			date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
-		}))
-		.then(article => database.update(article))
-		.then(() => database.get(uuid));
+const getArticle = uuid => Promise.all([
+	database.get(uuid),
+	fetchArticle(uuid),
+])
+.then(results => {
+	const [databaseRecord, apiRecord] = results;
+	return {databaseRecord, apiRecord};
 })
-.then(databaseRecord => {
+.then(results => {
+	if(results.databaseRecord) {
+		return results;
+	}
+
+	const {apiRecord} = results;
+
+	return database.update({
+		uuid: apiRecord.id,
+		title: apiRecord.title,
+		date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
+	})
+	.then(() => database.get(uuid))
+	.then(databaseRecord => ({databaseRecord, apiRecord}));
+})
+.then(results => {
+	const {databaseRecord} = results;
+
 	const article = {
 		uuid: databaseRecord.uuid,
 		title: databaseRecord.title,
