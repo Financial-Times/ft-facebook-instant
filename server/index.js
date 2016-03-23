@@ -71,10 +71,8 @@ app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(ar
 
 app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
-// Dev-only route
-if(app.get('env') === 'development') {
-	app.route('^/dev/:action').get(noCache).get(devController);
-}
+// Dev-only route - TODO, remove this endpoint in prod
+app.route('^/dev/:action').get(noCache).get(devController);
 
 /* Errors */
 
