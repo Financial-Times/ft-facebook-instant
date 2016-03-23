@@ -9,7 +9,7 @@ const templateOptions = {
 	precompiled: true,
 };
 
-const handlebarsHelper = expressHandlebars.create({
+const handlebars = expressHandlebars.create({
 	extname: '.html',
 	layoutsDir: path.resolve(process.cwd(), 'views/layouts/'),
 	partialsDir: path.resolve(process.cwd(), 'views/partials/'),
@@ -20,25 +20,30 @@ const handlebarsHelper = expressHandlebars.create({
 // Middleware to expose the app's shared templates to the cliet-side of the app
 // for pages which need them.
 const exposeTemplates = (req, res, next) => Promise.all([
-	handlebarsHelper.getTemplates(
+	handlebars.getTemplates(
 		path.resolve(process.cwd(), 'views/templates'),
 		templateOptions
 	),
-	handlebarsHelper.getTemplates(
+	handlebars.getTemplates(
 		path.resolve(process.cwd(), 'views/partials/'),
 		templateOptions
 	),
 ])
 .then(compiled => {
 	const [templates, partials] = compiled;
-	const all = Object.assign({}, templates, partials);
-	const extensionRegex = new RegExp(`${handlebarsHelper.extname}$`);
+	return Object.assign({}, templates, partials);
+})
+.then(templates => {
+	const extensionRegex = new RegExp(`${handlebars.extname}$`);
 
-	res.locals.templates = Object.keys(all)
+	res.locals.templates = Object.keys(templates)
 		.map(name => ({
 			name: name.replace(extensionRegex, ''),
-			template: `Handlebars.template(${all[name]});`,
+			template: `Handlebars.template(${templates[name]});`,
 		}));
+
+	res.locals.helpers = Object.keys(helpers)
+		.map(name => `Handlebars.registerHelper('${name}', ${helpers[name]})`);
 
 	next();
 })
@@ -47,7 +52,7 @@ const exposeTemplates = (req, res, next) => Promise.all([
 module.exports = app => {
 	templateOptions.cache = app.enabled('view cache');
 	app.set('views', path.resolve(process.cwd(), 'views/templates/'));
-	app.engine('html', handlebarsHelper.engine);
+	app.engine('html', handlebars.engine);
 	app.set('view engine', 'html');
 };
 

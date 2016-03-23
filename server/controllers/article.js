@@ -1,21 +1,9 @@
 'use strict';
 
-const moment = require('moment');
 const fetchArticle = require('../lib/fetchArticle');
 const database = require('../lib/database');
 const testUuids = require('../lib/testUuids');
 const feedModel = require('../models/feed');
-
-// TODO: handlebars helper?
-const formatDates = obj => {
-	Object.keys(obj).forEach(key => {
-		if(key.indexOf('date_') === 0 && /\d+/.test(obj[key])) {
-			const date = moment(parseInt(obj[key], 10));
-			obj[key] = date.format();
-			obj[`${key}_formatted`] = date.fromNow();
-		}
-	});
-};
 
 const getArticle = uuid => database.get(uuid)
 .then(databaseRecord => {
@@ -44,9 +32,6 @@ const getArticle = uuid => database.get(uuid)
 		date_imported: databaseRecord[`date_imported_${type}`],
 		impressions: databaseRecord[`${type}_impressions`],
 	}));
-
-	formatDates(article);
-	article.feeds.forEach(formatDates);
 
 	return article;
 });

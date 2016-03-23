@@ -12,7 +12,7 @@
 				<i class="fa {{feed}}-publish-status-icon{{#if date_published}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
 				<span class="{{feed}}-publish-status-text">
 				{{#if date_published}}
-					Published in RSS feed: <strong title="{{date_published}}">{{date_published_formatted}}</strong>
+					Published in RSS feed: <strong title="{{rfcDate date_published}}">{{relativeDate date_published}}</strong>
 				{{else}}
 					Not published
 				{{/if}}
@@ -22,7 +22,7 @@
 				<i class="fa {{feed}}-import-status-icon{{#if date_imported}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
 				<span class="{{feed}}-import-status-text">
 				{{#if date_imported}}
-					Last imported by Facebook: <strong title="{{date_imported}}">{{date_imported_formatted}}</strong>
+					Last imported by Facebook: <strong title="{{rfcDate date_imported}}">{{relativeDate date_imported}}</strong>
 				{{else}}
 					Not imported by Facebook
 				{{/if}}
