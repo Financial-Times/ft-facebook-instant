@@ -1,5 +1,5 @@
 /* global $, Handlebars */
-/* exported unpublishArticle, publishArticle, localArticleAction, uploadArticle, loadTestArticle */
+/* exported setPublishState, loadTestArticle */
 
 'use strict';
 
@@ -9,29 +9,38 @@ function submitForm() {
 	$('.js-uuid-error').text('');
 	$('.article-status-container').html('');
 	$('.js-uuid-group').removeClass('o-forms--error');
-	if (!$('#uuid').val()) {
+
+	var val = $('#uuid').val();
+	if (!val) {
 		return handleFormError('Please enter a UUID or article link to process');
 	}
-	var uuid = $('#uuid').val().match(uuidRegex);
-	if (!uuid) {
+	var matches = val.match(uuidRegex);
+	if (!matches) {
 		return handleFormError('Please enter a valid UUID or an article link containing a UUID');
 	}
-	if (window.location.pathname !== '/' + uuid[0]) {
-		window.history.pushState({}, '', '/' + uuid[0]);
+	var uuid = matches[0];
+	if (window.location.pathname !== '/' + uuid) {
+		window.history.pushState({
+			uuid: uuid
+		}, '', '/' + uuid);
 	}
 	$('.js-uuid-submission-button').attr('disabled', 'disabled').text('Processing').addClass('activity');
 
 	$.ajax({
 		type: 'POST',
-		url: '/' + uuid[0] + '/get',
+		url: '/' + uuid + '/get',
 		success: function(article) {
 			restoreForm();
-			$('.article-status-container').html(Handlebars.partials['article-status'](article));
+			updateStatus(article);
 		},
 		error: function(jqXHR, status, error) {
 			handleFormError('Server returned error: ' + jqXHR.responseText);
 		}
 	});
+}
+
+function updateStatus(article) {
+	$('.article-status-container').html(Handlebars.partials['article-status'](article));
 }
 
 function handleFormError(error) {
@@ -44,67 +53,30 @@ function restoreForm() {
 	$('.js-uuid-submission-button').removeAttr('disabled').text('Process').removeClass('activity');
 }
 
-function unpublishArticle(feed) {
+function setPublishState(feed, publish) {
 	updateStatusIcon(feed, 'fa-spinner fa-spin');
 	setButtonState(feed, false);
-	$('.' + feed + '-publish-status-text').html('Removing, please wait...');
 
-	$.ajax({
-		type: 'POST',
-		url: '/' + $('.article-status-card').attr('data-uuid') + '/unpublish',
-		success: function(article) {
-			$('.article-status-container').html(Handlebars.partials['article-status'](article));
-		},
-		error: function(jqXHR, status, error) {
-			updateStatusIcon(feed, 'fa-times');
-			setButtonState(feed, true);
-			$('.' + feed + '-publish-status-text').html('Server returned error: ' + jqXHR.responseText);
-		}
-	});
-
-	return false;
-}
-
-function publishArticle(feed) {
-	updateStatusIcon(feed, 'fa-spinner fa-spin');
-	setButtonState(feed, false);
-	$('.' + feed + '-publish-status-text').html('Publishing, please wait...');
-
-	$.ajax({
-		type: 'POST',
-		url: '/' + $('.article-status-card').attr('data-uuid') + '/publish',
-		success: function(article) {
-			$('.article-status-container').html(Handlebars.partials['article-status'](article));
-		},
-		error: function(jqXHR, status, error) {
-			updateStatusIcon(feed, 'fa-times');
-			setButtonState(feed, true);
-			$('.' + feed + '-publish-status-text').html('Server returned error: ' + jqXHR.responseText);
-		}
-	});
-
-	return false;
-}
-
-function localArticleAction(link, action) {
-	if ($(link).attr('data-inprogress')) {
-		return;
+	if (publish) {
+		$('.' + feed + '-publish-status-text').html('Publishing, please wait...');
+	} else {
+		$('.' + feed + '-publish-status-text').html('Removing, please wait...');
 	}
-	var originalContents = $(link).html();
-
-	$(link).attr('data-inprogress', 1).html('<i class="fa fa-spinner fa-spin" /> Previewing...');
 
 	$.ajax({
 		type: 'POST',
-		url: '/' + action + '/' + $('.article-status-card').attr('data-uuid'),
-		success: function() {
-			$(link).removeAttr('data-inprogress').html(originalContents);
+		url: '/' + $('.article-status-card').attr('data-uuid') + (publish ? '/publish' : '/unpublish'),
+		success: function(article) {
+			updateStatus(article);
 		},
 		error: function(jqXHR, status, error) {
-			$(link).removeAttr('data-inprogress').html(originalContents);
-			alert('Could not open preview: ' + jqXHR.responseText);
+			updateStatusIcon(feed, 'fa-times');
+			setButtonState(feed, true);
+			$('.' + feed + '-publish-status-text').html('Server returned error: ' + jqXHR.responseText);
 		}
 	});
+
+	return false;
 }
 
 function loadTestArticle(uuid) {

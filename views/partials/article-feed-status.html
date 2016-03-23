@@ -34,9 +34,9 @@
 	<div class="o-techdocs-card__actions">
 		<div class="feed-actions">
 			{{#if date_published}}
-			<button class="o-techdocs-card__actionbutton" onclick="unpublishArticle('{{feed}}');"><i class="fa fa-trash-o"></i> Remove from feed</button>
+			<button class="o-techdocs-card__actionbutton" onclick="setPublishState('{{feed}}', false);"><i class="fa fa-trash-o"></i> Remove from feed</button>
 			{{else}}
-			<button class="o-techdocs-card__actionbutton" onclick="publishArticle('{{feed}}');"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>
+			<button class="o-techdocs-card__actionbutton" onclick="setPublishState('{{feed}}', true);"><i class="fa fa-arrow-circle-up"></i> Publish to feed</button>
 			{{/if}}
 		</div>
 	</div>
