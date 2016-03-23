@@ -1,7 +1,7 @@
 'use strict';
 
 const client = require('./redisClient');
-const maxImpressionCount = 4;
+const maxImpressionCount = 1;
 
 
 const extractDetails = replies => {
