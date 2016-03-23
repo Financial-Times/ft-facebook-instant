@@ -40,7 +40,7 @@ const generate = (type, articles) => {
 
 				// The full content of your article, in HTML form. Remember to escape all HTML
 				// content by wrapping it within a CDATA section.
-				{'content:encoded': article.apiArticle.bodyXML},
+				{'content:encoded': article.apiArticle.bodyXML.replace(/[^\w\s]+/g, ' ')},
 			],
 		});
 	});
