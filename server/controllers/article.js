@@ -4,6 +4,7 @@ const moment = require('moment');
 const fetchArticle = require('../lib/fetchArticle');
 const database = require('../lib/database');
 const testUuids = require('../lib/testUuids');
+const feedModel = require('../models/feed');
 
 // TODO: handlebars helper?
 const formatDates = obj => {
@@ -35,21 +36,14 @@ const getArticle = uuid => database.get(uuid)
 		title: databaseRecord.title,
 		date_editorially_published: databaseRecord.date_editorially_published,
 		date_record_updated: databaseRecord.date_record_updated,
-		feeds: [
-			{
-				feed: 'development',
-				date_published: databaseRecord.date_published_development,
-				date_imported: databaseRecord.date_imported_development,
-				impressions: databaseRecord.development_impressions,
-			},
-			{
-				feed: 'production',
-				date_published: databaseRecord.date_published_production,
-				date_imported: databaseRecord.date_imported_production,
-				impressions: databaseRecord.production_impressions,
-			},
-		],
 	};
+
+	article.feeds = feedModel.types.map(type => ({
+		feed: type,
+		date_published: databaseRecord[`date_published_${type}`],
+		date_imported: databaseRecord[`date_imported_${type}`],
+		impressions: databaseRecord[`${type}_impressions`],
+	}));
 
 	formatDates(article);
 	article.feeds.forEach(formatDates);
