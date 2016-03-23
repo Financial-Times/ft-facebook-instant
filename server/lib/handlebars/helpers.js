@@ -7,6 +7,7 @@ module.exports = {
 		return str.charAt(0).toUpperCase() + str.slice(1);
 	},
 	rfcDate(timestamp) {
+		console.log('rfcDate', timestamp, parseInt(timestamp, 10), moment(parseInt(timestamp, 10)).format());// @nocommit
 		const date = moment(parseInt(timestamp, 10));
 		return date.format();
 	},

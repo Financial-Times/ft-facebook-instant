@@ -29,16 +29,24 @@ module.exports = (req, res, next) => {
 	}
 
 	return database.feed(type)
-		.then(articles => Promise.all(
-				Object.keys(articles).map(uuid => fetchArticle(uuid)
+		.then(feedList => {
+			const promises = Object.keys(feedList).map(uuid => fetchArticle(uuid)
 				.then(apiArticle => {
-					const article = articles[uuid];
+					const article = feedList[uuid];
 					article.apiArticle = apiArticle;
 					return article;
 				})
-			)
-		))
-		.then(articles => feed.generate(type, articles))
+			);
+
+			return Promise.all(promises)
+				.then(articles => {
+					const rss = feed.generate(type, articles);
+					const impressions = articles.map(article => database.impression(type, article.uuid));
+
+					return Promise.all(impressions)
+						.then(() => rss);
+				});
+		})
 		.then(rss => {
 			res.set('Content-Type', 'application/rss+xml');
 			res.send(rss);
