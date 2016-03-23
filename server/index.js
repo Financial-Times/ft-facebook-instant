@@ -80,26 +80,22 @@ const logErrors = (error, req, res, next) => {
 };
 
 const clientErrorHandler = (error, req, res, next) => {
-	if(req.xhr) {
-		res.status(500).send({
-			error,
-		});
-	} else {
-		next(error);
-	}
-};
-
-const errorHandler = (error, req, res, next) => {
-	res.status(500);
-	res.render('error', {
-		error,
+	const message = {
+		error: error.toString(),
 		stack: (app.get('env') === 'development') && error.stack,
-	});
+	};
+
+	res.status(400);
+
+	if(req.xhr) {
+		res.json(message);
+	} else {
+		res.render('error', message);
+	}
 };
 
 app.use(logErrors);
 app.use(clientErrorHandler);
-app.use(errorHandler);
 
 
 /* Start */

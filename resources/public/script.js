@@ -9,6 +9,7 @@ function submitForm() {
 	$('.js-uuid-error').text('');
 	$('.article-status-container').html('');
 	$('.js-uuid-group').removeClass('o-forms--error');
+	$('.error-card').remove();
 
 	var val = $('#uuid').val();
 	if (!val) {
@@ -28,6 +29,7 @@ function submitForm() {
 
 	$.ajax({
 		type: 'POST',
+		dataType: 'json',
 		url: '/' + uuid + '/get',
 		success: function(article) {
 			restoreForm();
@@ -56,6 +58,7 @@ function restoreForm() {
 function setPublishState(feed, publish) {
 	updateStatusIcon(feed, 'fa-spinner fa-spin');
 	setButtonState(feed, false);
+	$('.error-card').remove();
 
 	if (publish) {
 		$('.' + feed + '-publish-status-text').html('Publishing, please wait...');
@@ -72,7 +75,8 @@ function setPublishState(feed, publish) {
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(feed, 'fa-times');
 			setButtonState(feed, true);
-			$('.' + feed + '-publish-status-text').html('Server returned error: ' + jqXHR.responseText);
+			$('.' + feed + '-publish-status-text').html(jqXHR.responseJSON.error);
+			$('.' + feed + '-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
 		}
 	});
 

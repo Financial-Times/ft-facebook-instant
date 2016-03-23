@@ -5,7 +5,6 @@ const database = require('../lib/database');
 const testUuids = require('../lib/testUuids');
 const moment = require('moment');
 
-
 // TODO: handlebars helper?
 const formatDates = obj => {
 	Object.keys(obj).forEach(key => {
@@ -58,12 +57,34 @@ const getArticle = uuid => database.get(uuid)
 	return article;
 });
 
-const runAction = (action, uuid = null) => {
-	switch(action) {
-		case 'add-update':
-			return getArticle(uuid)
-				.then(database.update);
+const checkParams = params => {
+	const required = {
+		list: [],
+		wipe: [],
+		get: ['uuid'],
+		publish: ['uuid', 'feed'],
+		unpublish: ['uuid', 'feed'],
+		feed: ['uuid'],
+	};
+	const {action} = params;
 
+	if(!required[action]) {
+		throw Error(`Action [${action}] not recognised.`);
+	}
+
+	required[action].forEach(key => {
+		if(!params[key]) {
+			throw Error(`Missing required parameter [${key}] for action [${action}].`);
+		}
+	});
+
+	return params;
+};
+
+const runAction = params => {
+	const {uuid, feed, action} = checkParams(params);
+
+	switch(action) {
 		case 'list':
 			return database.list();
 
@@ -74,13 +95,13 @@ const runAction = (action, uuid = null) => {
 			return database.wipe();
 
 		case 'publish':
-			return database.publish('development', uuid);
+			return database.publish(feed, uuid);
 
 		case 'unpublish':
-			return database.unpublish('development', uuid);
+			return database.unpublish(feed, uuid);
 
 		case 'feed':
-			return database.feed('development')
+			return database.feed(feed)
 				.then(articles => {
 					const promises = Object.keys(articles)
 						.map(thisUuid => database.impression('development', thisUuid));
@@ -88,34 +109,26 @@ const runAction = (action, uuid = null) => {
 						.then(impressionCounts => ({articles, impressionCounts}));
 				});
 
-
 		default:
-			return Promise.resolve(`Action ${action} not recognised.`);
+			throw Error(`Action [${action}] not recognised.`);
 	}
 };
 
 module.exports = (req, res, next) => {
 	const uuid = req.params.uuid;
+	const feed = req.params.feed;
 	const action = req.params.action;
 
 	return Promise.resolve()
 	.then(() => {
 		if(!action) {
 			return getArticle(uuid)
-				.then(article => (console.log(article), article))
-				.then(article => res.render('index', {
-					uuid,
-					article,
-					testUuids,
-				}))
-				.catch(next);
+				.then(article => res.render('index', {uuid, article, testUuids}));
 		}
 
-		return runAction(action, uuid)
+		return runAction({uuid, feed, action})
 			.then(() => getArticle(uuid))
-			.then(fragmentHTML => {
-				res.send(fragmentHTML);
-			});
+			.then(response => res.send(response));
 	})
 	.catch(next);
 };
