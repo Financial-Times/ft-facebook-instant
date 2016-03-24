@@ -67,7 +67,7 @@ const get = uuid => Promise.all([
 	.then(databaseRecord => ({databaseRecord, apiRecord}));
 })
 .then(results => {
-	const {databaseRecord} = results;
+	const {databaseRecord, apiRecord} = results;
 
 	const article = {
 		uuid: databaseRecord.uuid,
@@ -83,6 +83,7 @@ const get = uuid => Promise.all([
 		impressions: databaseRecord[`${type}_impressions`],
 	}));
 
+	article.apiArticle = apiRecord;
 	return article;
 });
 

@@ -4,12 +4,13 @@ const notifications = require('../lib/notifications');
 const database = require('../lib/database');
 const articleModel = require('../models/article');
 
-const UPDATE_INTERVAL = 100 * 60 * 1000;
+const UPDATE_INTERVAL = 1 * 60 * 1000;
 
-const update = apiVersion => notifications.createNotificationsList(
-	new Date(Date.now() - UPDATE_INTERVAL).toISOString(),
-	{apiVersion}
-)
+const update = apiVersion => database.getLastNotificationCheck()
+.then(lastCheck => {
+	lastCheck = new Date(lastCheck || (Date.now() - UPDATE_INTERVAL)).toISOString();
+	return notifications.createNotificationsList(lastCheck, {apiVersion});
+})
 .then(notificationsList => notificationsList
 	.filter(item => item.type === 'content-item-update')
 	.map(item => item.data['content-item'].id)
@@ -39,7 +40,13 @@ const poller = () => Promise.all([
 .then(getKnownArticles)
 .then(articles => Promise.all(articles.map(article => articleModel.update(article)))
 	.then(() => {
-		console.log(`${Date()}: updated articles ${articles.map(article => article.uuid)}`);
+		if(articles.length) {
+			console.log(`${Date()}: updated articles ${articles.map(article => article.uuid)}`);
+		} else {
+			console.log(`${Date()}: no articles to update`);
+		}
+
+		return database.setLastNotificationCheck(Date.now());
 	})
 )
 .catch(e => console.log(e)); // TODO: error reporting

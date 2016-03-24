@@ -2,17 +2,6 @@
 Facebook Instant Articles
 
 
-### Database 'schema' ###
-- *article:{uuid}*
-	- Hash of article metadata: {uuid}, {title}, {date_editorially_published}, {date_record_updated}, {date_published_production}, {date_published_development}, {date_imported_production}, {date_imported_development}
-- *published_{feed_type}*
-	- Sorted set of *uuid*s scored by {date_published_{feed_type}}
-- *imported_{feed_type}*
-	- Sorted set of *uuid*s scored by {date_imported}
-- *article:{uuid}:impressions:{feed_type}*
-	- List of RSS feed impression timestamps (i.e. times seen by Facebook)
-- *articles*
-	- Sorted Set of known articles, scored by {date_record_updated}
 
 ### Database stories ###
 - Add/update an article
