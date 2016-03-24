@@ -69,12 +69,14 @@ app.route('/').get(noCache).get(handlebars.exposeTemplates, indexController);
 
 app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
 
-app.route(`/${uuidParam}/api$`).get(apiController);
+app.route(`^/${uuidParam}/api$`).get(apiController);
 
 app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
-// Dev-only route - TODO, remove this endpoint in prod
+// Dev-only routes - TODO, remove these endpoint in prod
+app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).get(noCache).get(articleController);
 app.route('^/dev/:action').get(noCache).get(devController);
+
 
 /* Errors */
 
