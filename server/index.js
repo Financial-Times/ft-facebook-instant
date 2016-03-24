@@ -20,6 +20,7 @@ const devController = require('./controllers/dev');
 const feedController = require('./controllers/feed');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
+const notificationsController = require('./controllers/notifications');
 const apiController = require('./controllers/api');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
 const feedTypesList = feedModel.types.join('|');
@@ -64,11 +65,11 @@ if(app.get('env') !== 'development') {
 }
 
 // Routes which require Staff Single Sign-On
-app.route(`/api/${uuidParam}$`).get(apiController);
-
 app.route('/').get(noCache).get(handlebars.exposeTemplates, indexController);
 
 app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
+
+app.route(`/${uuidParam}/api$`).get(apiController);
 
 app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
@@ -115,5 +116,7 @@ app.use(notFoundHandler);
 
 
 /* Start */
+
+notificationsController.init();
 
 app.listen(port, () => console.log('Up and running on port', port));

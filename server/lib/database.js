@@ -60,9 +60,7 @@ const getMulti = uuids => {
 		.then(replies => extractAllDetails(uuids, replies));
 };
 
-const update = article => {
-	article.date_record_updated = Date.now();
-
+const set = article => {
 	return client.multi()
 		.hmset(`article:${article.uuid}`,
 			'uuid', article.uuid,
@@ -145,7 +143,7 @@ module.exports = {
 		}
 		return get(uuids);
 	},
-	update,
+	set,
 	list,
 	wipe,
 	publish,

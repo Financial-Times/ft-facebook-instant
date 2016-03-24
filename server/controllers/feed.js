@@ -1,9 +1,9 @@
 'use strict';
 
-const feed = require('../models/feed');
+const feedModel = require('../models/feed');
+const articleModel = require('../models/article');
 const database = require('../lib/database');
 const auth = require('basic-auth');
-const fetchArticle = require('../lib/fetchArticle');
 
 const checkAuth = req => {
 	if(!req.query.__forceauth && process.env.NODE_ENV !== 'production') return true;
@@ -24,13 +24,13 @@ module.exports = (req, res, next) => {
 	}
 
 	const type = req.params.type || 'production';
-	if(feed.types.indexOf(type) === -1) {
+	if(feedModel.types.indexOf(type) === -1) {
 		throw Error(`Unrecognised feed type [${type}]`);
 	}
 
 	return database.feed(type)
 		.then(feedList => {
-			const promises = Object.keys(feedList).map(uuid => fetchArticle(uuid)
+			const promises = Object.keys(feedList).map(uuid => articleModel.get(uuid)
 				.then(apiArticle => {
 					const article = feedList[uuid];
 					article.apiArticle = apiArticle;
@@ -40,7 +40,7 @@ module.exports = (req, res, next) => {
 
 			return Promise.all(promises)
 				.then(articles => {
-					const rss = feed.generate(type, articles);
+					const rss = feedModel.generate(type, articles);
 					const impressions = articles.map(article => database.impression(type, article.uuid));
 
 					return Promise.all(impressions)

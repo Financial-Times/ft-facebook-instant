@@ -1,52 +1,7 @@
 'use strict';
 
-const fetchArticle = require('../lib/fetchArticle');
-const database = require('../lib/database');
+const articleModel = require('../models/article');
 const testUuids = require('../lib/testUuids');
-const feedModel = require('../models/feed');
-
-const getArticle = uuid => Promise.all([
-	database.get(uuid),
-	fetchArticle(uuid),
-])
-.then(results => {
-	const [databaseRecord, apiRecord] = results;
-	return {databaseRecord, apiRecord};
-})
-.then(results => {
-	if(results.databaseRecord) {
-		return results;
-	}
-
-	const {apiRecord} = results;
-
-	return database.update({
-		uuid: apiRecord.id,
-		title: apiRecord.title,
-		date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
-	})
-	.then(() => database.get(uuid))
-	.then(databaseRecord => ({databaseRecord, apiRecord}));
-})
-.then(results => {
-	const {databaseRecord} = results;
-
-	const article = {
-		uuid: databaseRecord.uuid,
-		title: databaseRecord.title,
-		date_editorially_published: databaseRecord.date_editorially_published,
-		date_record_updated: databaseRecord.date_record_updated,
-	};
-
-	article.feeds = feedModel.types.map(type => ({
-		feed: type,
-		date_published: databaseRecord[`date_published_${type}`],
-		date_imported: databaseRecord[`date_imported_${type}`],
-		impressions: databaseRecord[`${type}_impressions`],
-	}));
-
-	return article;
-});
 
 const checkParams = params => {
 	const required = {
@@ -74,13 +29,13 @@ const runAction = params => {
 
 	switch(action) {
 		case 'get':
-			return getArticle(uuid);
+			return articleModel.get(uuid);
 
 		case 'publish':
-			return database.publish(feed, uuid);
+			return articleModel.publish(feed, uuid);
 
 		case 'unpublish':
-			return database.unpublish(feed, uuid);
+			return articleModel.unpublish(feed, uuid);
 
 		default:
 			throw Error(`Action [${action}] not recognised.`);
@@ -95,12 +50,12 @@ module.exports = (req, res, next) => {
 	return Promise.resolve()
 	.then(() => {
 		if(!action) {
-			return getArticle(uuid)
+			return articleModel.get(uuid)
 				.then(article => res.render('index', {uuid, article, testUuids}));
 		}
 
 		return runAction({uuid, feed, action})
-			.then(() => getArticle(uuid))
+			.then(() => articleModel.get(uuid))
 			.then(response => res.send(response));
 	})
 	.catch(next);

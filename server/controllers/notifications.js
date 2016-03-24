@@ -2,6 +2,8 @@
 
 const notifications = require('../lib/notifications');
 const database = require('../lib/database');
+const articleModel = require('../models/article');
+
 const UPDATE_INTERVAL = 100 * 60 * 1000;
 
 const update = apiVersion => notifications.createNotificationsList(
@@ -21,26 +23,28 @@ const union = lists => {
 	return Object.keys(uuids);
 };
 
+const getKnownArticles = uuids => database.get(uuids)
+.then(articles => Object.keys(articles).reduce((valid, uuid) => {
+	if(articles[uuid]) {
+		valid.push(articles[uuid]);
+	}
+	return valid;
+}, []));
+
 const poller = () => Promise.all([
 	update(1),
 	update(2),
 ])
 .then(union)
-.then(uuids => {
-	database.get(uuids)
-		.then(articles => Object.keys(articles).reduce((valid, uuid) => {
-			if(articles[uuid]) {
-				valid.push(articles[uuid]);
-			}
-			return valid;
-		}, []))
-		.then(articles => {
-			console.log(Date(), {uuids, articles});
-		});
-})
+.then(getKnownArticles)
+.then(articles => Promise.all(articles.map(article => articleModel.update(article)))
+	.then(() => {
+		console.log(`${Date()}: updated articles ${articles.map(article => article.uuid)}`);
+	})
+)
+.catch(e => console.log(e)); // TODO: error reporting
 
-// TODO: error reporting
-.catch(e => console.log(e));
-
-poller();
-setInterval(poller, UPDATE_INTERVAL);
+module.exports.init = () => {
+	poller();
+	setInterval(poller, UPDATE_INTERVAL);
+};
