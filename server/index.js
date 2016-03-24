@@ -30,6 +30,7 @@ assertEnv([
 	'ELASTIC_SEARCH_DOMAIN',
 	'HTTP_AUTH_PASS',
 	'REDIS_URL',
+	'API_V1_KEY',
 ]);
 
 if(app.get('env') !== 'development') {

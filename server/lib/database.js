@@ -2,6 +2,7 @@
 
 const client = require('./redisClient');
 const maxImpressionCount = 1;
+const KEY_COUNT = 7; // See extractDetails
 
 
 const extractDetails = replies => {
@@ -9,29 +10,34 @@ const extractDetails = replies => {
 		return null;
 	}
 
-	const article = replies.shift();
-	if(!article) {
-		return null;
+	const [article, datePublishedDevelopment, datePublishedProduction,
+		dateImportedDevelopment, dateImportedProduction, developmentImpressions,
+		productionImpressions] = replies;
+
+	if(article && typeof article === 'object') {
+		return Object.assign(article, {
+			date_published_development: datePublishedDevelopment,
+			date_published_production: datePublishedProduction,
+			date_imported_development: dateImportedDevelopment,
+			date_imported_production: dateImportedProduction,
+			development_impressions: developmentImpressions,
+			production_impressions: productionImpressions,
+		});
 	}
 
-	article.date_published_development = replies.shift();
-	article.date_published_production = replies.shift();
-	article.date_imported_development = replies.shift();
-	article.date_imported_production = replies.shift();
-	article.development_impressions = replies.shift();
-	article.production_impressions = replies.shift();
-	return article;
+	return null;
 };
 
 const extractAllDetails = (uuids, replies) => {
 	const articles = {};
 	uuids.forEach(uuid => {
-		articles[uuid] = extractDetails(replies);
+		const replySet = replies.splice(0, KEY_COUNT);
+		articles[uuid] = extractDetails(replySet);
 	});
 	return articles;
 };
 
-const get = (multi, uuid) => multi
+const addGetToMulti = (multi, uuid) => multi
 	.hgetall(`article:${uuid}`)
 	.zscore('date_published_development', uuid)
 	.zscore('date_published_production', uuid)
@@ -46,7 +52,7 @@ const getMulti = uuids => {
 	const multi = client.multi();
 
 	uuids.forEach(uuid => {
-		get(multi, uuid);
+		addGetToMulti(multi, uuid);
 	});
 
 	return multi
@@ -128,11 +134,16 @@ const impression = (feedType, uuid) => {
 
 const wipe = () => client.flushallAsync();
 
+const get = uuid => addGetToMulti(client.multi(), uuid)
+.execAsync()
+.then(extractDetails);
+
 module.exports = {
-	get(uuid) {
-		return get(client.multi(), uuid)
-			.execAsync()
-			.then(extractDetails);
+	get(uuids) {
+		if(Array.isArray(uuids)) {
+			return getMulti(uuids);
+		}
+		return get(uuids);
 	},
 	update,
 	list,
