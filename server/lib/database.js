@@ -22,9 +22,9 @@ const types = {
 	development_impressions: 'array-of-integers',
 	production_impressions: 'array-of-integers',
 
-	published: 'string', // published_{feed_type} - Sorted set of uuids scored by {date_published_{feed_type}}
-	imported: 'string', // imported_{feed_type} - Sorted set of uuids scored by {date_imported}
-	articles: 'string', // articles - Sorted Set of known article uuids, scored by {date_record_updated}
+	// published: 'string', // published_{feed_type} - Sorted set of uuids scored by {date_published_{feed_type}}
+	// imported: 'string', // imported_{feed_type} - Sorted set of uuids scored by {date_imported}
+	// articles: 'string', // articles - Sorted Set of known article uuids, scored by {date_record_updated}
 	notifications_last_poll: 'integer', // notifications:last_poll - string timestamp
 };
 
@@ -71,7 +71,6 @@ const extractDetails = replies => {
 			development_impressions: developmentImpressions,
 			production_impressions: productionImpressions,
 		};
-		console.log(formatObj(Object.assign(article, params)));
 		return formatObj(Object.assign(article, params));
 	}
 
