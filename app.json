@@ -17,6 +17,9 @@
     },
     "REDIS_URL": {
       "required": true
+    },
+    "API_V1_KEY": {
+      "required": true
     }
   },
   "addons": [
