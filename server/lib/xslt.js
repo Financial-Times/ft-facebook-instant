@@ -22,9 +22,15 @@ module.exports = function(xml, stylesheet, params) {
 			'-'
 		));
 
-		xsltproc.stdin.write(xml);
+		xsltproc.stdin.on('error', function (error) {
+			errors.push(error.toString());
+			return reject('xsltproc stdin error: ' + errors);
+		})
 
-		xsltproc.stdin.end();
+		xsltproc.on('error', function(error) {
+			errors.push(error.toString());
+			return reject('xsltproc error: ' + errors);
+		});
 
 		xsltproc.stdout.on('data', function(data) {
 			output.push(data);
@@ -34,10 +40,6 @@ module.exports = function(xml, stylesheet, params) {
 			errors.push(error.toString());
 		});
 
-		xsltproc.on('error', function(error) {
-			reject(error.toString());
-		});
-
 		xsltproc.on('close', function(code) {
 			if (code !== 0) {
 				return reject('xsltproc exited with code ' + code + ': ' + errors);
@@ -45,5 +47,8 @@ module.exports = function(xml, stylesheet, params) {
 
 			resolve(output.join('').replace(/<\/?html>/g, ''));
 		});
+
+		xsltproc.stdin.write(xml);
+		xsltproc.stdin.end();
 	});
 };

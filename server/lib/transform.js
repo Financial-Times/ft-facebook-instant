@@ -22,10 +22,7 @@ function transformArticleBody(article) {
 		article.bodyXML,
 		`${process.cwd()}/server/stylesheets/main.xsl`,
 		xsltParams
-	)
-	.catch(e => {
-		console.log(e);
-	});
+	);
 }
 
 module.exports = article => transformArticleBody(article.apiArticle);
