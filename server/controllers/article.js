@@ -7,6 +7,7 @@ const checkParams = params => {
 	const required = {
 		get: ['uuid'],
 		transform: ['uuid'],
+		update: ['uuid'],
 		publish: ['uuid', 'feed'],
 		unpublish: ['uuid', 'feed'],
 	};
@@ -36,6 +37,11 @@ const runAction = (params, res) => {
 		case 'transform':
 			return articleModel.get(uuid)
 				.then(articleModel.transform)
+				.then(html => res.send(html));
+
+		case 'update':
+			return articleModel.get(uuid)
+				.then(articleModel.update)
 				.then(html => res.send(html));
 
 		case 'publish':

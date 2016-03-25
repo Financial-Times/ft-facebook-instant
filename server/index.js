@@ -73,9 +73,8 @@ app.route(`^/${uuidParam}/api$`).get(apiController);
 
 app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
-app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|transform)$`).get(noCache).get(articleController);
-
-// Dev-only route - TODO, remove this endpoint in prod
+// Dev-only routes - TODO, remove these in prod
+app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|transform|update)$`).get(noCache).get(articleController);
 app.route('^/dev/:action').get(noCache).get(devController);
 
 

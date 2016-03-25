@@ -41,32 +41,16 @@ const getApi = uuid => cacheGet(uuid)
 		.then(article => cacheSet(uuid, article));
 });
 
-const get = uuid => Promise.all([
-	database.get(uuid),
-	getApi(uuid),
-])
-.then(results => {
-	const [databaseRecord, apiRecord] = results;
-	return {databaseRecord, apiRecord};
+const updateDb = apiRecord => database.set({
+	uuid: apiRecord.id,
+	title: apiRecord.title,
+	date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
+	date_record_updated: Date.now(),
 })
-.then(results => {
-	if(results.databaseRecord) {
-		return results;
-	}
+.then(() => database.get(apiRecord.id));
 
-	const {apiRecord} = results;
-
-	return database.set({
-		uuid: apiRecord.id,
-		title: apiRecord.title,
-		date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
-		date_record_updated: Date.now(),
-	})
-	.then(() => database.get(uuid))
-	.then(databaseRecord => ({databaseRecord, apiRecord}));
-})
-.then(results => {
-	const {databaseRecord, apiRecord} = results;
+const mergeRecords = records => {
+	const [databaseRecord, apiRecord] = records;
 	const feedModel = require('../models/feed');
 
 	const article = {
@@ -85,19 +69,34 @@ const get = uuid => Promise.all([
 
 	article.apiArticle = apiRecord;
 	return article;
-});
+};
+
+const get = uuid => Promise.all([
+	database.get(uuid),
+	getApi(uuid),
+])
+.then(results => {
+	const [existingDatabaseRecord, apiRecord] = results;
+
+	if(existingDatabaseRecord) {
+		return results;
+	}
+
+	return updateDb(apiRecord)
+		.then(databaseRecord => [databaseRecord, apiRecord]);
+})
+.then(mergeRecords);
 
 const publish = (feedType, uuid) => database.publish(feedType, uuid);
 
 const unpublish = (feedType, uuid) => database.unpublish(feedType, uuid);
 
-const update = article => {
-	article.date_record_updated = Date.now();
-	return Promise.all([
-		cacheDel(article.uuid),
-		database.set(article),
-	]);
-};
+const update = article => cacheDel(article.uuid)
+.then(() => getApi(article.uuid))
+.then(apiRecord => updateDb(apiRecord)
+	.then(databaseRecord => [databaseRecord, apiRecord])
+	.then(mergeRecords)
+);
 
 const transform = article => article.apiArticle.bodyXML.replace(/[^\w\s]+/g, ' ');
 
