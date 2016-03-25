@@ -6,6 +6,7 @@ const testUuids = require('../lib/testUuids');
 const checkParams = params => {
 	const required = {
 		get: ['uuid'],
+		transform: ['uuid'],
 		publish: ['uuid', 'feed'],
 		unpublish: ['uuid', 'feed'],
 	};
@@ -24,18 +25,24 @@ const checkParams = params => {
 	return params;
 };
 
-const runAction = params => {
+const runAction = (params, res) => {
 	const {uuid, feed, action} = checkParams(params);
 
 	switch(action) {
 		case 'get':
-			return articleModel.get(uuid);
+			return articleModel.get(uuid)
+				.then(article => res.json(article));
+
+		case 'transform':
+			return articleModel.get(uuid)
+				.then(articleModel.transform)
+				.then(html => res.send(html));
 
 		case 'publish':
-			return articleModel.publish(feed, uuid);
-
 		case 'unpublish':
-			return articleModel.unpublish(feed, uuid);
+			return articleModel[action](feed, uuid)
+				.then(() => articleModel.get(uuid))
+				.then(article => res.json(article));
 
 		default:
 			throw Error(`Action [${action}] not recognised.`);
@@ -54,9 +61,7 @@ module.exports = (req, res, next) => {
 				.then(article => res.render('index', {uuid, article, testUuids}));
 		}
 
-		return runAction({uuid, feed, action})
-			.then(() => articleModel.get(uuid))
-			.then(response => res.send(response));
+		return runAction({uuid, feed, action}, res);
 	})
 	.catch(next);
 };

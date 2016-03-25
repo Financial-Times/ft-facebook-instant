@@ -4,8 +4,8 @@ const RSS = require('rss');
 const moment = require('moment');
 const types = ['development', 'production'];
 
-
 const generate = (type, articles) => {
+	const articleModel = require('./article');
 	const feed = new RSS({
 		title: 'Facebook Instant Articles feed for FT.com',
 		description: `Facebook Instant Articles feed for FT.com (${type})`,
@@ -39,7 +39,7 @@ const generate = (type, articles) => {
 
 				// The full content of your article, in HTML form. Remember to escape all HTML
 				// content by wrapping it within a CDATA section.
-				{'content:encoded': article.apiArticle.bodyXML.replace(/[^\w\s]+/g, ' ')},
+				{'content:encoded': articleModel.transform(article)},
 			],
 		});
 	});

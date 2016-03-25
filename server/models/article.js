@@ -6,7 +6,6 @@ const cacheManager = require('cache-manager');
 const fsStore = require('cache-manager-fs');
 const path = require('path');
 const denodeify = require('denodeify');
-const feedModel = require('../models/feed');
 const database = require('../lib/database');
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
@@ -68,6 +67,7 @@ const get = uuid => Promise.all([
 })
 .then(results => {
 	const {databaseRecord, apiRecord} = results;
+	const feedModel = require('../models/feed');
 
 	const article = {
 		uuid: databaseRecord.uuid,
@@ -99,11 +99,14 @@ const update = article => {
 	]);
 };
 
+const transform = article => article.apiArticle.bodyXML.replace(/[^\w\s]+/g, ' ');
+
 module.exports = {
 	getApi,
 	get,
 	update,
 	publish,
 	unpublish,
+	transform,
 };
 
