@@ -7,6 +7,7 @@ const fsStore = require('cache-manager-fs');
 const path = require('path');
 const denodeify = require('denodeify');
 const database = require('../lib/database');
+const transform = require('../lib/transform');
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
@@ -97,8 +98,6 @@ const update = article => cacheDel(article.uuid)
 	.then(databaseRecord => [databaseRecord, apiRecord])
 	.then(mergeRecords)
 );
-
-const transform = article => article.apiArticle.bodyXML.replace(/[^\w\s]+/g, ' ');
 
 module.exports = {
 	getApi,
