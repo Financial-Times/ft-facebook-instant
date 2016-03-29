@@ -13,39 +13,43 @@ const generate = (type, articles) => {
 		generator: 'https://github.com/Financial-Times/ft-facebook-instant',
 	});
 
-	articles.forEach(article => {
+	const promises = articles.map(article => {
+
 		const published = moment(article.date_editorially_published);
 
-		feed.item({
-			// The headline of the article.
-			title: article.apiArticle.title,
+		return articleModel.transform(article)
+			.then(transformed => {
+				feed.item({
+					// The headline of the article.
+					title: article.apiArticle.title,
 
-			// A string that provides a unique identifier for this article in your feed.
-			guid: article.uuid,
+					// A string that provides a unique identifier for this article in your feed.
+					guid: article.uuid,
 
-			custom_elements: [
-				// A summary of your article, in plain text form.
-				{description: Array.isArray(article.apiArticle.summaries) ? article.apiArticle.summaries[0] : ''},
+					custom_elements: [
+						// A summary of your article, in plain text form.
+						{description: Array.isArray(article.apiArticle.summaries) ? article.apiArticle.summaries[0] : ''},
 
-				// 	Name of the person who wrote the article. Use multiple <author> elements for
-				// 	multiple authors.
-				{author: article.apiArticle.byline},
+						// 	Name of the person who wrote the article. Use multiple <author> elements for
+						// 	multiple authors.
+						{author: article.apiArticle.byline},
 
-				// The canonical URL for this article on your site.
-				{link: `http://www.ft.com/content/${article.uuid}`},
+						// The canonical URL for this article on your site.
+						{link: `http://www.ft.com/content/${article.uuid}`},
 
-				// The date of the article’s publication, in ISO-8601 format.
-				{pubDate: published.format()},
+						// The date of the article’s publication, in ISO-8601 format.
+						{pubDate: published.format()},
 
-				// The full content of your article, in HTML form. Remember to escape all HTML
-				// content by wrapping it within a CDATA section.
-				{'content:encoded': articleModel.transform(article)},
-			],
-		});
+						// The full content of your article, in HTML form. Remember to escape all HTML
+						// content by wrapping it within a CDATA section.
+						{'content:encoded': transformed},
+					],
+				});
+			});
 	});
 
-	const rss = feed.xml({indent: '\t'});
-	return Promise.resolve(rss);
+	return Promise.all(promises)
+		.then(() => feed.xml({indent: '\t'}));
 };
 
 
