@@ -2,6 +2,7 @@
 
 module.exports = [
 	{uuid: '3ee29f96-88e0-11e3-bb5f-00144feab7de', description: 'Editorial test article'},
+	{uuid: '94e97eee-ce9a-11e5-831d-09f7778e7377', description: 'Why millennials go on holiday instead of saving for a pension'},
 	{uuid: '70d0bfd8-d1b3-11e5-831d-09f7778e7377', description: 'What are the economic consequences of Brexit?'},
 	{uuid: 'cf290804-25e9-3e4b-8a19-efc090b6fca0', description: 'Blogs: #techFT – From phones to drones at MWC'},
 	{uuid: '9bc4c15c-cf57-11e5-92a1-c5e23ef99c77', description: 'life and arts: Hieronymus Bosch: one hell of a hometown exhibition'},
