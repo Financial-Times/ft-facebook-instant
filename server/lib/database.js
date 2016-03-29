@@ -2,7 +2,9 @@
 
 const client = require('./redisClient');
 const maxImpressionCount = 2;
-const KEY_COUNT = 7; // See extractDetails
+const KEY_COUNT = 7; // See extractDetails()
+const LIST_AGE = 7 * 24 * 60 * 60 * 1000; // See list()
+const FEED_AGE = 24 * 60 * 60 * 1000; // See feed()
 
 const types = {
 
@@ -149,7 +151,7 @@ const unpublish = (feedType, uuid) => client.multi()
 
 const list = () => {
 	const now = Date.now();
-	const then = now - (7 * 24 * 60 * 60 * 1000);
+	const then = now - LIST_AGE;
 
 	return client.zrangebyscoreAsync('articles', then, now)
 		.then(getMulti);
@@ -157,7 +159,7 @@ const list = () => {
 
 const feed = feedType => {
 	const now = Date.now();
-	const then = now - (24 * 60 * 60 * 1000);
+	const then = now - FEED_AGE;
 
 	return client.zrangebyscoreAsync(`date_published_${feedType}`, then, now)
 		.then(getMulti);
