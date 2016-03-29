@@ -106,3 +106,7 @@ a.o-techdocs-card__actionbutton {
 .article-test-link {
 	color: #27757b;
 }
+
+.article-list__items > li {
+	margin-bottom: 20px;
+}

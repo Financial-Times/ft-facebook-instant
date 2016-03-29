@@ -11,8 +11,8 @@ const getList = (articles, feed) => {
 			article[`${feed}_impressions.length`]
 		))
 		.sort((a, b) => (
-				a[`date_imported_${feed}`] - b[`date_imported_${feed}`] ||
-				a[`date_published_${feed}`] - b[`date_published_${feed}`]
+				(b[`date_imported_${feed}`] - a[`date_imported_${feed}`]) ||
+				(b[`date_published_${feed}`] - a[`date_published_${feed}`])
 			)
 		)
 		.map(article => ({

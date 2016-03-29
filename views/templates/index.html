@@ -15,29 +15,9 @@
 {{#if article}}{{> article-status article}}{{/if}}
 </div>
 
-{{#if articles}}
-<ul>
-	{{#each articles as |list type|}}
-	{{#if list.length}}
-	<li>
-		<h2>{{type}}</h2>
-		<ul>
-			{{#each list}}
-			<li>
-				<a href="/{{uuid}}">{{title}}</a>
-				<ul>
-					<li>Article published: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate date_editorially_published}}</strong></li>
-					{{#if date_published}}<li>Added to feed: <strong title="{{rfcDate date_published}}">{{relativeDate date_published}}</strong></li>{{/if}}
-					{{#if date_imported}}<li>Added to feed: <strong title="{{rfcDate date_imported}}">{{relativeDate date_imported}}</strong></li>{{/if}}
-				</ul>
-			</li>
-			{{/each}}
-		</ul>
-	</li>
-	{{/if}}
-	{{/each}}
-</ul>
-{{/if}}
+<div class="article-list-container">
+{{#if articles}}{{> article-list}}{{/if}}
+</div>
 
 {{#if testUuids}}
 <div class="o-techdocs-card">
