@@ -12,6 +12,8 @@ const redisClient = redis.createClient({
 	host: redisParams.hostname,
 });
 
-redisClient.auth(redisParams.auth.split(':')[1]);
+if(redisParams.auth) {
+	redisClient.auth(redisParams.auth.split(':')[1]);
+}
 
 module.exports = redisClient;

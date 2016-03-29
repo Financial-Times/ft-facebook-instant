@@ -4,3 +4,4 @@ env.sh
 build
 *.log
 cache/articles
+redis.conf

@@ -81,7 +81,7 @@ app.route('^/dev/:action').get(noCache).get(devController);
 /* Errors */
 
 const logErrors = (error, req, res, next) => {
-	console.error(error.stack);
+	console.error('LOGERRORS', error.stack || error);
 	next(error);
 };
 
