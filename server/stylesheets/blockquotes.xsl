@@ -20,7 +20,7 @@
 				<html>
 					<body>
 						<script>window.twttr=function(a,b,c){var d,e=a.getElementsByTagName(b)[0],f=window.twttr||{};return a.getElementById(c)?f:(d=a.createElement(b),d.id=c,d.src="https://platform.twitter.com/widgets.js",e.parentNode.insertBefore(d,e),f._e=[],f.ready=function(a){f._e.push(a)},f)}(document,"script","twitter-wjs");</script>
-					<xsl:apply-templates />
+						<xsl:apply-templates />
 					</body>
 				</html>
 			</iframe>
