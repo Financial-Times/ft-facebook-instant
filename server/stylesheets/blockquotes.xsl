@@ -14,7 +14,17 @@
 				<xsl:with-param name="separator" select="'/'" />
 			</xsl:call-template>
 		</xsl:variable>
-		<amp-twitter width="600" height="250" layout="responsive" data-tweetid="{$tweetId}"></amp-twitter>
+
+		<figure class="op-social">
+			<iframe>
+				<html>
+					<body>
+						<script>window.twttr=function(a,b,c){var d,e=a.getElementsByTagName(b)[0],f=window.twttr||{};return a.getElementById(c)?f:(d=a.createElement(b),d.id=c,d.src="https://platform.twitter.com/widgets.js",e.parentNode.insertBefore(d,e),f._e=[],f.ready=function(a){f._e.push(a)},f)}(document,"script","twitter-wjs");</script>
+					<xsl:apply-templates />
+					</body>
+				</html>
+			</iframe>
+		</figure>
 	</xsl:template>
 
 	<xsl:template name="substring-after-last">

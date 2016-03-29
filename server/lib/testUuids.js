@@ -10,4 +10,6 @@ module.exports = [
 	{uuid: '0efb495a-d446-11e5-829b-8564e7528e54', description: 'firstFT: Saudi-Russia oil deal...'},
 	{uuid: 'c0e910c4-d005-11e5-831d-09f7778e7377', description: 'Lunch with the FT: Alan Yentob'},
 	{uuid: 'd5ac853a-978a-11e5-95c7-d47aa298f769', description: 'Slideshow: Boost for China as it joins IMF elite'},
+	{uuid: '6348fc2c-5778-3778-983a-d54d948da828', description: 'Tweet in blockquote'},
+	{uuid: '2f1774f4-ab65-11e3-aad9-00144feab7de', description: 'Promo box and pull quote'},
 ];
