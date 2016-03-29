@@ -57,3 +57,5 @@ module.exports = app => {
 };
 
 module.exports.exposeTemplates = exposeTemplates;
+
+module.exports.render = (filePath, context, options) => handlebars.render(filePath, context, options);

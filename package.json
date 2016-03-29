@@ -26,6 +26,7 @@
     "body-parser": "^1.15.0",
     "cache-manager": "^2.0.0",
     "cache-manager-fs": "^1.0.4",
+    "cheerio": "^0.20.0",
     "denodeify": "^1.2.1",
     "express": "^4.13.4",
     "express-ftwebservice": "^2.1.2",

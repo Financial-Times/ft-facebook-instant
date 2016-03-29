@@ -37,7 +37,7 @@ const runAction = (params, res) => {
 		case 'transform':
 			return articleModel.get(uuid)
 				.then(articleModel.transform)
-				.then(html => res.send(html));
+				.then(transformed => res.send(transformed.html));
 
 		case 'update':
 			return articleModel.get(uuid)

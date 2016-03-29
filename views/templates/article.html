@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" prefix="op: http://media.facebook.com/op#">
+	<head>
+		<meta charset="utf-8">
+		<link rel="canonical" href="{{canonicalUrl}}">
+		<meta property="op:markup_version" content="v1.0">
+		<meta property="op:tags" content="{{tags}}">
+		<meta property="fb:article_style" content="{{style}}">
+	</head>
+	<body>
+		<article>
+			<header>
+				<h1>{{title}}</h1>
+				{{#if subtitle}}<h2>{{subtitle}}</h2>{{/if}}
+
+				<time class="op-published" datetime="{{rfcDate date_published}}">{{shortDate date_published}}</time>
+				<time class="op-modified" datetime="{{rfcDate date_updated}}">{{shortDate date_updated}}</time>
+
+				{{#each authors}}
+				<address>
+					<a>{{this}}</a>
+				</address>
+				{{/each}}
+
+			</header>
+
+			<figure class="op-tracker">
+				<iframe src="https://spoor-api.ft.com/ingest?data=%7B%22category%22%3A%22page%22%2C%22action%22%3A%22view%22%2C%22context%22%3A%7B%22content%22%3A%7B%22uuid%22%3A%2294e97eee-ce9a-11e5-831d-09f7778e7377%22%2C%22title%22%3A%22Why%20millennials%20go%20on%20holiday%20instead%20of%20saving%20for%20a%20pension%22%7D%2C%22product%22%3A%22Facebook%20Instant%22%2C%22url%22%3A%22http%3A%2F%2Fwww.ft.com%2Fcms%2Fs%2F0%2F94e97eee-ce9a-11e5-831d-09f7778e7377.html%22%7D%2C%22system%22%3A%7B%22api_key%22%3A%22cef3bf5f-4efe-4f41-9d81-839a4e23be0d%22%2C%22source%22%3A%22facebook-instant%22%2C%22environment%22%3A%22p%22%2C%22is_live%22%3Atrue%2C%22version%22%3A%221.0.0%22%7D%7D"></iframe>
+			</figure>
+
+			{{{body}}}
+
+			<footer>
+				<h2>Related stories</h2>
+				<ul class="op-related-articles">
+					<li><a href="http://www.ft.com/content/cb575260-c910-11e5-be0b-b7ece4e953a0">Equal pay for millennials is a boost for equal parenting</a></li>
+					<li><a href="http://www.ft.com/content/9253cacc-c5f8-11e5-b3b1-7b2481276e45">US millennials caught in the parent trap</a></li>
+					<li><a href="http://www.ft.com/content/ab749c5a-c357-11e5-b3b1-7b2481276e45">Tragedy of the millennials is they are not entitled enough</a></li>
+				</ul>
+				<small><a href="http://www.ft.com/servicestools/help/copyright">Copyright</a> The Financial Times Limited 2016. All rights reserved. Please don't cut articles from FT.com and redistribute by email or post to the web.</small>
+			</footer>
+		</article>
+	</body>
+</html>
