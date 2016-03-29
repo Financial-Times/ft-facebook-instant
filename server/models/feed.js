@@ -14,7 +14,6 @@ const generate = (type, articles) => {
 	});
 
 	const promises = articles.map(article => {
-
 		const published = moment(article.date_editorially_published);
 
 		return articleModel.transform(article)

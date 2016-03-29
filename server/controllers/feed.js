@@ -16,6 +16,8 @@ const checkAuth = req => {
 	return false;
 };
 
+const isFacebookCrawler = req => /facebookexternalhit/.test(req.get('User-Agent'));
+
 module.exports = (req, res, next) => {
 	if(!checkAuth(req)) {
 		res.statusCode = 401;
@@ -29,13 +31,15 @@ module.exports = (req, res, next) => {
 	}
 
 	return database.feed(type)
-		.then(feedList => Promise.all(Object.keys(feedList).map(uuid => articleModel.get(uuid)))
-			.then(articles => {
-				const rss = feedModel.generate(type, articles);
-				const impressions = articles.map(article => database.impression(type, article.uuid));
-
-				return Promise.all(impressions)
-					.then(() => rss);
+		.then(feedList => Promise.all(Object.keys(feedList).map(uuid => articleModel.get(uuid))))
+		.then(articles => feedModel.generate(type, articles)
+			.then(rss => {
+				if(isFacebookCrawler(req)) {
+					const impressions = articles.map(article => database.impression(type, article.uuid));
+					return Promise.all(impressions)
+						.then(() => rss);
+				}
+				return rss;
 			})
 		)
 		.then(rss => {
