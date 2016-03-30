@@ -16,19 +16,19 @@ module.exports = (xml, stylesheet, params) => new Promise(function(resolve, reje
 		options = options.concat(string ? '--stringparam' : '--param', param, params[param]);
 	});
 
-	var env = { PATH: `${process.env.PATH}:${process.cwd()}/libxslt/bin` };
+	var env = {PATH: `${process.env.PATH}:${process.cwd()}/libxslt/bin`};
 	var xsltproc = spawn('xsltproc', options.concat(
 		stylesheet,
 		'-'
 	), {env});
 
-	xsltproc.stdin.on('error', function (error) {
+	xsltproc.stdin.on('error', function(error) {
 		errors.push(error.toString());
 		return reject('xsltproc stdin error: ' + errors);
-	})
+	});
 
 	xsltproc.on('error', function(error) {
-		console.log(error)
+		console.log(error);
 		errors.push(error.toString());
 		return reject('xsltproc error: ' + errors);
 	});
@@ -42,7 +42,7 @@ module.exports = (xml, stylesheet, params) => new Promise(function(resolve, reje
 	});
 
 	xsltproc.on('close', function(code) {
-		if (code !== 0) {
+		if(code !== 0) {
 			return reject('xsltproc exited with code ' + code + ': ' + errors);
 		}
 

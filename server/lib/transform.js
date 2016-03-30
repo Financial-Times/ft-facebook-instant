@@ -1,6 +1,5 @@
 'use strict';
 
-const moment = require('moment');
 const xsltTransform = require('./xslt');
 const cheerioTransform = require('./cheerio');
 const handlebarsTransform = require('./handlebars').render;

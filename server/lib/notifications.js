@@ -96,4 +96,3 @@ const createNotificationsList = (since, options) => new Promise((resolve, reject
 });
 
 module.exports.createNotificationsList = createNotificationsList;
-
