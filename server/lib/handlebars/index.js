@@ -20,18 +20,20 @@ const handlebars = expressHandlebars.create({
 // Middleware to expose the app's shared templates to the cliet-side of the app
 // for pages which need them.
 const exposeTemplates = (req, res, next) => Promise.all([
-	handlebars.getTemplates(
-		path.resolve(process.cwd(), 'views/templates'),
-		templateOptions
-	),
+	// handlebars.getTemplates(
+	// 	path.resolve(process.cwd(), 'views/templates'),
+	// 	templateOptions
+	// ),
 	handlebars.getTemplates(
 		path.resolve(process.cwd(), 'views/partials/'),
 		templateOptions
 	),
 ])
 .then(compiled => {
-	const [templates, partials] = compiled;
-	return Object.assign({}, templates, partials);
+	// const [templates, partials] = compiled;
+	// return Object.assign({}, templates, partials);
+	const [partials] = compiled;
+	return Object.assign({}, partials);
 })
 .then(templates => {
 	const extensionRegex = new RegExp(`${handlebars.extname}$`);
