@@ -7,12 +7,22 @@ const fsStore = require('cache-manager-fs');
 const path = require('path');
 const denodeify = require('denodeify');
 const database = require('../lib/database');
-const transform = require('../lib/transform');
+const fetch = require('node-fetch');
+const url = require('url');
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
 
 const modes = ['development', 'production'];
+
+const getCanonical = uuid => {
+	const original = `http://www.ft.com/content/${uuid}`;
+	return fetch(original)
+	.then(response => {
+		const parsed = url.parse(response.url);
+		return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
+	});
+};
 
 const diskCache = cacheManager.caching({
 	store: fsStore,
@@ -44,12 +54,14 @@ const getApi = uuid => cacheGet(uuid)
 		.then(article => cacheSet(uuid, article));
 });
 
-const updateDb = apiRecord => database.set({
+const updateDb = apiRecord => getCanonical(apiRecord.id)
+.then(canonical => database.set({
+	canonical,
 	uuid: apiRecord.id,
 	title: apiRecord.title,
 	date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
 	date_record_updated: Date.now(),
-})
+}))
 .then(() => database.get(apiRecord.id));
 
 const mergeRecords = records => {
@@ -57,6 +69,7 @@ const mergeRecords = records => {
 	const article = {
 		uuid: databaseRecord.uuid,
 		title: databaseRecord.title,
+		canonical: databaseRecord.canonical,
 		date_editorially_published: databaseRecord.date_editorially_published,
 		date_record_updated: databaseRecord.date_record_updated,
 	};
@@ -87,10 +100,6 @@ const get = uuid => Promise.all([
 })
 .then(mergeRecords);
 
-const publish = (mode, uuid) => database.publish(mode, uuid);
-
-const unpublish = (mode, uuid) => database.unpublish(mode, uuid);
-
 const update = article => cacheDel(article.uuid)
 .then(() => getApi(article.uuid))
 .then(apiRecord => updateDb(apiRecord)
@@ -102,8 +111,6 @@ module.exports = {
 	getApi,
 	get,
 	update,
-	publish,
-	unpublish,
-	transform,
 	modes,
+	getCanonical,
 };

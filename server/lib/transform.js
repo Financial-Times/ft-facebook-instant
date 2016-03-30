@@ -50,9 +50,8 @@ module.exports = article => transformArticleBody(article.apiArticle)
 .then(body => {
 	const params = {
 		body,
-		canonicalUrl: `http://www.ft.com/content/${article.uuid}`,
+		canonicalUrl: article.canonical,
 		style: 'default',
-		uuid: article.uuid,
 		date_published: article.date_editorially_published,
 		date_updated: article.date_record_updated,
 		tags: getAnnotations(article.apiArticle),
@@ -61,6 +60,5 @@ module.exports = article => transformArticleBody(article.apiArticle)
 		authors: getAuthors(article.apiArticle),
 	};
 
-	return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
-		.then(html => Object.assign(params, {html}));
+	return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params);
 });

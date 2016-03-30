@@ -62,10 +62,10 @@ app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(ar
 
 app.route(`^/${uuidParam}/api$`).get(apiController);
 
-app.route(`^/${uuidParam}/:mode(${modeList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
+// TODO: change these to post only, and remove debugging routes
+app.route(`^/${uuidParam}/:mode(${modeList})?/:action$`).all(noCache).all(articleController);
 
-// Dev-only routes - TODO, remove these in prod
-app.route(`^/${uuidParam}/:mode(${modeList})?/:action(db|get|transform|update)$`).get(noCache).get(articleController);
+// Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);
 
 

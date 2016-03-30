@@ -12,10 +12,6 @@ module.exports = (req, res, next) => {
 			return fbApi.list({mode: 'development', fields: []})
 				.then(result => res.json(result))
 				.catch(next);
-		case 'get':
-			return fbApi.get({type: 'article', id: 1597333667252309, fields: []})
-				.then(result => res.json(result))
-				.catch(next);
 		case 'introspect':
 			return fbApi.introspect({id: 1113157122040081})
 				.then(result => res.json(result))
@@ -30,10 +26,6 @@ module.exports = (req, res, next) => {
 				.catch(next);
 		case 'delete':
 			return fbApi.delete({id: 474757556051614})
-				.then(result => res.json(result))
-				.catch(next);
-		case 'richlist':
-			return fbApi.list({mode: 'development'})
 				.then(result => res.json(result))
 				.catch(next);
 		default:

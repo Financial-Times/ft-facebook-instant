@@ -11,6 +11,7 @@ const types = {
 	//	{date_imported_production}, {date_imported_development}
 	uuid: 'string',
 	title: 'string',
+	canonical: 'string',
 	date_editorially_published: 'integer',
 	date_record_updated: 'integer',
 	date_published_production: 'integer',
@@ -105,12 +106,7 @@ const getMulti = uuids => {
 };
 
 const set = article => client.multi()
-	.hmset(`article:${article.uuid}`,
-		'uuid', article.uuid,
-		'title', article.title,
-		'date_editorially_published', article.date_editorially_published,
-		'date_record_updated', article.date_record_updated
-	)
+	.hmset(`article:${article.uuid}`, article)
 	.zadd('articles', article.date_record_updated, article.uuid)
 	.execAsync()
 	.then(replies => article);

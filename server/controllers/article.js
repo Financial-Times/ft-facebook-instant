@@ -3,11 +3,14 @@
 const database = require('../lib/database');
 const articleModel = require('../models/article');
 const testUuids = require('../lib/testUuids');
+const transform = require('../lib/transform');
+const fbApi = require('../lib/fbApi');
 
 const checkParams = params => {
 	const required = {
 		get: ['uuid'],
 		db: ['uuid'],
+		fb: ['uuid'],
 		transform: ['uuid'],
 		update: ['uuid'],
 		publish: ['uuid', 'mode'],
@@ -40,10 +43,15 @@ const runAction = (params, res) => {
 			return database.get(uuid)
 				.then(article => res.json(article));
 
+		case 'fb':
+			return database.get(uuid)
+				.then(article => fbApi.find({canonical: article.canonical}))
+				.then(result => res.json(result));
+
 		case 'transform':
 			return articleModel.get(uuid)
-				.then(articleModel.transform)
-				.then(transformed => res.send(transformed.html));
+				.then(transform)
+				.then(transformed => res.send(transformed));
 
 		case 'update':
 			return articleModel.get(uuid)
@@ -51,6 +59,12 @@ const runAction = (params, res) => {
 				.then(html => res.send(html));
 
 		case 'publish':
+			return articleModel.get(uuid)
+				.then(article => transform(article)
+					.then(html => fbApi.post({mode, html}))
+					.then(results => res.json(results))
+				);
+
 		case 'unpublish':
 			return articleModel[action](mode, uuid)
 				.then(() => articleModel.get(uuid))

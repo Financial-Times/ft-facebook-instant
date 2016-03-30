@@ -114,10 +114,26 @@ const del = ({id = null} = {}) => {
 	);
 };
 
+const find = ({canonical = null} = {}) => {
+	if(!canonical) {
+		throw Error('Missing required parameter [canonical]');
+	}
+
+	return Promise.all([
+		list({mode: 'development'}),
+		list({mode: 'production'}),
+	])
+	.then(([development, production]) => {
+		const results = development.concat(production);
+		return results.filter(result => (console.log(result.canonical_url, canonical), result.canonical_url === canonical));
+	});
+};
+
 module.exports = {
 	list,
 	get,
 	introspect,
 	post,
 	delete: del,
+	find,
 };
