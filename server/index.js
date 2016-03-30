@@ -32,6 +32,7 @@ assertEnv([
 	'HTTP_AUTH_PASS',
 	'REDIS_URL',
 	'API_V1_KEY',
+	'FB_PAGE_ID',
 	'FB_APP_ID',
 	'FB_PAGE_ACCESS_TOKEN',
 ]);

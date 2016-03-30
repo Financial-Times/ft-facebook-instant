@@ -9,6 +9,7 @@
     "ELASTIC_SEARCH_DOMAIN": {"required": true},
     "REDIS_URL": {"required": true},
     "API_V1_KEY": {"required": true},
+    "FB_PAGE_ID": {"required": true},
     "FB_APP_ID": {"required": true},
     "FB_PAGE_ACCESS_TOKEN": {"required": true}
   },
