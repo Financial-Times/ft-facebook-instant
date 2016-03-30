@@ -20,6 +20,9 @@
     },
     "API_V1_KEY": {
       "required": true
+    },
+    "FB_APP_ID": {
+      "required": true
     }
   },
   "addons": [

@@ -16,6 +16,7 @@ const app = express();
 
 const feedModel = require('./models/feed');
 
+const fbController = require('./controllers/fb');
 const devController = require('./controllers/dev');
 const feedController = require('./controllers/feed');
 const indexController = require('./controllers/index');
@@ -32,6 +33,7 @@ assertEnv([
 	'HTTP_AUTH_PASS',
 	'REDIS_URL',
 	'API_V1_KEY',
+	'FB_APP_ID',
 ]);
 
 if(app.get('env') !== 'development') {
@@ -65,6 +67,10 @@ if(app.get('env') !== 'development') {
 }
 
 // Routes which require Staff Single Sign-On
+
+// TODO: delete this route
+app.route('/fb').get(noCache).get(fbController);
+
 app.route('/').get(noCache).get(handlebars.exposeTemplates, indexController);
 
 app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
