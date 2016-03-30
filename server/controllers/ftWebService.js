@@ -7,7 +7,7 @@ module.exports = {
 	about: {
 		schemaVersion: 1,
 		name: 'facebook-instant',
-		purpose: 'Serve Facebook Instant Articles RSS feed and admin UI',
+		purpose: 'Serve Facebook Instant Articles Admin UI',
 		audience: 'private',
 		primaryUrl: 'https://facebookinstant.ft.com',
 		serviceTier: 'bronze',

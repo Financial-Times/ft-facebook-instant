@@ -47,7 +47,8 @@ const list = ({mode = 'development', fields = []} = {}) => {
 
 			fields: fields.join(','),
 		}
-	);
+	)
+	.then(results => results.data || []);
 };
 
 const get = ({type = 'article', id = null, fields = []} = {}) => {

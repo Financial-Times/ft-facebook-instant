@@ -1,10 +1,8 @@
 'use strict';
 
 const client = require('./redisClient');
-const maxImpressionCount = 2;
-const KEY_COUNT = 7; // See extractDetails()
+const KEY_COUNT = 5; // See extractDetails()
 const LIST_AGE = 7 * 24 * 60 * 60 * 1000; // See list()
-const FEED_AGE = 24 * 60 * 60 * 1000; // See feed()
 
 const types = {
 
@@ -20,12 +18,8 @@ const types = {
 	date_imported_production: 'integer',
 	date_imported_development: 'integer',
 
-	// article:{uuid}:impressions:{feed_type} - List of RSS feed impression timestamps (i.e. times seen by Facebook)
-	development_impressions: 'array-of-integers',
-	production_impressions: 'array-of-integers',
-
-	// published: 'string', // published_{feed_type} - Sorted set of uuids scored by {date_published_{feed_type}}
-	// imported: 'string', // imported_{feed_type} - Sorted set of uuids scored by {date_imported}
+	// published: 'string', // published_{mode} - Sorted set of uuids scored by {date_published_{mode}}
+	// imported: 'string', // imported_{mode} - Sorted set of uuids scored by {date_imported}
 	// articles: 'string', // articles - Sorted Set of known article uuids, scored by {date_record_updated}
 	notifications_last_poll: 'integer', // notifications:last_poll - string timestamp
 };
@@ -56,13 +50,12 @@ const formatObj = obj => {
 };
 
 const extractDetails = replies => {
-	if(!Array.isArray(replies) || replies.length < 7) {
+	if(!Array.isArray(replies) || replies.length < KEY_COUNT) {
 		return null;
 	}
 
 	const [article, datePublishedDevelopment, datePublishedProduction,
-		dateImportedDevelopment, dateImportedProduction, developmentImpressions,
-		productionImpressions] = replies;
+		dateImportedDevelopment, dateImportedProduction] = replies;
 
 	if(article && typeof article === 'object') {
 		const params = {
@@ -70,8 +63,6 @@ const extractDetails = replies => {
 			date_published_production: datePublishedProduction,
 			date_imported_development: dateImportedDevelopment,
 			date_imported_production: dateImportedProduction,
-			development_impressions: developmentImpressions,
-			production_impressions: productionImpressions,
 		};
 		return formatObj(Object.assign(article, params));
 	}
@@ -93,9 +84,7 @@ const addGetToMulti = (multi, uuid) => multi
 	.zscore('date_published_development', uuid)
 	.zscore('date_published_production', uuid)
 	.zscore('date_imported_development', uuid)
-	.zscore('date_imported_production', uuid)
-	.lrange(`article:${uuid}:impressions:development`, 0, -1)
-	.lrange(`article:${uuid}:impressions:production`, 0, -1);
+	.zscore('date_imported_production', uuid);
 
 const get = uuid => addGetToMulti(client.multi(), uuid)
 .execAsync()
@@ -126,12 +115,12 @@ const set = article => client.multi()
 	.execAsync()
 	.then(replies => article);
 
-const publish = (feedType, uuid) => {
+const publish = (mode, uuid) => {
 	const timestamp = Date.now();
 
 	return client.multi()
-		.hset(`article:${uuid}`, `date_published_${feedType}`, timestamp)
-		.zadd(`date_published_${feedType}`, timestamp, uuid)
+		.hset(`article:${uuid}`, `date_published_${mode}`, timestamp)
+		.zadd(`date_published_${mode}`, timestamp, uuid)
 		.execAsync()
 		.then(replies => {
 			const [articleReply, publishedReply] = replies;
@@ -139,10 +128,9 @@ const publish = (feedType, uuid) => {
 		});
 };
 
-const unpublish = (feedType, uuid) => client.multi()
-.hdel(`article:${uuid}`, `date_published_${feedType}`)
-.zrem(`date_published_${feedType}`, uuid)
-.del(`article:${uuid}:impressions:${feedType}`)
+const unpublish = (mode, uuid) => client.multi()
+.hdel(`article:${uuid}`, `date_published_${mode}`)
+.zrem(`date_published_${mode}`, uuid)
 .execAsync()
 .then(replies => {
 	const [articleReply, publishedReply] = replies;
@@ -155,32 +143,6 @@ const list = () => {
 
 	return client.zrangebyscoreAsync('articles', then, now)
 		.then(getMulti);
-};
-
-const feed = feedType => {
-	const now = Date.now();
-	const then = now - FEED_AGE;
-
-	return client.zrangebyscoreAsync(`date_published_${feedType}`, then, now)
-		.then(getMulti);
-};
-
-const impression = (feedType, uuid) => {
-	const now = Date.now();
-	return client.lpushAsync(`article:${uuid}:impressions:${feedType}`, now)
-		.then(replies => {
-			const count = [replies];
-			if(count >= maxImpressionCount) {
-				return client.multi()
-					.zadd(`date_imported_${feedType}`, now, uuid)
-					.zrem(`date_published_${feedType}`, uuid)
-					.hset(`article:${uuid}`, `date_imported_${feedType}`, now)
-					.del(`article:${uuid}:impressions:${feedType}`)
-					.execAsync()
-					.then(() => count);
-			}
-			return count;
-		});
 };
 
 const wipe = () => client.flushallAsync();
@@ -202,8 +164,6 @@ module.exports = {
 	wipe,
 	publish,
 	unpublish,
-	feed,
-	impression,
 	setLastNotificationCheck,
 	getLastNotificationCheck,
 };

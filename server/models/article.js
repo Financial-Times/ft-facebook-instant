@@ -12,6 +12,8 @@ const transform = require('../lib/transform');
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
 
+const modes = ['development', 'production'];
+
 const diskCache = cacheManager.caching({
 	store: fsStore,
 	options: {
@@ -52,8 +54,6 @@ const updateDb = apiRecord => database.set({
 
 const mergeRecords = records => {
 	const [databaseRecord, apiRecord] = records;
-	const feedModel = require('../models/feed');
-
 	const article = {
 		uuid: databaseRecord.uuid,
 		title: databaseRecord.title,
@@ -61,11 +61,10 @@ const mergeRecords = records => {
 		date_record_updated: databaseRecord.date_record_updated,
 	};
 
-	article.feeds = feedModel.types.map(type => ({
-		feed: type,
-		date_published: databaseRecord[`date_published_${type}`],
-		date_imported: databaseRecord[`date_imported_${type}`],
-		impressions: databaseRecord[`${type}_impressions`],
+	article.modes = modes.map(mode => ({
+		mode,
+		date_published: databaseRecord[`date_published_${mode}`],
+		date_imported: databaseRecord[`date_imported_${mode}`],
 	}));
 
 	article.apiArticle = apiRecord;
@@ -88,9 +87,9 @@ const get = uuid => Promise.all([
 })
 .then(mergeRecords);
 
-const publish = (feedType, uuid) => database.publish(feedType, uuid);
+const publish = (mode, uuid) => database.publish(mode, uuid);
 
-const unpublish = (feedType, uuid) => database.unpublish(feedType, uuid);
+const unpublish = (mode, uuid) => database.unpublish(mode, uuid);
 
 const update = article => cacheDel(article.uuid)
 .then(() => getApi(article.uuid))
@@ -106,4 +105,5 @@ module.exports = {
 	publish,
 	unpublish,
 	transform,
+	modes,
 };

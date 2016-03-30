@@ -55,28 +55,28 @@ function restoreForm() {
 	$('.js-uuid-submission-button').removeAttr('disabled').text('Process').removeClass('activity');
 }
 
-function setPublishState(feed, publish) {
-	updateStatusIcon(feed, 'fa-spinner fa-spin');
-	setButtonState(feed, false);
+function setPublishState(mode, publish) {
+	updateStatusIcon(mode, 'fa-spinner fa-spin');
+	setButtonState(mode, false);
 	$('.error-card').remove();
 
 	if (publish) {
-		$('.' + feed + '-publish-status-text').html('Publishing, please wait...');
+		$('.' + mode + '-publish-status-text').html('Publishing, please wait...');
 	} else {
-		$('.' + feed + '-publish-status-text').html('Removing, please wait...');
+		$('.' + mode + '-publish-status-text').html('Removing, please wait...');
 	}
 
 	$.ajax({
 		type: 'POST',
-		url: '/' + $('.article-status-card').attr('data-uuid') + '/' + feed + '/' + (publish ? 'publish' : 'unpublish'),
+		url: '/' + $('.article-status-card').attr('data-uuid') + '/' + mode + '/' + (publish ? 'publish' : 'unpublish'),
 		success: function(article) {
 			updateStatus(article);
 		},
 		error: function(jqXHR, status, error) {
-			updateStatusIcon(feed, 'fa-times');
-			setButtonState(feed, true);
-			$('.' + feed + '-publish-status-text').html(jqXHR.responseJSON.error);
-			$('.' + feed + '-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
+			updateStatusIcon(mode, 'fa-times');
+			setButtonState(mode, true);
+			$('.' + mode + '-publish-status-text').html(jqXHR.responseJSON.error);
+			$('.' + mode + '-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
 		}
 	});
 
@@ -88,12 +88,12 @@ function loadTestArticle(uuid) {
 	submitForm();
 }
 
-function updateStatusIcon(feed, type, iconName) {
-	$('.' + feed + '-' + type + '-status i').removeClass().addClass('fa ' + iconName);
+function updateStatusIcon(mode, type, iconName) {
+	$('.' + mode + '-' + type + '-status i').removeClass().addClass('fa ' + iconName);
 }
 
-function setButtonState(feed, enabled) {
-	$('.' + feed + '-status-card .feed-actions button').each(function() {
+function setButtonState(mode, enabled) {
+	$('.' + mode + '-status-card .mode-actions button').each(function() {
 		if (enabled) {
 			$(this).removeAttr('disabled');
 		} else {

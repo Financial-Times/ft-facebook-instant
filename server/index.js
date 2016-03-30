@@ -14,16 +14,15 @@ const uuidRegex = require('./lib/uuid');
 const port = process.env.PORT || 6247;
 const app = express();
 
-const feedModel = require('./models/feed');
-
 const devController = require('./controllers/dev');
-const feedController = require('./controllers/feed');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
 const apiController = require('./controllers/api');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
-const feedTypesList = feedModel.types.join('|');
+
+const articleModel = require('./models/article');
+const modeList = articleModel.modes.join('|');
 
 assertEnv([
 	'AWS_ACCESS_KEY',
@@ -51,23 +50,17 @@ ftwebservice(app, require('./controllers/ftWebService'));
 // Handlebars middleware
 handlebars(app);
 
+// S30 in prod only
+if(app.get('env') !== 'development') {
+	app.use(authS3O);
+}
+
 // Other
 app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'dev' : 'combined')));
 app.use(express.static(path.resolve(process.cwd(), 'resources/public')));
 app.use(bodyParser.urlencoded({extended: true}));
 
-
 /*  Routes */
-
-// Routes which don't require Staff Single Sign-On
-app.route(`/feed/:type(${feedTypesList})?`).get(noCache).get(feedController);
-
-// Add Staff Single Sign-On middleware
-if(app.get('env') !== 'development') {
-	app.use(authS3O);
-}
-
-// Routes which require Staff Single Sign-On
 
 app.route('^/$').get(noCache).get(handlebars.exposeTemplates, indexController);
 
@@ -75,10 +68,10 @@ app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(ar
 
 app.route(`^/${uuidParam}/api$`).get(apiController);
 
-app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
+app.route(`^/${uuidParam}/:mode(${modeList})?/:action(get|publish|unpublish)$`).post(noCache).post(articleController);
 
 // Dev-only routes - TODO, remove these in prod
-app.route(`^/${uuidParam}/:feed(${feedTypesList})?/:action(get|transform|update)$`).get(noCache).get(articleController);
+app.route(`^/${uuidParam}/:mode(${modeList})?/:action(db|get|transform|update)$`).get(noCache).get(articleController);
 app.route('^/dev/:action').get(noCache).get(devController);
 
 

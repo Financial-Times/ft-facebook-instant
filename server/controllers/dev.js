@@ -17,7 +17,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'introspect':
-			return fbApi.introspect({id: 1675673386015981})
+			return fbApi.introspect({id: 1113157122040081})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'post':
@@ -25,7 +25,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'status':
-			return fbApi.get({id: 1675673386015981})
+			return fbApi.get({type: 'status', id: 1113157122040081})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'delete':

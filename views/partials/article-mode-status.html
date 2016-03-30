@@ -1,16 +1,16 @@
-<div class="o-techdocs-card status-card {{feed}}-status-card" data-feed="{{feed}}" data-published="{{date_published}}" data-imported="{{date_imported}}">
+<div class="o-techdocs-card status-card {{mode}}-status-card" data-mode="{{mode}}" data-published="{{date_published}}" data-imported="{{date_imported}}">
 	<div class="o-techdocs-card__context">
 		<div class="o-techdocs-card__icon"><i class="fa fa-arrow-circle-o-up"></i></div>
 		<div class="o-techdocs-card__heading">
 			<div class="o-techdocs-card__title">
-				{{#ifEqual feed "development"}}
+				{{#ifEqual mode "development"}}
 				Preview
 				{{else}}
 				Publish
 				{{/ifEqual}}
 			</div>
 			<div class="o-techdocs-card__subtitle">
-				{{#ifEqual feed "development"}}
+				{{#ifEqual mode "development"}}
 				Preview your Instant Article before it goes live. Once imported, it will be available to review in <a href="https://business.facebook.com/financialtimes/publishing_tools/?section=INSTANT_ARTICLES_DEVELOPMENT">Publishing Tools (Development)</a> and in the <em>Development</em> tab of the Pages mobile app.
 				{{else}}
 				Make an article available to Facebook users. Once imported, it will be available to review in <a href="https://business.facebook.com/financialtimes/publishing_tools/?section=INSTANT_ARTICLES">Publishing Tools (Production)</a>  and in the <em>Production</em> tab of the Pages mobile app.
@@ -20,20 +20,20 @@
 	</div>
 
 	<div class="o-techdocs-card__content">
-		<ul class="feed-status">
-			<li class="{{feed}}-publish-status">
-				<i class="fa {{feed}}-publish-status-icon{{#if date_published}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
-				<span class="{{feed}}-publish-status-text">
+		<ul class="mode-status">
+			<li class="{{mode}}-publish-status">
+				<i class="fa {{mode}}-publish-status-icon{{#if date_published}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
+				<span class="{{mode}}-publish-status-text">
 				{{#if date_published}}
-					Published in RSS feed: <strong title="{{rfcDate date_published}}">{{relativeDate date_published}}</strong>
+					Published: <strong title="{{rfcDate date_published}}">{{relativeDate date_published}}</strong>
 				{{else}}
 					Not published
 				{{/if}}
 				</span>
 			</li>
-			<li class="{{feed}}-import-status">
-				<i class="fa {{feed}}-import-status-icon{{#if date_imported}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
-				<span class="{{feed}}-import-status-text">
+			<li class="{{mode}}-import-status">
+				<i class="fa {{mode}}-import-status-icon{{#if date_imported}} fa-check-square-o{{else}} fa-square-o{{/if}}"></i>
+				<span class="{{mode}}-import-status-text">
 				{{#if date_imported}}
 					Last imported by Facebook: <strong title="{{rfcDate date_imported}}">{{relativeDate date_imported}}</strong>
 				{{else}}
@@ -45,11 +45,11 @@
 	</div>
 
 	<div class="o-techdocs-card__actions">
-		<div class="feed-actions">
+		<div class="mode-actions">
 			{{#if date_published}}
 			<button class="o-techdocs-card__actionbutton" disabled="disabled"><i class="fa fa-trash-o"></i> Pending...</button>
 			{{else}}
-			<button class="o-techdocs-card__actionbutton" onclick="setPublishState('{{feed}}', true);"><i class="fa fa-arrow-circle-up"></i> Publish</button>
+			<button class="o-techdocs-card__actionbutton" onclick="setPublishState('{{mode}}', true);"><i class="fa fa-arrow-circle-up"></i> Publish</button>
 			{{/if}}
 		</div>
 	</div>

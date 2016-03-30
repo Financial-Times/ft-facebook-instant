@@ -1,15 +1,17 @@
 'use strict';
 
+const database = require('../lib/database');
 const articleModel = require('../models/article');
 const testUuids = require('../lib/testUuids');
 
 const checkParams = params => {
 	const required = {
 		get: ['uuid'],
+		db: ['uuid'],
 		transform: ['uuid'],
 		update: ['uuid'],
-		publish: ['uuid', 'feed'],
-		unpublish: ['uuid', 'feed'],
+		publish: ['uuid', 'mode'],
+		unpublish: ['uuid', 'mode'],
 	};
 	const {action} = params;
 
@@ -27,11 +29,15 @@ const checkParams = params => {
 };
 
 const runAction = (params, res) => {
-	const {uuid, feed, action} = checkParams(params);
+	const {uuid, mode, action} = checkParams(params);
 
 	switch(action) {
 		case 'get':
 			return articleModel.get(uuid)
+				.then(article => res.json(article));
+
+		case 'db':
+			return database.get(uuid)
 				.then(article => res.json(article));
 
 		case 'transform':
@@ -46,7 +52,7 @@ const runAction = (params, res) => {
 
 		case 'publish':
 		case 'unpublish':
-			return articleModel[action](feed, uuid)
+			return articleModel[action](mode, uuid)
 				.then(() => articleModel.get(uuid))
 				.then(article => res.json(article));
 
@@ -57,7 +63,7 @@ const runAction = (params, res) => {
 
 module.exports = (req, res, next) => {
 	const uuid = req.params.uuid;
-	const feed = req.params.feed;
+	const mode = req.params.mode;
 	const action = req.params.action;
 
 	return Promise.resolve()
@@ -67,7 +73,7 @@ module.exports = (req, res, next) => {
 				.then(article => res.render('index', {uuid, article, testUuids}));
 		}
 
-		return runAction({uuid, feed, action}, res);
+		return runAction({uuid, mode, action}, res);
 	})
 	.catch(next);
 };
