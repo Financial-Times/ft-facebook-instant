@@ -28,7 +28,6 @@ assertEnv([
 	'AWS_ACCESS_KEY',
 	'AWS_SECRET_ACCESS_KEY',
 	'ELASTIC_SEARCH_DOMAIN',
-	'HTTP_AUTH_PASS',
 	'REDIS_URL',
 	'API_V1_KEY',
 	'FB_PAGE_ID',
@@ -36,11 +35,6 @@ assertEnv([
 	'FB_PAGE_ACCESS_TOKEN',
 ]);
 
-if(app.get('env') !== 'development') {
-	assertEnv([
-		'HTTP_AUTH_PASS',
-	]);
-}
 
 /* Middleware */
 
