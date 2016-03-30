@@ -7,36 +7,86 @@ const api = denodeify(Facebook.napi);
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
 
+// See introspect()
+// Also available: html_source
+const defaultFields = {
+	article: [
+		'id',
+		'canonical_url',
+		'development_mode',
+		'most_recent_import_status',
+		'photos',
+		'published',
+		'videos',
+	],
+	status: [
+		'id',
+		'errors',
+		'html_source',
+		'instant_article',
+		'status',
+	],
+};
+
 Facebook.options({
 	version: 'v2.5',
 	accessToken,
 });
 
-const list = (params = {mode: 'development'}) => api(
-	`/${pageId}/instant_articles`,
-	'GET',
-	{
-		development_mode: (params.mode === 'development'),
+const list = ({mode = 'development', fields = []} = {}) => {
+	fields = fields.concat(defaultFields.article);
 
-		// Not sure what the options are here
-		summary: 'total_count',
+	return api(
+		`/${pageId}/instant_articles`,
+		'GET',
+		{
+			development_mode: (mode === 'development'),
+
+			// Not sure what the options are here
+			summary: 'total_count',
+
+			fields: fields.join(','),
+		}
+	);
+};
+
+const get = ({type = 'article', id = null, fields = []} = {}) => {
+	if(!id) {
+		throw Error('Missing required parameter [id]');
 	}
-);
 
-const get = (params = {}) => {
-	if(!params.id) {
+	if(!type || !defaultFields[type]) {
+		throw Error(`Missing or invalid type parameter: [${type}]`);
+	}
+
+	fields = fields.concat(defaultFields[type]);
+
+	return api(
+		`/${id}`,
+		'GET',
+		{
+			fields: fields.join(','),
+		}
+	);
+};
+
+const introspect = ({id = null} = {}) => {
+	if(!id) {
 		throw Error('Missing required parameter [id]');
 	}
 
 	return api(
-		`/${params.id}`,
+		`/${id}`,
 		'GET',
-		{}
-	);
+		{
+			metadata: 1,
+		}
+	)
+	.then(results => results.metadata);
 };
 
-const post = (params = {mode: 'development', published: false}) => {
-	if(!params.html) {
+const post = ({mode = 'development', published = false, html = ''} = {}) => {
+	if(!html) {
 		throw Error('Missing required parameter [html]');
 	}
 
@@ -44,20 +94,20 @@ const post = (params = {mode: 'development', published: false}) => {
 		`/${pageId}/instant_articles`,
 		'POST',
 		{
-			development_mode: (params.mode === 'development'),
-			published: !!params.published,
-			html_source: params.html,
+			development_mode: (mode === 'development'),
+			published: !!published,
+			html_source: html,
 		}
 	);
 };
 
-const del = (params = {}) => {
-	if(!params.id) {
+const del = ({id = null} = {}) => {
+	if(!id) {
 		throw Error('Missing required parameter [id]');
 	}
 
 	return api(
-		`/${params.id}`,
+		`/${id}`,
 		'DELETE',
 		{}
 	);
@@ -66,6 +116,7 @@ const del = (params = {}) => {
 module.exports = {
 	list,
 	get,
+	introspect,
 	post,
 	delete: del,
 };

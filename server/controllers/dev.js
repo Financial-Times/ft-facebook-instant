@@ -9,11 +9,15 @@ module.exports = (req, res, next) => {
 			return database.wipe()
 				.then(result => res.send(`Database wiped: [${result}]`));
 		case 'list':
-			return fbApi.list({mode: 'development'})
+			return fbApi.list({mode: 'development', fields: []})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'get':
-			return fbApi.get({id: 1597333667252309})
+			return fbApi.get({type: 'article', id: 1597333667252309, fields: []})
+				.then(result => res.json(result))
+				.catch(next);
+		case 'introspect':
+			return fbApi.introspect({id: 1675673386015981})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'post':
@@ -21,11 +25,15 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'status':
-			return fbApi.get({id: 565297526971006})
+			return fbApi.get({id: 1675673386015981})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'delete':
 			return fbApi.delete({id: 474757556051614})
+				.then(result => res.json(result))
+				.catch(next);
+		case 'richlist':
+			return fbApi.list({mode: 'development'})
 				.then(result => res.json(result))
 				.catch(next);
 		default:
