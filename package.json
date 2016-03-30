@@ -31,6 +31,7 @@
     "express": "^4.13.4",
     "express-ftwebservice": "^2.1.2",
     "express-handlebars": "^3.0.0",
+    "fb": "^1.0.2",
     "fetchres": "^1.5.1",
     "forever": "^0.15.1",
     "grunt": "^0.4.5",

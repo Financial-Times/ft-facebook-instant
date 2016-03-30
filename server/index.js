@@ -33,6 +33,7 @@ assertEnv([
 	'REDIS_URL',
 	'API_V1_KEY',
 	'FB_APP_ID',
+	'FB_PAGE_ACCESS_TOKEN',
 ]);
 
 if(app.get('env') !== 'development') {
