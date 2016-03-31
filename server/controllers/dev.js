@@ -12,7 +12,7 @@ module.exports = (req, res, next) => {
 			return fbApi.wipe()
 				.then(result => res.json({message: 'Facebook wiped', result}));
 		case 'listfb':
-			return fbApi.list({mode: 'development', fields: []})
+			return fbApi.list({mode: 'development'})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'findfb':
@@ -20,7 +20,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'introspectimport':
-			return fbApi.introspect({id: 923283007789377})
+			return fbApi.introspect({id: 1033980299972412})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'introspectarticle':
@@ -32,7 +32,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'importstatus':
-			return fbApi.get({type: 'import', id: 923283007789377})
+			return fbApi.get({type: 'import', id: 1033980299972412})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'article':

@@ -4,7 +4,7 @@ const xsltTransform = require('./xslt');
 const cheerioTransform = require('./cheerio');
 const handlebarsTransform = require('./handlebars').render;
 
-const transformArticleBody = apiArticle => {
+const transformArticleBody = apiRecord => {
 	const xsltParams = {
 		// id: article.id,
 		// webUrl: article.webUrl,
@@ -21,32 +21,32 @@ const transformArticleBody = apiArticle => {
 	};
 
 	return xsltTransform(
-		apiArticle.bodyXML,
+		apiRecord.bodyXML,
 		`${process.cwd()}/server/stylesheets/main.xsl`,
 		xsltParams
 	)
 	.then(cheerioTransform);
 };
 
-const getAnnotations = apiArticle => (apiArticle.annotations || [])
+const getAnnotations = apiRecord => (apiRecord.annotations || [])
 .map(annotation => annotation.prefLabel)
 .join('; ');
 
-const getTitle = apiArticle => apiArticle.title;
+const getTitle = apiRecord => apiRecord.title;
 
-const getSubtitle = apiArticle =>
-	Array.isArray(apiArticle.summaries) ? apiArticle.summaries[0] : null;
+const getSubtitle = apiRecord =>
+	Array.isArray(apiRecord.summaries) ? apiRecord.summaries[0] : null;
 
-const getAuthors = apiArticle => {
-	const authors = apiArticle.metadata
+const getAuthors = apiRecord => {
+	const authors = apiRecord.metadata
 		.filter(item => !!(item.taxonomy && item.taxonomy === 'authors'))
 		.map(item => item.prefLabel);
 
 	// Somtimes there are no authors in the taxonomy. It's very sad but it's true.
-	return authors.length ? authors : [(apiArticle.byline || '').replace(/^by\s+/i, '')];
+	return authors.length ? authors : [(apiRecord.byline || '').replace(/^by\s+/i, '')];
 };
 
-module.exports = article => transformArticleBody(article.apiArticle)
+module.exports = article => transformArticleBody(article.apiRecord)
 .then(body => {
 	const params = {
 		body,
@@ -54,10 +54,10 @@ module.exports = article => transformArticleBody(article.apiArticle)
 		style: 'default',
 		date_published: article.date_editorially_published,
 		date_updated: article.date_record_updated,
-		tags: getAnnotations(article.apiArticle),
-		title: getTitle(article.apiArticle),
-		subtitle: getSubtitle(article.apiArticle),
-		authors: getAuthors(article.apiArticle),
+		tags: getAnnotations(article.apiRecord),
+		title: getTitle(article.apiRecord),
+		subtitle: getSubtitle(article.apiRecord),
+		authors: getAuthors(article.apiRecord),
 	};
 
 	return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params);

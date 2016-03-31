@@ -36,7 +36,7 @@ Facebook.options({
 });
 
 const listMode = ({mode = 'development', fields = []} = {}) => {
-	fields = fields.concat(defaultFields.article);
+	fields = fields || defaultFields;
 
 	return api(
 		`/${pageId}/instant_articles`,
@@ -68,7 +68,7 @@ const get = ({type = 'article', id = null, fields = []} = {}) => {
 		throw Error(`Missing or invalid type parameter: [${type}]`);
 	}
 
-	fields = fields.concat(defaultFields[type]);
+	fields = fields || defaultFields;
 
 	return api(
 		`/${id}`,
@@ -150,11 +150,14 @@ const find = ({canonical = null} = {}) => {
 		return Promise.all(promises);
 	})
 	.then(items => {
-		const results = {
-			development: [],
-			production: [],
-		};
-		items.forEach(item => (item.development_mode ? results.development.push(item) : results.production.push(item)));
+		const results = {};
+		items.forEach(item => {
+			const mode = item.development_mode ? 'development' : 'production';
+			if(results[mode]) {
+				throw Error(`Duplicate Facebook IA record for mode [${mode}]. Need to rethink this!`);
+			}
+			results[mode] = item;
+		});
 
 		return results;
 	});

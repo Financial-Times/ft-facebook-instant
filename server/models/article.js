@@ -53,22 +53,42 @@ const getApi = uuid => cacheGet(uuid)
 		.then(article => cacheSet(uuid, article));
 });
 
-const updateDb = apiRecord => getCanonical(apiRecord.id)
+const setDb = apiRecord => getCanonical(apiRecord.id)
 .then(canonical => database.set({
 	canonical,
 	uuid: apiRecord.id,
 	title: apiRecord.title,
 	date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
 	date_record_updated: Date.now(),
+	imports: [],
 }))
 .then(() => database.get(apiRecord.id));
 
-const mergeRecords = ({databaseRecord, apiRecord, fbRecords}) => {
+const updateDb = article => database.set({
+	canonical: article.canonical,
+	uuid: article.uuid,
+	title: article.apiRecord.title,
+	date_editorially_published: new Date(article.apiRecord.publishedDate).getTime(),
+	date_record_updated: Date.now(),
+	imports: article.imports || [],
+});
+
+const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports}) => {
 	const article = {};
 	Object.keys(databaseRecord).forEach(key => (article[key] = databaseRecord[key]));
 
-	article.apiArticle = apiRecord;
+	article.apiRecord = apiRecord;
 	article.fbRecords = fbRecords;
+
+	(fbImports || []).forEach(item => {
+		const dbImportIndex = article.imports.findIndex(record => record.importId === item.id);
+		if(dbImportIndex >= 0) {
+			article.imports[dbImportIndex] = Object.assign(article.imports[dbImportIndex], item);
+		} else {
+			article.imports.push(item);
+		}
+	});
+
 	return article;
 };
 
@@ -81,22 +101,37 @@ const get = uuid => Promise.all([
 		return {databaseRecord, apiRecord};
 	}
 
-	return updateDb(apiRecord)
+	return setDb(apiRecord)
 		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
 })
 .then(({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
-	.then(fbRecords => ({databaseRecord, apiRecord, fbRecords}))
+	.then(fbRecords => {
+		const promises = databaseRecord.imports.map(item => fbApi.get({type: 'import', id: item.importId, fields: ['id', 'errors', 'status']}));
+		return Promise.all(promises)
+			.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
+	})
 )
 .then(mergeRecords);
 
 const update = article => cacheDel(article.uuid)
 .then(() => getApi(article.uuid))
-.then(apiRecord => updateDb(apiRecord))
+.then(apiRecord => (article.apiRecord = apiRecord))
+.then(() => updateDb(article))
 .then(() => get(article.uuid));
+
+const setImportStatus = (article, importId) => {
+	article.imports.unshift({
+		timestamp: Date.now(),
+		importId,
+	});
+	return updateDb(article)
+		.then(() => get(article.uuid));
+};
 
 module.exports = {
 	getApi,
 	get,
 	update,
 	getCanonical,
+	setImportStatus,
 };

@@ -13,6 +13,7 @@ const types = {
 	canonical: 'string',
 	date_editorially_published: 'integer',
 	date_record_updated: 'integer',
+	imports: 'json',
 
 	// articles: 'string', // articles - Sorted Set of known article uuids, scored by {date_record_updated}
 	notifications_last_poll: 'integer', // notifications:last_poll - string timestamp
@@ -24,8 +25,8 @@ const format = (type, val) => {
 			return String(val);
 		case 'integer':
 			return val ? parseInt(val, 10) : 0;
-		case 'array-of-integers':
-			return val.map(s => format('integer', val));
+		case 'json':
+			return JSON.parse(val);
 		default:
 			throw Error(`Can't format unrecognised type [${type}]`);
 	}
@@ -88,7 +89,14 @@ const getMulti = uuids => {
 };
 
 const set = article => client.multi()
-	.hmset(`article:${article.uuid}`, article)
+	.hmset(`article:${article.uuid}`, {
+		uuid: article.uuid,
+		title: article.title,
+		canonical: article.canonical,
+		date_editorially_published: article.date_editorially_published,
+		date_record_updated: article.date_record_updated,
+		imports: JSON.stringify(article.imports),
+	})
 	.zadd('articles', article.date_record_updated, article.uuid)
 	.execAsync()
 	.then(replies => article);

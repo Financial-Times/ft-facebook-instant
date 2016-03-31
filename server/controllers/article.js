@@ -62,8 +62,9 @@ const runAction = (params, res) => {
 			return articleModel.get(uuid)
 				.then(article => transform(article)
 					.then(html => fbApi.post({mode, html}))
-					.then(results => res.json(results))
-				);
+					.then(({id}) => articleModel.setImportStatus(article, id))
+				)
+				.then(article => res.json(article));
 
 		case 'unpublish':
 			return articleModel[action](mode, uuid)
