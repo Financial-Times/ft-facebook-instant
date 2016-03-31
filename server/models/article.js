@@ -7,13 +7,12 @@ const fsStore = require('cache-manager-fs');
 const path = require('path');
 const denodeify = require('denodeify');
 const database = require('../lib/database');
+const fbApi = require('../lib/fbApi');
 const fetch = require('node-fetch');
 const url = require('url');
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
-
-const modes = ['development', 'production'];
 
 const getCanonical = uuid => {
 	const original = `http://www.ft.com/content/${uuid}`;
@@ -64,23 +63,12 @@ const updateDb = apiRecord => getCanonical(apiRecord.id)
 }))
 .then(() => database.get(apiRecord.id));
 
-const mergeRecords = records => {
-	const [databaseRecord, apiRecord] = records;
-	const article = {
-		uuid: databaseRecord.uuid,
-		title: databaseRecord.title,
-		canonical: databaseRecord.canonical,
-		date_editorially_published: databaseRecord.date_editorially_published,
-		date_record_updated: databaseRecord.date_record_updated,
-	};
-
-	article.modes = modes.map(mode => ({
-		mode,
-		date_published: databaseRecord[`date_published_${mode}`],
-		date_imported: databaseRecord[`date_imported_${mode}`],
-	}));
+const mergeRecords = ({databaseRecord, apiRecord, fbRecords}) => {
+	const article = {};
+	Object.keys(databaseRecord).forEach(key => (article[key] = databaseRecord[key]));
 
 	article.apiArticle = apiRecord;
+	article.fbRecords = fbRecords;
 	return article;
 };
 
@@ -88,29 +76,27 @@ const get = uuid => Promise.all([
 	database.get(uuid),
 	getApi(uuid),
 ])
-.then(results => {
-	const [existingDatabaseRecord, apiRecord] = results;
-
-	if(existingDatabaseRecord) {
-		return results;
+.then(([databaseRecord, apiRecord]) => {
+	if(databaseRecord) {
+		return {databaseRecord, apiRecord};
 	}
 
 	return updateDb(apiRecord)
-		.then(databaseRecord => [databaseRecord, apiRecord]);
+		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
 })
+.then(({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
+	.then(fbRecords => ({databaseRecord, apiRecord, fbRecords}))
+)
 .then(mergeRecords);
 
 const update = article => cacheDel(article.uuid)
 .then(() => getApi(article.uuid))
-.then(apiRecord => updateDb(apiRecord)
-	.then(databaseRecord => [databaseRecord, apiRecord])
-	.then(mergeRecords)
-);
+.then(apiRecord => updateDb(apiRecord))
+.then(() => get(article.uuid));
 
 module.exports = {
 	getApi,
 	get,
 	update,
-	modes,
 	getCanonical,
 };

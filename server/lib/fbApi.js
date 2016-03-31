@@ -8,8 +8,9 @@ const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
 
 // See introspect()
-// Also available: html_source
 const defaultFields = {
+
+	// Also available: html_source
 	article: [
 		'id',
 		'canonical_url',
@@ -19,7 +20,8 @@ const defaultFields = {
 		'published',
 		'videos',
 	],
-	status: [
+
+	import: [
 		'id',
 		'errors',
 		'html_source',
@@ -33,7 +35,7 @@ Facebook.options({
 	accessToken,
 });
 
-const list = ({mode = 'development', fields = []} = {}) => {
+const listMode = ({mode = 'development', fields = []} = {}) => {
 	fields = fields.concat(defaultFields.article);
 
 	return api(
@@ -50,6 +52,12 @@ const list = ({mode = 'development', fields = []} = {}) => {
 	)
 	.then(results => results.data || []);
 };
+
+const list = ({fields = []} = {}) => Promise.all([
+	listMode({mode: 'development', fields}),
+	listMode({mode: 'production', fields}),
+])
+.then(([development, production]) => ({development, production}));
 
 const get = ({type = 'article', id = null, fields = []} = {}) => {
 	if(!id) {
@@ -111,7 +119,8 @@ const del = ({id = null} = {}) => {
 		`/${id}`,
 		'DELETE',
 		{}
-	);
+	)
+	.then(result => Object.assign(result, {id}));
 };
 
 const find = ({canonical = null} = {}) => {
@@ -119,15 +128,40 @@ const find = ({canonical = null} = {}) => {
 		throw Error('Missing required parameter [canonical]');
 	}
 
-	return Promise.all([
-		list({mode: 'development'}),
-		list({mode: 'production'}),
-	])
-	.then(([development, production]) => {
-		const results = development.concat(production);
-		return results.filter(result => (console.log(result.canonical_url, canonical), result.canonical_url === canonical));
+	return api(
+		'/',
+		'GET',
+		{
+			id: canonical,
+			fields: 'instant_article,development_instant_article{id}',
+		}
+	)
+	.then(results => {
+		const promises = [];
+
+		if(results.development_instant_article) {
+			promises.push(get({id: results.development_instant_article.id}));
+		}
+
+		if(results.instant_article) {
+			promises.push(get({id: results.instant_article.id}));
+		}
+
+		return Promise.all(promises);
+	})
+	.then(items => {
+		const results = {
+			development: [],
+			production: [],
+		};
+		items.forEach(item => (item.development_mode ? results.development.push(item) : results.production.push(item)));
+
+		return results;
 	});
 };
+
+const wipe = () => list()
+.then(({development, production}) => Promise.all(development.concat(production).map(item => del({id: item.id}))));
 
 module.exports = {
 	list,
@@ -136,4 +170,5 @@ module.exports = {
 	post,
 	delete: del,
 	find,
+	wipe,
 };

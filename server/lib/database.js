@@ -1,26 +1,19 @@
 'use strict';
 
 const client = require('./redisClient');
-const KEY_COUNT = 5; // See extractDetails()
+const KEY_COUNT = 1; // See extractDetails()
 const LIST_AGE = 7 * 24 * 60 * 60 * 1000; // See list()
 
 const types = {
 
 	// article:{uuid} - Hash of article metadata: {uuid}, {title}, {date_editorially_published},
-	//	{date_record_updated}, {date_published_production}, {date_published_development},
-	//	{date_imported_production}, {date_imported_development}
+	//	{date_record_updated}
 	uuid: 'string',
 	title: 'string',
 	canonical: 'string',
 	date_editorially_published: 'integer',
 	date_record_updated: 'integer',
-	date_published_production: 'integer',
-	date_published_development: 'integer',
-	date_imported_production: 'integer',
-	date_imported_development: 'integer',
 
-	// published: 'string', // published_{mode} - Sorted set of uuids scored by {date_published_{mode}}
-	// imported: 'string', // imported_{mode} - Sorted set of uuids scored by {date_imported}
 	// articles: 'string', // articles - Sorted Set of known article uuids, scored by {date_record_updated}
 	notifications_last_poll: 'integer', // notifications:last_poll - string timestamp
 };
@@ -55,17 +48,10 @@ const extractDetails = replies => {
 		return null;
 	}
 
-	const [article, datePublishedDevelopment, datePublishedProduction,
-		dateImportedDevelopment, dateImportedProduction] = replies;
+	const [article] = replies;
 
 	if(article && typeof article === 'object') {
-		const params = {
-			date_published_development: datePublishedDevelopment,
-			date_published_production: datePublishedProduction,
-			date_imported_development: dateImportedDevelopment,
-			date_imported_production: dateImportedProduction,
-		};
-		return formatObj(Object.assign(article, params));
+		return formatObj(article);
 	}
 
 	return null;
@@ -81,11 +67,7 @@ const extractAllDetails = (uuids, replies) => {
 };
 
 const addGetToMulti = (multi, uuid) => multi
-	.hgetall(`article:${uuid}`)
-	.zscore('date_published_development', uuid)
-	.zscore('date_published_production', uuid)
-	.zscore('date_imported_development', uuid)
-	.zscore('date_imported_production', uuid);
+	.hgetall(`article:${uuid}`);
 
 const get = uuid => addGetToMulti(client.multi(), uuid)
 .execAsync()
@@ -111,27 +93,25 @@ const set = article => client.multi()
 	.execAsync()
 	.then(replies => article);
 
-const publish = (mode, uuid) => {
-	const timestamp = Date.now();
+// const publish = (mode, uuid) => {
+// 	const timestamp = Date.now();
 
-	return client.multi()
-		.hset(`article:${uuid}`, `date_published_${mode}`, timestamp)
-		.zadd(`date_published_${mode}`, timestamp, uuid)
-		.execAsync()
-		.then(replies => {
-			const [articleReply, publishedReply] = replies;
-			return {articleReply, publishedReply};
-		});
-};
+// 	return client.multi()
+// 		.execAsync()
+// 		.then(replies => {
+// 			const [articleReply, publishedReply] = replies;
+// 			return {articleReply, publishedReply};
+// 		});
+// };
 
-const unpublish = (mode, uuid) => client.multi()
-.hdel(`article:${uuid}`, `date_published_${mode}`)
-.zrem(`date_published_${mode}`, uuid)
-.execAsync()
-.then(replies => {
-	const [articleReply, publishedReply] = replies;
-	return {articleReply, publishedReply};
-});
+// const unpublish = (mode, uuid) => client.multi()
+// .hdel(`article:${uuid}`, `date_published_${mode}`)
+// .zrem(`date_published_${mode}`, uuid)
+// .execAsync()
+// .then(replies => {
+// 	const [articleReply, publishedReply] = replies;
+// 	return {articleReply, publishedReply};
+// });
 
 const list = () => {
 	const now = Date.now();
@@ -158,8 +138,8 @@ module.exports = {
 	set,
 	list,
 	wipe,
-	publish,
-	unpublish,
+	// publish,
+	// unpublish,
 	setLastNotificationCheck,
 	getLastNotificationCheck,
 };

@@ -21,8 +21,7 @@ const notificationsController = require('./controllers/notifications');
 const apiController = require('./controllers/api');
 const uuidParam = `:uuid(${uuidRegex.raw})`;
 
-const articleModel = require('./models/article');
-const modeList = articleModel.modes.join('|');
+const modeList = 'development|production';
 
 assertEnv([
 	'AWS_ACCESS_KEY',
