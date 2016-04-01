@@ -98,7 +98,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 const get = key => new Promise(resolve => {
 	const uuid = (uuidRegex.exec(key) || [])[0];
 	if(uuid) {
-		resolve(ftApi.getCanonicalFromUuid(uuid));
+		return resolve(ftApi.getCanonicalFromUuid(uuid));
 	}
 	resolve(key);
 })
