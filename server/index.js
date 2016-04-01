@@ -21,6 +21,8 @@ const apiController = require('./controllers/api');
 
 const modeList = 'development|production';
 
+console.log('env', app.get('env'));
+
 assertEnv([
 	'AWS_ACCESS_KEY',
 	'AWS_SECRET_ACCESS_KEY',
