@@ -6,7 +6,6 @@
 function updateArticle() {
 	if (window.location.pathname.match('/article/[^\/]+$')) {
 		$.ajax({
-			type: 'POST',
 			dataType: 'json',
 			url: window.location.pathname + '/get',
 			success: function(article) {

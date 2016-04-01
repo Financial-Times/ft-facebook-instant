@@ -33,7 +33,7 @@ const defaultFields = {
 Facebook.options({
 	version: 'v2.5',
 	accessToken,
-	timeout: 1000,
+	timeout: 2000,
 });
 
 const listMode = ({mode = 'development', fields = []} = {}) => {

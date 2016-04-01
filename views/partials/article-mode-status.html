@@ -17,41 +17,41 @@
 
 	<div class="o-techdocs-card__content">
 		{{#ifEqual mode "production"}}<span class="o-buttons o-buttons--small">{{#if published}}Published{{else}}Not published{{/if}}</span>{{/ifEqual}}
-		{{#if imports}}
-			{{#if most_recent_import_status}}
-				<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
-			{{else if imports.0.status}}
-				<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}}</span>
-			{{else}}
-				<span class="o-buttons o-buttons--small">Current status: UNKNOWN</span>
-			{{/if}}
-		<p>Imports:</p>
-		{{#each imports}}
-		<pre>
-			<ul>
-				<li>ID: {{id}}</li>
-				<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
-				<li>Status: <strong>{{status}}</strong></li>
-				{{#if messages}}
-				<li>Messages:
-					<ul>
-						{{#each messages as |messageList type|}}
-						<li>{{type}}:
-							<ul>
-								{{#each messageList as |message|}}
-								<li>{{message}}</li>
-								{{/each}}
-							</ul>
-						</li>
-						{{/each}}
-					</ul>
-				</li>
-				{{/if}}
-			</ul>
-		</pre>
-		{{/each}}
+		{{#if imports.0.status}}
+			<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
+		{{else if most_recent_import_status}}
+			<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
 		{{else}}
-		<span class="o-buttons o-buttons--small">Not imported</span>
+			<span class="o-buttons o-buttons--small">Not imported</span>
+		{{/if}}
+		{{#if imports}}
+			<p>Imports:</p>
+			{{#each imports}}
+			<pre>
+				<ul>
+					<li>ID: {{id}}</li>
+					<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
+					<li>Status: <strong>{{status}}</strong></li>
+					{{#if messages}}
+					<li>Messages:
+						<ul>
+							{{#each messages as |messageList type|}}
+							<li>{{type}}:
+								<ul>
+									{{#each messageList as |message|}}
+									<li>{{message}}</li>
+									{{/each}}
+								</ul>
+							</li>
+							{{/each}}
+						</ul>
+					</li>
+					{{/if}}
+				</ul>
+			</pre>
+			{{/each}}
+		{{else if most_recent_import_status}}
+			<p>No import data</p>
 		{{/if}}
 	</div>
 
