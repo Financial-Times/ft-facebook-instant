@@ -1,37 +1,36 @@
 /* global $, Handlebars */
-/* exported setPublishState, loadTestArticle */
+/* exported triggerImport, loadTestArticle */
 
 'use strict';
 
-var uuidRegex = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/;
-
 function submitForm() {
-	$('.js-uuid-error').text('');
+	$('.js-url-error').text('');
 	$('.article-status-container').html('');
-	$('.js-uuid-group').removeClass('o-forms--error');
+	$('.js-url-group').removeClass('o-forms--error');
 	$('.error-card').remove();
 
-	var val = $('#uuid').val();
+	var val = $('#url').val();
 	if (!val) {
 		return handleFormError('Please enter a UUID or article link to process');
 	}
-	var matches = val.match(uuidRegex);
-	if (!matches) {
-		return handleFormError('Please enter a valid UUID or an article link containing a UUID');
+
+	var url = encodeURIComponent(val);
+	if (window.location.pathname !== '/' + url) {
+		window.history.pushState({}, '', '/article/' + url);
 	}
-	var uuid = matches[0];
-	if (window.location.pathname !== '/' + uuid) {
-		window.history.pushState({
-			uuid: uuid
-		}, '', '/' + uuid);
-	}
-	$('.js-uuid-submission-button').attr('disabled', 'disabled').text('Processing').addClass('activity');
+
+	$('.js-url-submission-button').attr('disabled', 'disabled').text('Processing').addClass('activity');
 
 	$.ajax({
 		type: 'POST',
 		dataType: 'json',
-		url: '/' + uuid + '/get',
+		url: '/article/' + url + '/get',
 		success: function(article) {
+			var url = encodeURIComponent(article.canonical);
+			if (window.location.pathname !== '/' + url) {
+				window.history.pushState({}, '', '/article/' + url);
+			}
+
 			restoreForm();
 			updateStatus(article);
 		},
@@ -47,15 +46,15 @@ function updateStatus(article) {
 
 function handleFormError(error) {
 	restoreForm();
-	$('.js-uuid-error').html(error);
-	$('.js-uuid-group').addClass('o-forms--error');
+	$('.js-url-error').html(error);
+	$('.js-url-group').addClass('o-forms--error');
 }
 
 function restoreForm() {
-	$('.js-uuid-submission-button').removeAttr('disabled').text('Process').removeClass('activity');
+	$('.js-url-submission-button').removeAttr('disabled').text('Process').removeClass('activity');
 }
 
-function setPublishState(mode, publish) {
+function triggerImport(mode, publish) {
 	updateStatusIcon(mode, 'fa-spinner fa-spin');
 	setButtonState(mode, false);
 	$('.error-card').remove();
@@ -63,12 +62,12 @@ function setPublishState(mode, publish) {
 	if (publish) {
 		$('.' + mode + '-publish-status-text').html('Publishing, please wait...');
 	} else {
-		$('.' + mode + '-publish-status-text').html('Removing, please wait...');
+		$('.' + mode + '-publish-status-text').html('Importing, please wait...');
 	}
 
 	$.ajax({
 		type: 'POST',
-		url: '/' + $('.article-status-card').attr('data-uuid') + '/' + mode + '/' + (publish ? 'publish' : 'unpublish'),
+		url: '/article/' + $('.article-status-card').attr('data-url') + '/' + mode + '/' + (publish ? 'publish' : 'import'),
 		success: function(article) {
 			updateStatus(article);
 		},
@@ -83,8 +82,8 @@ function setPublishState(mode, publish) {
 	return false;
 }
 
-function loadTestArticle(uuid) {
-	$('#uuid').val(uuid);
+function loadTestArticle(url) {
+	$('#url').val(url);
 	submitForm();
 }
 

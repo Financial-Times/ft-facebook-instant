@@ -11,7 +11,15 @@ h4 {
 	padding: 0;
 }
 
-pre {
+.status-card pre {
+	white-space: normal;
+	background: rgba(193, 193, 193, 0.33);
+	max-height: 100px;
+	overflow: scroll;
+	border: 1px solid silver;
+}
+
+.error-card pre {
 	white-space: pre-wrap;
 }
 
@@ -19,7 +27,7 @@ pre {
 	padding: 5px 0;
 }
 
-.uuidform {
+.urlform {
 	margin: 0 auto 48px auto;
 	max-width: 600px;
 }
@@ -81,7 +89,6 @@ a.o-techdocs-card__actionbutton {
 .article-status-container .o-buttons {
 	background-color: #fff1e0;
 	font-weight: initial;
-	margin-bottom: 64px;
 }
 
 .article-status-container .o-techdocs-card {

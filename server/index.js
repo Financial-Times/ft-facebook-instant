@@ -9,7 +9,6 @@ const logger = require('morgan');
 const path = require('path');
 const bodyParser = require('body-parser');
 const noCache = require('./lib/nocache');
-const uuidRegex = require('./lib/uuid');
 
 const port = process.env.PORT || 6247;
 const app = express();
@@ -19,7 +18,6 @@ const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
 const apiController = require('./controllers/api');
-const uuidParam = `:uuid(${uuidRegex.raw})`;
 
 const modeList = 'development|production';
 
@@ -57,12 +55,12 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 app.route('^/$').get(noCache).get(handlebars.exposeTemplates, indexController);
 
-app.route(`^/${uuidParam}$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
+app.route(`^/article/:url$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
 
-app.route(`^/${uuidParam}/api$`).get(apiController);
+app.route(`^/article/:url/api$`).get(apiController);
 
 // TODO: change these to post only, and remove debugging routes
-app.route(`^/${uuidParam}/:mode(${modeList})?/:action$`).all(noCache).all(articleController);
+app.route(`^/article/:url/:mode(${modeList})?/:action$`).all(noCache).all(articleController);
 
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);

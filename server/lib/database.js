@@ -5,18 +5,13 @@ const KEY_COUNT = 1; // See extractDetails()
 const LIST_AGE = 7 * 24 * 60 * 60 * 1000; // See list()
 
 const types = {
-
-	// article:{uuid} - Hash of article metadata: {uuid}, {title}, {date_editorially_published},
-	//	{date_record_updated}
+	canonical: 'string',
 	uuid: 'string',
 	title: 'string',
-	canonical: 'string',
 	date_editorially_published: 'integer',
 	date_record_updated: 'integer',
-	imports: 'json',
-
-	// articles: 'string', // articles - Sorted Set of known article uuids, scored by {date_record_updated}
-	notifications_last_poll: 'integer', // notifications:last_poll - string timestamp
+	import_meta: 'json',
+	notifications_last_poll: 'integer',
 };
 
 const format = (type, val) => {
@@ -58,12 +53,11 @@ const extractDetails = replies => {
 	return null;
 };
 
-const extractAllDetails = (uuids, replies) => {
-	const articles = {};
-	uuids.forEach(uuid => {
-		const replySet = replies.splice(0, KEY_COUNT);
-		articles[uuid] = extractDetails(replySet);
-	});
+const extractAllDetails = (replies) => {
+	const articles = [];
+	while(replies.length) {
+		articles.push(extractDetails(replies.splice(0, KEY_COUNT)));
+	}
 	return articles;
 };
 
@@ -85,7 +79,7 @@ const getMulti = uuids => {
 
 	return multi
 		.execAsync()
-		.then(replies => extractAllDetails(uuids, replies));
+		.then(replies => extractAllDetails(replies));
 };
 
 const set = article => client.multi()
@@ -95,31 +89,11 @@ const set = article => client.multi()
 		canonical: article.canonical,
 		date_editorially_published: article.date_editorially_published,
 		date_record_updated: article.date_record_updated,
-		imports: JSON.stringify(article.imports),
+		import_meta: JSON.stringify(article.import_meta),
 	})
 	.zadd('articles', article.date_record_updated, article.uuid)
 	.execAsync()
 	.then(replies => article);
-
-// const publish = (mode, uuid) => {
-// 	const timestamp = Date.now();
-
-// 	return client.multi()
-// 		.execAsync()
-// 		.then(replies => {
-// 			const [articleReply, publishedReply] = replies;
-// 			return {articleReply, publishedReply};
-// 		});
-// };
-
-// const unpublish = (mode, uuid) => client.multi()
-// .hdel(`article:${uuid}`, `date_published_${mode}`)
-// .zrem(`date_published_${mode}`, uuid)
-// .execAsync()
-// .then(replies => {
-// 	const [articleReply, publishedReply] = replies;
-// 	return {articleReply, publishedReply};
-// });
 
 const list = () => {
 	const now = Date.now();
@@ -146,8 +120,6 @@ module.exports = {
 	set,
 	list,
 	wipe,
-	// publish,
-	// unpublish,
 	setLastNotificationCheck,
 	getLastNotificationCheck,
 };

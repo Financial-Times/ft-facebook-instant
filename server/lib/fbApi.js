@@ -10,7 +10,6 @@ const pageId = process.env.FB_PAGE_ID;
 // See introspect()
 const defaultFields = {
 
-	// Also available: html_source
 	article: [
 		'id',
 		'canonical_url',
@@ -19,6 +18,7 @@ const defaultFields = {
 		'photos',
 		'published',
 		'videos',
+		'html_source',
 	],
 
 	import: [
@@ -33,10 +33,11 @@ const defaultFields = {
 Facebook.options({
 	version: 'v2.5',
 	accessToken,
+	timeout: 1000,
 });
 
 const listMode = ({mode = 'development', fields = []} = {}) => {
-	fields = fields || defaultFields;
+	fields = fields.length ? fields : defaultFields.article;
 
 	return api(
 		`/${pageId}/instant_articles`,
@@ -57,7 +58,7 @@ const list = ({fields = []} = {}) => Promise.all([
 	listMode({mode: 'development', fields}),
 	listMode({mode: 'production', fields}),
 ])
-.then(([development, production]) => ({development, production}));
+.then(([development, production]) => (development.concat(production)));
 
 const get = ({type = 'article', id = null, fields = []} = {}) => {
 	if(!id) {
@@ -68,7 +69,7 @@ const get = ({type = 'article', id = null, fields = []} = {}) => {
 		throw Error(`Missing or invalid type parameter: [${type}]`);
 	}
 
-	fields = fields || defaultFields;
+	fields = fields.length ? fields : defaultFields[type];
 
 	return api(
 		`/${id}`,
@@ -119,8 +120,7 @@ const del = ({id = null} = {}) => {
 		`/${id}`,
 		'DELETE',
 		{}
-	)
-	.then(result => Object.assign(result, {id}));
+	);
 };
 
 const find = ({canonical = null} = {}) => {
@@ -150,10 +150,13 @@ const find = ({canonical = null} = {}) => {
 		return Promise.all(promises);
 	})
 	.then(items => {
-		const results = {};
+		const results = {
+			development: {},
+			production: {},
+		};
 		items.forEach(item => {
 			const mode = item.development_mode ? 'development' : 'production';
-			if(results[mode]) {
+			if(Object.keys(results[mode]).length) {
 				throw Error(`Duplicate Facebook IA record for mode [${mode}]. Need to rethink this!`);
 			}
 			results[mode] = item;
@@ -163,8 +166,8 @@ const find = ({canonical = null} = {}) => {
 	});
 };
 
-const wipe = () => list()
-.then(({development, production}) => Promise.all(development.concat(production).map(item => del({id: item.id}))));
+const wipe = () => list({fields: ['id']})
+.then(items => Promise.all(items.map(item => del({id: item.id}))));
 
 module.exports = {
 	list,

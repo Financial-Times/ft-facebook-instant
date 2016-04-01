@@ -8,13 +8,13 @@ const fbApi = require('../lib/fbApi');
 
 const checkParams = params => {
 	const required = {
-		get: ['uuid'],
-		db: ['uuid'],
-		fb: ['uuid'],
-		transform: ['uuid'],
-		update: ['uuid'],
-		publish: ['uuid', 'mode'],
-		unpublish: ['uuid', 'mode'],
+		get: ['url'],
+		db: ['url'],
+		fb: ['url'],
+		transform: ['url'],
+		update: ['url'],
+		import: ['url', 'mode'],
+		publish: ['url', 'mode'],
 	};
 	const {action} = params;
 
@@ -32,43 +32,46 @@ const checkParams = params => {
 };
 
 const runAction = (params, res) => {
-	const {uuid, mode, action} = checkParams(params);
+	const {url, mode, action} = checkParams(params);
 
 	switch(action) {
 		case 'get':
-			return articleModel.get(uuid)
+			return articleModel.get(url)
 				.then(article => res.json(article));
 
 		case 'db':
-			return database.get(uuid)
+			return database.get(url)
 				.then(article => res.json(article));
 
 		case 'fb':
-			return database.get(uuid)
+			return database.get(url)
 				.then(article => fbApi.find({canonical: article.canonical}))
 				.then(result => res.json(result));
 
 		case 'transform':
-			return articleModel.get(uuid)
+			return articleModel.get(url)
 				.then(transform)
 				.then(transformed => res.send(transformed));
 
 		case 'update':
-			return articleModel.get(uuid)
+			return articleModel.get(url)
 				.then(articleModel.update)
 				.then(html => res.send(html));
 
-		case 'publish':
-			return articleModel.get(uuid)
+		case 'import':
+			return articleModel.get(url)
 				.then(article => transform(article)
 					.then(html => fbApi.post({mode, html}))
-					.then(({id}) => articleModel.setImportStatus(article, id))
+					.then(({id}) => articleModel.setImportStatus(article, mode, id))
 				)
 				.then(article => res.json(article));
 
-		case 'unpublish':
-			return articleModel[action](mode, uuid)
-				.then(() => articleModel.get(uuid))
+		case 'publish':
+			return articleModel.get(url)
+				.then(article => transform(article)
+					.then(html => fbApi.post({mode, html, published: true}))
+					.then(({id}) => articleModel.setImportStatus(article, mode, id))
+				)
 				.then(article => res.json(article));
 
 		default:
@@ -77,18 +80,18 @@ const runAction = (params, res) => {
 };
 
 module.exports = (req, res, next) => {
-	const uuid = req.params.uuid;
+	const url = req.params.url;
 	const mode = req.params.mode;
 	const action = req.params.action;
 
 	return Promise.resolve()
 	.then(() => {
 		if(!action) {
-			return articleModel.get(uuid)
-				.then(article => res.render('index', {uuid, article, testUuids}));
+			return articleModel.get(url)
+				.then(article => res.render('index', {article, testUuids}));
 		}
 
-		return runAction({uuid, mode, action}, res);
+		return runAction({url, mode, action}, res);
 	})
 	.catch(next);
 };

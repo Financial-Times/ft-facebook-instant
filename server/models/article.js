@@ -1,27 +1,13 @@
 'use strict';
 
-const signedFetch = require('signed-aws-es-fetch');
-const fetchres = require('fetchres');
 const cacheManager = require('cache-manager');
 const fsStore = require('cache-manager-fs');
 const path = require('path');
 const denodeify = require('denodeify');
 const database = require('../lib/database');
+const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
-const fetch = require('node-fetch');
-const url = require('url');
-
-const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
-const index = 'v3_api_v2';
-
-const getCanonical = uuid => {
-	const original = `http://www.ft.com/content/${uuid}`;
-	return fetch(original)
-	.then(response => {
-		const parsed = url.parse(response.url);
-		return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
-	});
-};
+const uuidRegex = require('../lib/uuid');
 
 const diskCache = cacheManager.caching({
 	store: fsStore,
@@ -39,29 +25,24 @@ const cacheSet = denodeify(diskCache.set);
 const cacheGet = denodeify(diskCache.get);
 const cacheDel = denodeify(diskCache.del);
 
-const apiFetch = uuid => signedFetch(`https://${elasticSearchUrl}/${index}/item/${uuid}`)
-.then(fetchres.json)
-.then(json => json._source);
-
-const getApi = uuid => cacheGet(uuid)
+const getApi = canonical => cacheGet(canonical)
 .then(cached => {
 	if(cached) {
 		return cached;
 	}
 
-	return apiFetch(uuid)
-		.then(article => cacheSet(uuid, article));
+	return ftApi.fetchByCanonical(canonical)
+		.then(article => cacheSet(canonical, article));
 });
 
-const setDb = apiRecord => getCanonical(apiRecord.id)
-.then(canonical => database.set({
-	canonical,
+const setDb = apiRecord => database.set({
+	canonical: apiRecord.webUrl,
 	uuid: apiRecord.id,
 	title: apiRecord.title,
 	date_editorially_published: new Date(apiRecord.publishedDate).getTime(),
 	date_record_updated: Date.now(),
-	imports: [],
-}))
+	import_meta: [],
+})
 .then(() => database.get(apiRecord.id));
 
 const updateDb = article => database.set({
@@ -70,32 +51,64 @@ const updateDb = article => database.set({
 	title: article.apiRecord.title,
 	date_editorially_published: new Date(article.apiRecord.publishedDate).getTime(),
 	date_record_updated: Date.now(),
-	imports: article.imports || [],
+	import_meta: article.import_meta || [],
 });
 
-const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports}) => {
-	const article = {};
-	Object.keys(databaseRecord).forEach(key => (article[key] = databaseRecord[key]));
+const flattenErrors = (items = []) => {
+	const errors = {};
 
-	article.apiRecord = apiRecord;
+	items.forEach(item => {
+		if(!errors[item.level]) errors[item.level] = [];
+		if(errors[item.level].indexOf(item.message) === -1) {
+			errors[item.level].push(item.message);
+		}
+	});
+
+	return errors;
+};
+
+const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) => {
+	const article = Object.assign({}, databaseRecord);
+
+	if(apiRecord) {
+		article.apiRecord = apiRecord;
+	}
 	article.fbRecords = fbRecords;
 
-	(fbImports || []).forEach(item => {
-		const dbImportIndex = article.imports.findIndex(record => record.importId === item.id);
-		if(dbImportIndex >= 0) {
-			article.imports[dbImportIndex] = Object.assign(article.imports[dbImportIndex], item);
-		} else {
-			article.imports.push(item);
-		}
+	const imports = [];
+
+	fbImports.forEach(item => {
+		const dbImportIndex = article.import_meta.findIndex(record => record.id === item.id);
+		const merged = (dbImportIndex >= 0) ? Object.assign({}, article.import_meta[dbImportIndex], item) : item;
+
+		merged.messages = flattenErrors(merged.errors);
+		delete merged.errors;
+
+		imports.push(merged);
+	});
+
+	imports.forEach(item => {
+		article.fbRecords[item.mode].imports = article.fbRecords[item.mode].imports || [];
+		article.fbRecords[item.mode].imports.push(item);
 	});
 
 	return article;
 };
 
-const get = uuid => Promise.all([
-	database.get(uuid),
-	getApi(uuid),
-])
+const get = key => new Promise(resolve => {
+	const uuid = (uuidRegex.exec(key) || [])[0];
+	if(uuid) {
+		console.log(`Getting canonical from UUID ${uuid}`);
+		resolve(ftApi.getCanonicalFromUuid(uuid));
+	}
+	console.log(`Using canonical URL ${key}`);
+	resolve(key);
+})
+.then(canonical => (console.log({canonical}), canonical))
+.then(canonical => Promise.all([
+	database.get(canonical),
+	getApi(canonical),
+]))
 .then(([databaseRecord, apiRecord]) => {
 	if(databaseRecord) {
 		return {databaseRecord, apiRecord};
@@ -106,32 +119,32 @@ const get = uuid => Promise.all([
 })
 .then(({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 	.then(fbRecords => {
-		const promises = databaseRecord.imports.map(item => fbApi.get({type: 'import', id: item.importId, fields: ['id', 'errors', 'status']}));
+		const promises = databaseRecord.import_meta.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
 		return Promise.all(promises)
 			.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 	})
 )
 .then(mergeRecords);
 
-const update = article => cacheDel(article.uuid)
-.then(() => getApi(article.uuid))
+const update = article => cacheDel(article.canonical)
+.then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
 .then(() => updateDb(article))
-.then(() => get(article.uuid));
+.then(() => get(article.canonical));
 
-const setImportStatus = (article, importId) => {
-	article.imports.unshift({
+const setImportStatus = (article, mode, id) => {
+	article.import_meta.unshift({
 		timestamp: Date.now(),
-		importId,
+		mode,
+		id,
 	});
 	return updateDb(article)
-		.then(() => get(article.uuid));
+		.then(() => get(article.canonical));
 };
 
 module.exports = {
 	getApi,
 	get,
 	update,
-	getCanonical,
 	setImportStatus,
 };

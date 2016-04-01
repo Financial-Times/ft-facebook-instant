@@ -3,9 +3,9 @@
 const articleModel = require('../models/article');
 
 module.exports = (req, res, next) => {
-	const uuid = req.params.uuid;
+	const url = req.params.url;
 
-	return articleModel.getApi(uuid)
+	return articleModel.getApi(url)
 	.then(article => res.json(article))
 	.catch(next);
 };

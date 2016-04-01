@@ -1,16 +1,16 @@
-<div class="o-techdocs-card status-card {{@key}}-status-card" data-mode="{{@key}}">
+<div class="o-techdocs-card status-card {{mode}}-status-card" data-mode="{{mode}}">
 	<div class="o-techdocs-card__context">
 		<div class="o-techdocs-card__icon"><i class="fa fa-arrow-circle-o-up"></i></div>
 		<div class="o-techdocs-card__heading">
 			<div class="o-techdocs-card__title">
-				{{#ifEqual @key "development"}}
+				{{#ifEqual mode "development"}}
 				Preview
 				{{else}}
 				Publish
 				{{/ifEqual}}
 			</div>
 			<div class="o-techdocs-card__subtitle">
-				{{#ifEqual @key "development"}}
+				{{#ifEqual mode "development"}}
 				Preview your Instant Article before it goes live. Once imported, it will be available to review in <a href="https://business.facebook.com/financialtimes/publishing_tools/?section=INSTANT_ARTICLES_DEVELOPMENT">Publishing Tools (Development)</a> and in the <em>Development</em> tab of the Pages mobile app.
 				{{else}}
 				Make an article available to Facebook users. Once imported, it will be available to review in <a href="https://business.facebook.com/financialtimes/publishing_tools/?section=INSTANT_ARTICLES">Publishing Tools (Production)</a>  and in the <em>Production</em> tab of the Pages mobile app.
@@ -20,26 +20,57 @@
 	</div>
 
 	<div class="o-techdocs-card__content">
-		<ul>
-			<li class="{{@key}}-publish-status">
-				<span class="{{@key}}-publish-status-text">
-				{{#if published}}
-					Published
-				{{else}}
-					Not published
+		{{#ifEqual mode "production"}}<span class="o-buttons o-buttons--small">{{#if published}}Published{{else}}Not published{{/if}}</span>{{/ifEqual}}
+		{{#if imports}}
+			{{#if most_recent_import_status}}
+				<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
+			{{else if imports.0.status}}
+				<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}}</span>
+			{{else}}
+				<span class="o-buttons o-buttons--small">Current status: UNKNOWN</span>
+			{{/if}}
+		<p>Imports:</p>
+		{{#each imports}}
+		<pre>
+			<ul>
+				<li>ID: {{id}}</li>
+				<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
+				<li>Status: <strong>{{status}}</strong></li>
+				{{#if messages}}
+				<li>Messages:
+					<ul>
+						{{#each messages as |messageList type|}}
+						<li>{{type}}:
+							<ul>
+								{{#each messageList as |message|}}
+								<li>{{message}}</li>
+								{{/each}}
+							</ul>
+						</li>
+						{{/each}}
+					</ul>
+				</li>
 				{{/if}}
-				</span>
-			</li>
-		</ul>
+			</ul>
+		</pre>
+		{{/each}}
+		{{else}}
+		<span class="o-buttons o-buttons--small">Not imported</span>
+		{{/if}}
 	</div>
 
 	<div class="o-techdocs-card__actions">
 		<div class="mode-actions">
-			{{#if date_published}}
-			<button class="o-techdocs-card__actionbutton" disabled="disabled"><i class="fa fa-trash-o"></i> Pending...</button>
+			{{#if imports}}
+			<button class="o-techdocs-card__actionbutton" onclick="triggerImport('{{mode}}');"><i class="fa fa-arrow-circle-up"></i> Re-import</button>
 			{{else}}
-			<button class="o-techdocs-card__actionbutton" onclick="setPublishState('{{@key}}', true);"><i class="fa fa-arrow-circle-up"></i> Publish</button>
+			<button class="o-techdocs-card__actionbutton" onclick="triggerImport('{{mode}}');"><i class="fa fa-arrow-circle-up"></i> Import</button>
 			{{/if}}
+			{{#ifEqual mode "production"}}
+				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
+				<button class="o-techdocs-card__actionbutton" onclick="triggerImport('{{mode}}', true);"><i class="fa fa-arrow-circle-up"></i> Publish</button>
+				{{/ifEqual}}
+			{{/ifEqual}}
 		</div>
 	</div>
 </div>

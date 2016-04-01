@@ -1,13 +1,13 @@
-{{#each articles as |list type|}}
+{{#each articles as |list mode|}}
 {{#if list.length}}
 <div class="o-techdocs-card article-list">
 	<div class="o-techdocs-card__context">
 		<div class="o-techdocs-card__icon"><i class="fa fa-file-text-o"></i></div>
 		<div class="o-techdocs-card__heading">
 			<div class="o-techdocs-card__title">
-			{{#ifEqual type "development"}}
+			{{#ifEqual mode "development"}}
 			Previewed articles
-			{{else ifEqual type "production"}}
+			{{else ifEqual mode "production"}}
 			Published articles
 			{{else}}
 			Other articles
