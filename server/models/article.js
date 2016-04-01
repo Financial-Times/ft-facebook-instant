@@ -43,7 +43,7 @@ const setDb = apiRecord => database.set({
 	date_record_updated: Date.now(),
 	import_meta: [],
 })
-.then(() => database.get(apiRecord.id));
+.then(() => database.get(apiRecord.webUrl));
 
 const updateDb = article => database.set({
 	canonical: article.canonical,
@@ -98,13 +98,10 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 const get = key => new Promise(resolve => {
 	const uuid = (uuidRegex.exec(key) || [])[0];
 	if(uuid) {
-		console.log(`Getting canonical from UUID ${uuid}`);
 		resolve(ftApi.getCanonicalFromUuid(uuid));
 	}
-	console.log(`Using canonical URL ${key}`);
 	resolve(key);
 })
-.then(canonical => (console.log({canonical}), canonical))
 .then(canonical => Promise.all([
 	database.get(canonical),
 	getApi(canonical),

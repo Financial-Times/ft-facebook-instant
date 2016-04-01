@@ -67,7 +67,7 @@ function triggerImport(mode, publish) {
 
 	$.ajax({
 		type: 'POST',
-		url: '/article/' + $('.article-status-card').attr('data-url') + '/' + mode + '/' + (publish ? 'publish' : 'import'),
+		url: '/article/' + encodeURIComponent($('.article-status-card').attr('data-canonical')) + '/' + mode + '/' + (publish ? 'publish' : 'import'),
 		success: function(article) {
 			updateStatus(article);
 		},

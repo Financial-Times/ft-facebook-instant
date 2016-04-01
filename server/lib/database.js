@@ -61,20 +61,20 @@ const extractAllDetails = (replies) => {
 	return articles;
 };
 
-const addGetToMulti = (multi, uuid) => multi
-	.hgetall(`article:${uuid}`);
+const addGetToMulti = (multi, canonical) => multi
+	.hgetall(`article:${canonical}`);
 
-const get = uuid => addGetToMulti(client.multi(), uuid)
+const get = canonical => addGetToMulti(client.multi(), canonical)
 .execAsync()
 .then(extractDetails);
 
-const getMulti = uuids => {
-	if(!uuids) return Promise.resolve([]);
+const getMulti = canonicals => {
+	if(!canonicals) return Promise.resolve([]);
 
 	const multi = client.multi();
 
-	uuids.forEach(uuid => {
-		addGetToMulti(multi, uuid);
+	canonicals.forEach(canonical => {
+		addGetToMulti(multi, canonical);
 	});
 
 	return multi
@@ -83,7 +83,7 @@ const getMulti = uuids => {
 };
 
 const set = article => client.multi()
-	.hmset(`article:${article.uuid}`, {
+	.hmset(`article:${article.canonical}`, {
 		uuid: article.uuid,
 		title: article.title,
 		canonical: article.canonical,
@@ -91,7 +91,7 @@ const set = article => client.multi()
 		date_record_updated: article.date_record_updated,
 		import_meta: JSON.stringify(article.import_meta),
 	})
-	.zadd('articles', article.date_record_updated, article.uuid)
+	.zadd('articles', article.date_record_updated, article.canonical)
 	.execAsync()
 	.then(replies => article);
 
@@ -111,11 +111,11 @@ const getLastNotificationCheck = () => client.getAsync('notifications:last_poll'
 .then(timestamp => format(types.notifications_last_poll, timestamp));
 
 module.exports = {
-	get(uuids) {
-		if(Array.isArray(uuids)) {
-			return getMulti(uuids);
+	get(canonicals) {
+		if(Array.isArray(canonicals)) {
+			return getMulti(canonicals);
 		}
-		return get(uuids);
+		return get(canonicals);
 	},
 	set,
 	list,
