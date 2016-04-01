@@ -3,26 +3,33 @@
 
 'use strict';
 
-function updateArticle() {
-	if (window.location.pathname.match('/article/[^\/]+$')) {
-		$.ajax({
-			dataType: 'json',
-			url: window.location.pathname + '/get',
-			success: function(article) {
-				updateStatus(article);
-				setTimeout(updateArticle, 5000);
-			},
-			error: function(jqXHR, status, error) {
-				console.error(jqXHR.responseText);
-				setTimeout(updateArticle, 5000);
-			}
-		});
-	} else {
-		setTimeout(updateArticle, 5000);
-	}
+var updateFrequency = 1000;
+
+function updateArticle(mode) {
+	$.ajax({
+		dataType: 'json',
+		url: window.location.pathname + '/get',
+		success: function(article) {
+			updateStatus(article);
+			checkStatus(article, mode);
+		},
+		error: function(jqXHR, status, error) {
+			console.error(jqXHR.responseText);
+			setTimeout(updateArticle.bind(null, mode), updateFrequency);
+		}
+	});
 }
 
-updateArticle();
+function checkStatus(article, mode) {
+	var status, lastImportId;
+	try {
+		status = article.fbRecords[mode].imports[0].status || article.fbRecords[mode].most_recent_import_status.status;
+	} catch (e) {}
+
+	if (status !== 'SUCCESS' && status !== 'FAILED') {
+		setTimeout(updateArticle.bind(null, mode), updateFrequency);
+	}
+}
 
 function submitForm() {
 	$('.js-url-error').text('');
@@ -91,6 +98,7 @@ function triggerImport(mode, type) {
 		url: '/article/' + encodeURIComponent($('.article-status-card').attr('data-canonical')) + '/' + mode + '/' + type,
 		success: function(article) {
 			updateStatus(article);
+			checkStatus(article, mode);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(mode, type, 'fa-times');
