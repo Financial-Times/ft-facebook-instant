@@ -1,33 +1,18 @@
 'use strict';
 
 const testUuids = require('../lib/testUuids');
-const database = require('../lib/database');
 const fbApi = require('../lib/fbApi');
+const database = require('../lib/database');
+const articleModel = require('../models/article');
 
-module.exports = (req, res, next) => Promise.all([
-	database.list(),
-	fbApi.list(),
-])
-.then(([db, fb]) => {
-	// const articles = {
-	// 	production: [],
-	// 	development: [],
-	// 	draft: [],
-	// };
+module.exports = (req, res, next) => fbApi.list({fields: ['canonical_url']})
+.then(fbList => {
 
-	// // all FB prod, adding any related imports
-	// const production = fb.filter(fbRecord => !fbRecord.development_mode);
-	// production.forEach(fbRecord => {
-	// 	const dbRecord = db.find(item => item.canonical === fbRecord.canonical_url);
-	// 	if(dbRecord)
-	// });
-
-	// All FB dev which aren't in prod, adding any related imports
-
-	// All remaining db records
-
-	// res.json({db, fb});
+	const promises = fbList.map(({canonical_url}) => articleModel.ensureInDb(canonical_url));
+	return Promise.all(promises);
 })
+.then(() => database.list())
+.then(dbList => Promise.all(dbList.map(dbItem => articleModel.enrichDb(dbItem))))
 .then(articles => res.render('index', {
 	articles,
 	testUuids,

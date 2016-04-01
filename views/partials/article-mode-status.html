@@ -3,11 +3,7 @@
 		<div class="o-techdocs-card__icon"><i class="fa fa-arrow-circle-o-up"></i></div>
 		<div class="o-techdocs-card__heading">
 			<div class="o-techdocs-card__title">
-				{{#ifEqual mode "development"}}
-				Preview
-				{{else}}
-				Publish
-				{{/ifEqual}}
+				{{humanMode mode}}
 			</div>
 			<div class="o-techdocs-card__subtitle">
 				{{#ifEqual mode "development"}}

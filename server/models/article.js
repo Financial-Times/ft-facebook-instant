@@ -95,13 +95,23 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	return article;
 };
 
-const get = key => new Promise(resolve => {
+const getCanonical = key => new Promise(resolve => {
 	const uuid = (uuidRegex.exec(key) || [])[0];
 	if(uuid) {
 		return resolve(ftApi.getCanonicalFromUuid(uuid));
 	}
 	resolve(key);
+});
+
+const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
+.then(fbRecords => {
+	const promises = databaseRecord.import_meta.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
+	return Promise.all(promises)
+		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })
+.then(mergeRecords);
+
+const get = key => getCanonical(key)
 .then(canonical => Promise.all([
 	database.get(canonical),
 	getApi(canonical),
@@ -114,14 +124,22 @@ const get = key => new Promise(resolve => {
 	return setDb(apiRecord)
 		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
 })
-.then(({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
-	.then(fbRecords => {
-		const promises = databaseRecord.import_meta.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
-		return Promise.all(promises)
-			.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
+.then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
+
+const ensureInDb = key => getCanonical(key)
+.then(canonical => database.get(canonical)
+	.then(databaseRecord => {
+		if(databaseRecord) {
+			return databaseRecord;
+		}
+
+		return getApi(canonical)
+			.then(apiRecord => setDb(apiRecord));
 	})
-)
-.then(mergeRecords);
+);
+
+const enrichDb = databaseRecord => getApi(databaseRecord.canonical)
+.then(apiRecord => addFbData({databaseRecord, apiRecord}));
 
 const update = article => cacheDel(article.canonical)
 .then(() => getApi(article.canonical))
@@ -144,4 +162,6 @@ module.exports = {
 	get,
 	update,
 	setImportStatus,
+	ensureInDb,
+	enrichDb,
 };

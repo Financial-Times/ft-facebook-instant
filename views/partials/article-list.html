@@ -1,34 +1,26 @@
-{{#each articles as |list mode|}}
-{{#if list.length}}
 <div class="o-techdocs-card article-list">
 	<div class="o-techdocs-card__context">
 		<div class="o-techdocs-card__icon"><i class="fa fa-file-text-o"></i></div>
 		<div class="o-techdocs-card__heading">
-			<div class="o-techdocs-card__title">
-			{{#ifEqual mode "development"}}
-			Previewed articles
-			{{else ifEqual mode "production"}}
-			Published articles
-			{{else}}
-			Other articles
-			{{/ifEqual}}
-			</div>
+			<div class="o-techdocs-card__title">Recent articles</div>
 		</div>
 	</div>
 	<div class="o-techdocs-card__content">
 		<ul class="fa-ul article-list__items">
-			{{#each list}}
+			{{#each articles}}
 			<li>
-				<i class="fa-li fa fa-hand-o-right"></i> <a href="/{{uuid}}">{{title}}</a>
+				<i class="fa-li fa fa-hand-o-right"></i> <a href="/article/{{encodeURIComponent canonical}}">{{title}}</a>
 				<div class="article-list__status">
 					<span class="o-buttons o-buttons--small">Published on FT.com: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate date_editorially_published}}</strong></span>
-					{{#if date_published}}<span class="o-buttons o-buttons--small">Added to mode: <strong title="{{rfcDate date_published}}">{{relativeDate date_published}}</strong></span>{{/if}}
-					{{#if date_imported}}<span class="o-buttons o-buttons--small">Imported by Facebook: <strong title="{{rfcDate date_imported}}">{{relativeDate date_imported}}</strong></span>{{/if}}
+					{{#if fbRecords.development.imports.[0]}}
+						<span class="o-buttons o-buttons--small">{{humanMode 'development'}} status: <strong>{{fbRecords.development.imports.[0].status}}</strong> (<span title="{{rfcDate fbRecords.development.imports.[0].timestamp}}">{{relativeDate fbRecords.development.imports.[0].timestamp}}</span>)</span>
+					{{/if}}
+					{{#if fbRecords.production.imports.[0]}}
+						<span class="o-buttons o-buttons--small">{{humanMode 'production'}} status: <strong>{{fbRecords.production.imports.[0].status}}</strong> (<span title="{{rfcDate fbRecords.production.imports.[0].timestamp}}">{{relativeDate fbRecords.production.imports.[0].timestamp}}</span>)</span>
+					{{/if}}
 				</div>
 			</li>
 			{{/each}}
 		</ul>
 	</div>
 </div>
-{{/if}}
-{{/each}}

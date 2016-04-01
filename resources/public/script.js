@@ -15,6 +15,7 @@ function updateArticle() {
 			},
 			error: function(jqXHR, status, error) {
 				console.error(jqXHR.responseText);
+				setTimeout(updateArticle, 5000);
 			}
 		});
 	} else {

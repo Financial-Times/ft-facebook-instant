@@ -18,4 +18,12 @@ module.exports = {
 	ifEqual(a, b, options) {
 		return a === b ? options.fn(this) : options.inverse(this);
 	},
+	encodeURIComponent(val) {
+		return encodeURIComponent(val);
+	},
+	humanMode(mode, blah) {
+		// return (mode === 'production') ? 'Publish' : 'Preview';
+		console.log(blah)
+		return mode.charAt(0).toUpperCase() + mode.slice(1);
+	},
 };
