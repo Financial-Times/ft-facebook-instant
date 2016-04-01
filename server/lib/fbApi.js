@@ -7,6 +7,10 @@ const api = denodeify(Facebook.napi);
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
 
+let mode;
+const setMode = newMode => (mode = newMode);
+const getMode = newMode => mode;
+
 // See introspect()
 const defaultFields = {
 
@@ -36,7 +40,7 @@ Facebook.options({
 	timeout: 2000,
 });
 
-const listMode = ({mode = 'development', fields = []} = {}) => {
+const list = ({fields = []} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
 
 	return api(
@@ -53,12 +57,6 @@ const listMode = ({mode = 'development', fields = []} = {}) => {
 	)
 	.then(results => results.data || []);
 };
-
-const list = ({fields = []} = {}) => Promise.all([
-	listMode({mode: 'development', fields}),
-	listMode({mode: 'production', fields}),
-])
-.then(([development, production]) => (development.concat(production)));
 
 const get = ({type = 'article', id = null, fields = []} = {}) => {
 	if(!id) {
@@ -95,7 +93,7 @@ const introspect = ({id = null} = {}) => {
 	.then(results => results.metadata);
 };
 
-const post = ({mode = 'development', published = false, html = ''} = {}) => {
+const post = ({published = false, html = ''} = {}) => {
 	if(!html) {
 		throw Error('Missing required parameter [html]');
 	}
@@ -137,31 +135,12 @@ const find = ({canonical = null} = {}) => {
 		}
 	)
 	.then(results => {
-		const promises = [];
-
-		if(results.development_instant_article) {
-			promises.push(get({id: results.development_instant_article.id}));
-		}
-
-		if(results.instant_article) {
-			promises.push(get({id: results.instant_article.id}));
-		}
-
-		return Promise.all(promises);
+		const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
+		return get({id: results[key].id});
 	})
-	.then(items => {
-		const results = {
-			development: {},
-			production: {},
-		};
-		items.forEach(item => {
-			const mode = item.development_mode ? 'development' : 'production';
-			if(Object.keys(results[mode]).length) {
-				throw Error(`Duplicate Facebook IA record for mode [${mode}]. Need to rethink this!`);
-			}
-			results[mode] = item;
-		});
-
+	.then(item => {
+		const results = {};
+		results[mode] = item;
 		return results;
 	});
 };
@@ -177,4 +156,6 @@ module.exports = {
 	delete: del,
 	find,
 	wipe,
+	setMode,
+	getMode,
 };

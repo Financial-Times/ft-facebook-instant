@@ -12,9 +12,9 @@ module.exports = (req, res, next) => fbApi.list({fields: ['canonical_url']})
 })
 .then(() => database.list())
 .then(dbList => Promise.all(dbList.map(dbItem => articleModel.enrichDb(dbItem))))
+// .then(articles => res.json(articles));
 .then(articles => res.render('index', {
 	articles,
 	testUuids,
-	modes: ['production', 'development'],
 }))
 .catch(next);

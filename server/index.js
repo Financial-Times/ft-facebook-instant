@@ -18,10 +18,17 @@ const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
 const apiController = require('./controllers/api');
+const articleModel = require('./models/article');
+const fbApi = require('./lib/fbApi');
 
-const modeList = 'development|production';
-
-console.log('env', app.get('env'));
+let mode;
+if(app.get('env') === 'production') {
+	mode = 'production';
+} else {
+	mode = 'development';
+}
+articleModel.setMode(mode);
+fbApi.setMode(mode);
 
 assertEnv([
 	'AWS_ACCESS_KEY',
@@ -62,7 +69,7 @@ app.route('^/article/:url$').get(noCache).get(handlebars.exposeTemplates).get(ar
 app.route('^/article/:url/api$').get(apiController);
 
 // TODO: change these to post only, and remove debugging routes
-app.route(`^/article/:url/:mode(${modeList})?/:action$`).all(noCache).all(articleController);
+app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleController);
 
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);

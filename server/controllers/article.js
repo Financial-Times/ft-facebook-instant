@@ -61,16 +61,16 @@ const runAction = (params, res) => {
 		case 'import':
 			return articleModel.get(url)
 				.then(article => transform(article)
-					.then(html => fbApi.post({mode, html}))
-					.then(({id}) => articleModel.setImportStatus(article, mode, id))
+					.then(html => fbApi.post({html}))
+					.then(({id}) => articleModel.setImportStatus(article, id))
 				)
 				.then(article => res.json(article));
 
 		case 'publish':
 			return articleModel.get(url)
 				.then(article => transform(article)
-					.then(html => fbApi.post({mode, html, published: true}))
-					.then(({id}) => articleModel.setImportStatus(article, mode, id))
+					.then(html => fbApi.post({html, published: true}))
+					.then(({id}) => articleModel.setImportStatus(article, id))
 				)
 				.then(article => res.json(article));
 

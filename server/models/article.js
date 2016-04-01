@@ -9,6 +9,10 @@ const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 
+let mode;
+const setMode = newMode => (mode = newMode);
+const getMode = newMode => mode;
+
 const diskCache = cacheManager.caching({
 	store: fsStore,
 	options: {
@@ -105,7 +109,9 @@ const getCanonical = key => new Promise(resolve => {
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 .then(fbRecords => {
-	const promises = databaseRecord.import_meta.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
+	const promises = databaseRecord.import_meta
+		.filter(item => item.mode === mode)
+		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
 	return Promise.all(promises)
 		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })
@@ -147,7 +153,7 @@ const update = article => cacheDel(article.canonical)
 .then(() => updateDb(article))
 .then(() => get(article.canonical));
 
-const setImportStatus = (article, mode, id) => {
+const setImportStatus = (article, id) => {
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,
@@ -164,4 +170,6 @@ module.exports = {
 	setImportStatus,
 	ensureInDb,
 	enrichDb,
+	setMode,
+	getMode,
 };
