@@ -23,7 +23,6 @@ module.exports = {
 	},
 	humanMode(mode, blah) {
 		// return (mode === 'production') ? 'Publish' : 'Preview';
-		console.log(blah)
 		return mode.charAt(0).toUpperCase() + mode.slice(1);
 	},
 };

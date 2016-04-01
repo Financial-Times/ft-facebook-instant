@@ -55,9 +55,9 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 app.route('^/$').get(noCache).get(handlebars.exposeTemplates, indexController);
 
-app.route(`^/article/:url$`).get(noCache).get(handlebars.exposeTemplates).get(articleController);
+app.route('^/article/:url$').get(noCache).get(handlebars.exposeTemplates).get(articleController);
 
-app.route(`^/article/:url/api$`).get(apiController);
+app.route('^/article/:url/api$').get(apiController);
 
 // TODO: change these to post only, and remove debugging routes
 app.route(`^/article/:url/:mode(${modeList})?/:action$`).all(noCache).all(articleController);
