@@ -3,6 +3,27 @@
 
 'use strict';
 
+function updateArticle() {
+	if (window.location.pathname.match('/article/[^\/]+$')) {
+		$.ajax({
+			type: 'POST',
+			dataType: 'json',
+			url: window.location.pathname + '/get',
+			success: function(article) {
+				updateStatus(article);
+				setTimeout(updateArticle, 5000);
+			},
+			error: function(jqXHR, status, error) {
+				console.error(jqXHR.responseText);
+			}
+		});
+	} else {
+		setTimeout(updateArticle, 5000);
+	}
+}
+
+updateArticle();
+
 function submitForm() {
 	$('.js-url-error').text('');
 	$('.article-status-container').html('');
@@ -54,12 +75,12 @@ function restoreForm() {
 	$('.js-url-submission-button').removeAttr('disabled').text('Process').removeClass('activity');
 }
 
-function triggerImport(mode, publish) {
-	updateStatusIcon(mode, 'fa-spinner fa-spin');
+function triggerImport(mode, type) {
+	updateStatusIcon(mode, type, 'fa-spinner fa-spin');
 	setButtonState(mode, false);
 	$('.error-card').remove();
 
-	if (publish) {
+	if (type === 'publish') {
 		$('.' + mode + '-publish-status-text').html('Publishing, please wait...');
 	} else {
 		$('.' + mode + '-publish-status-text').html('Importing, please wait...');
@@ -67,12 +88,12 @@ function triggerImport(mode, publish) {
 
 	$.ajax({
 		type: 'POST',
-		url: '/article/' + encodeURIComponent($('.article-status-card').attr('data-canonical')) + '/' + mode + '/' + (publish ? 'publish' : 'import'),
+		url: '/article/' + encodeURIComponent($('.article-status-card').attr('data-canonical')) + '/' + mode + '/' + type,
 		success: function(article) {
 			updateStatus(article);
 		},
 		error: function(jqXHR, status, error) {
-			updateStatusIcon(mode, 'fa-times');
+			updateStatusIcon(mode, type, 'fa-times');
 			setButtonState(mode, true);
 			$('.' + mode + '-publish-status-text').html(jqXHR.responseJSON.error);
 			$('.' + mode + '-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));

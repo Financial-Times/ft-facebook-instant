@@ -61,14 +61,10 @@
 
 	<div class="o-techdocs-card__actions">
 		<div class="mode-actions">
-			{{#if imports}}
-			<button class="o-techdocs-card__actionbutton" onclick="triggerImport('{{mode}}');"><i class="fa fa-arrow-circle-up"></i> Re-import</button>
-			{{else}}
-			<button class="o-techdocs-card__actionbutton" onclick="triggerImport('{{mode}}');"><i class="fa fa-arrow-circle-up"></i> Import</button>
-			{{/if}}
+			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="triggerImport('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if imports}}Re-import{{else}}Import{{/if}}</button>
 			{{#ifEqual mode "production"}}
 				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
-				<button class="o-techdocs-card__actionbutton" onclick="triggerImport('{{mode}}', true);"><i class="fa fa-arrow-circle-up"></i> Publish</button>
+				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="triggerImport('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>
 				{{/ifEqual}}
 			{{/ifEqual}}
 		</div>
