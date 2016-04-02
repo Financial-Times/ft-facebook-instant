@@ -122,6 +122,8 @@ const del = ({id = null} = {}) => {
 };
 
 const find = ({canonical = null} = {}) => {
+	const fields = (mode === 'production') ? 'instant_article' : 'development_instant_article{id}';
+
 	if(!canonical) {
 		throw Error('Missing required parameter [canonical]');
 	}
@@ -131,11 +133,12 @@ const find = ({canonical = null} = {}) => {
 		'GET',
 		{
 			id: canonical,
-			fields: 'instant_article,development_instant_article{id}',
+			fields,
 		}
 	)
 	.then(results => {
 		const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
+		if(!results[key]) return null;
 		return get({id: results[key].id});
 	})
 	.then(item => {
