@@ -56,7 +56,7 @@
 	</div>
 
 	<div class="o-techdocs-card__actions">
-		<div class="mode-actions">
+		<div class="actions">
 			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="triggerImport('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if imports}}Re-import{{else}}Import{{/if}}</button>
 			{{#ifEqual mode "production"}}
 				{{#ifEqual most_recent_import_status.status "SUCCESS"}}

@@ -11,6 +11,12 @@ h4 {
 	padding: 0;
 }
 
+.error,
+.error * {
+	color: red;
+	background: pink;
+}
+
 .status-card pre {
 	white-space: normal;
 	background: rgba(193, 193, 193, 0.33);
@@ -72,7 +78,7 @@ a.o-techdocs-card__actionbutton {
 .mode-target-options {
 	margin-bottom: 5px;
 }
-.mode-actions {
+.actions {
 	margin-top:10px;
 	text-align:right;
 }

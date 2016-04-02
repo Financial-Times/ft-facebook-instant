@@ -5,35 +5,9 @@ const articleModel = require('../models/article');
 const testUuids = require('../lib/testUuids');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
+const ftApi = require('../lib/ftApi');
 
-const checkParams = params => {
-	const required = {
-		get: ['url'],
-		db: ['url'],
-		fb: ['url'],
-		transform: ['url'],
-		update: ['url'],
-		import: ['url', 'mode'],
-		publish: ['url', 'mode'],
-	};
-	const {action} = params;
-
-	if(!required[action]) {
-		throw Error(`Action [${action}] not recognised.`);
-	}
-
-	required[action].forEach(key => {
-		if(!params[key]) {
-			throw Error(`Missing required parameter [${key}] for action [${action}].`);
-		}
-	});
-
-	return params;
-};
-
-const runAction = (params, res) => {
-	const {url, mode, action} = checkParams(params);
-
+const runAction = ({url, action}, res) => {
 	switch(action) {
 		case 'get':
 			return articleModel.get(url)
@@ -74,6 +48,12 @@ const runAction = (params, res) => {
 				)
 				.then(article => res.json(article));
 
+		case 'updateEs':
+			return ftApi.updateEs(url)
+				.then(() => articleModel.get(url))
+				.then(articleModel.update)
+				.then(html => res.send(html));
+
 		default:
 			throw Error(`Action [${action}] not recognised.`);
 	}
@@ -81,8 +61,11 @@ const runAction = (params, res) => {
 
 module.exports = (req, res, next) => {
 	const url = req.params.url;
-	const mode = req.params.mode;
 	const action = req.params.action;
+
+	if(!url) {
+		throw Error(`Missing required parameter [url] for action [${action}].`);
+	}
 
 	return Promise.resolve()
 	.then(() => {
@@ -91,7 +74,7 @@ module.exports = (req, res, next) => {
 				.then(article => res.render('index', {article, testUuids}));
 		}
 
-		return runAction({url, mode, action}, res);
+		return runAction({url, action}, res);
 	})
 	.catch(next);
 };

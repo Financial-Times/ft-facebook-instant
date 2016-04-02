@@ -83,15 +83,9 @@ function restoreForm() {
 }
 
 function triggerImport(mode, type) {
-	updateStatusIcon(mode, type, 'fa-spinner fa-spin');
-	setButtonState(mode, false);
+	updateStatusIcon('.' + mode + '-' + type + '-status i', 'fa-spinner fa-spin');
+	setButtonState('.' + mode + '-status-card .actions button', false);
 	$('.error-card').remove();
-
-	if (type === 'publish') {
-		$('.' + mode + '-publish-status-text').html('Publishing, please wait...');
-	} else {
-		$('.' + mode + '-publish-status-text').html('Importing, please wait...');
-	}
 
 	$.ajax({
 		type: 'POST',
@@ -101,10 +95,52 @@ function triggerImport(mode, type) {
 			checkStatus(article, mode);
 		},
 		error: function(jqXHR, status, error) {
-			updateStatusIcon(mode, type, 'fa-times');
-			setButtonState(mode, true);
+			updateStatusIcon('.' + mode + '-' + type + '-status i', 'fa-times');
+			setButtonState('.' + mode + '-status-card .actions button', true);
 			$('.' + mode + '-publish-status-text').html(jqXHR.responseJSON.error);
 			$('.' + mode + '-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
+		}
+	});
+
+	return false;
+}
+
+function update() {
+	updateStatusIcon('.update-status i', 'fa-spinner fa-spin');
+	setButtonState('.article-status-card .actions button', false);
+	$('.error-card').remove();
+
+	$.ajax({
+		type: 'POST',
+		url: '/article/' + encodeURIComponent($('.article-status-card').attr('data-canonical')) + '/update',
+		success: function(article) {
+			updateStatus(article);
+		},
+		error: function(jqXHR, status, error) {
+			updateStatusIcon('.update-status i', 'fa-times');
+			setButtonState('.article-status-card .actions button', true);
+			$('.article-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
+		}
+	});
+
+	return false;
+}
+
+function reingest() {
+	updateStatusIcon('.reingest-status i', 'fa-spinner fa-spin');
+	setButtonState('.article-status-card .actions button', false);
+	$('.error-card').remove();
+
+	$.ajax({
+		type: 'POST',
+		url: '/article/' + $('.article-status-card').attr('data-uuid') + '/updateEs',
+		success: function(article) {
+			updateStatus(article);
+		},
+		error: function(jqXHR, status, error) {
+			updateStatusIcon('.reingest-status i', 'fa-times');
+			setButtonState('.article-status-card .actions button', true);
+			$('.article-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
 		}
 	});
 
@@ -116,12 +152,12 @@ function loadTestArticle(url) {
 	submitForm();
 }
 
-function updateStatusIcon(mode, type, iconName) {
-	$('.' + mode + '-' + type + '-status i').removeClass().addClass('fa ' + iconName);
+function updateStatusIcon(selector, iconName) {
+	$(selector).removeClass().addClass('fa ' + iconName);
 }
 
-function setButtonState(mode, enabled) {
-	$('.' + mode + '-status-card .mode-actions button').each(function() {
+function setButtonState(selector, enabled) {
+	$(selector).each(function() {
 		if (enabled) {
 			$(this).removeAttr('disabled');
 		} else {

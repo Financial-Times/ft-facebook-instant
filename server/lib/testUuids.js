@@ -12,4 +12,5 @@ module.exports = [
 	{uuid: 'd5ac853a-978a-11e5-95c7-d47aa298f769', description: 'Boost for China as it joins IMF elite (Slideshow)'},
 	{uuid: '6348fc2c-5778-3778-983a-d54d948da828', description: 'This is nuts. When’s the crash? (Tweet in blockquote)'},
 	{uuid: '2f1774f4-ab65-11e3-aad9-00144feab7de', description: 'Seeing the wood for the trees in pensions (Promo box and pull quote)'},
+	{uuid: 'a78ac892-8550-11e1-a75a-00144feab49a', description: 'chuck'},
 ];

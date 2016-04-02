@@ -1,4 +1,4 @@
-<div class="o-techdocs-card article-status-card" data-canonical="{{canonical}}">
+<div class="o-techdocs-card article-status-card" data-canonical="{{canonical}}" data-uuid="{{uuid}}">
 	<div class="o-techdocs-card__context">
 		<div class="o-techdocs-card__icon"><i class="fa fa-file-text-o"></i></div>
 		<div class="o-techdocs-card__heading">
@@ -9,14 +9,22 @@
 	<div class="o-techdocs-card__content">
 		<ul>
 			<li>Canonical URL: <a href="{{canonical}}">{{canonical}}</a></li>
+			<li>UUID: {{uuid}}</li>
 			<li>Published on FT.com: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate
 date_editorially_published}}</strong></li>
 			<li>Instant Article last updated: <strong title="{{rfcDate date_record_updated}}">{{relativeDate date_record_updated}}</strong></li>
-			<li><a href="http://next.ft.com/content/{{uuid}}">View on next.ft.com</a>
-			<li><a href="http://www.ft.com/content/{{uuid}}">View on FT.com</a>
-			<li><a href="/article/{{encodeURIComponent canonical}}/api">View raw API JSON</a>
-			<li><a href="/article/{{encodeURIComponent canonical}}/transform">View Instant Article markup</a>
+			<li><a href="http://next.ft.com/content/{{uuid}}">View on next.ft.com</a></li>
+			<li><a href="http://www.ft.com/content/{{uuid}}">View on FT.com</a></li>
+			<li><a href="/article/{{encodeURIComponent canonical}}/api">View raw API JSON</a></li>
+			<li><a href="/article/{{encodeURIComponent canonical}}/transform">View Instant Article markup</a></li>
+			{{#unless apiRecord.bodyHTML}}<li class="error">This article doesn't have <code>bodyHTML</code> set in the ES response, so can't be transformed. Consider <a href="/article/{{uuid}}/updateEs">re-ingesting</a>?</li>{{/unless}}
 		</ul>
+	</div>
+	<div class="o-techdocs-card__actions">
+		<div class="actions">
+			<button class="o-techdocs-card__actionbutton update-status" onclick="update();"><i class="fa fa-arrow-circle-up"></i> Update from API</button>
+			{{#unless apiRecord.bodyHTML}}<button class="o-techdocs-card__actionbutton reingest-status" onclick="reingest();"><i class="fa fa-arrow-circle-up"></i> Re-ingest to ES</button>{{/unless}}
+		</div>
 	</div>
 </div>
 

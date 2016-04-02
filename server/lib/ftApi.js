@@ -1,5 +1,6 @@
 'use strict';
 
+const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
 const fetchres = require('fetchres');
 
@@ -50,8 +51,22 @@ const getCanonicalFromUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${
 	}
 });
 
+const updateEsRegion = (region, uuid) => nodeFetch(
+	`https://ft-next-es-interface-${region}.herokuapp.com/api/item?apiKey=${process.env.ES_INTERFACE_API_KEY}`,
+	{
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({id: uuid}),
+	}
+);
+
+const updateEs = uuid => Promise.all(['eu', 'us'].map(region => updateEsRegion(region, uuid)));
+
 module.exports = {
 	fetch,
 	fetchByCanonical,
 	getCanonicalFromUuid,
+	updateEs,
 };
