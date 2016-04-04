@@ -10,6 +10,7 @@
 			{{#each articles}}
 			<li>
 				<i class="fa-li fa fa-hand-o-right"></i> <a href="/article/{{encodeURIComponent canonical}}">{{title}}</a>
+				<span class="o-buttons o-buttons--small">Last update: <strong title="{{rfcDate date_record_updated}}">{{relativeDate date_record_updated}}</strong></span>
 				<div class="article-list__status">
 					<span class="o-buttons o-buttons--small">Published on FT.com: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate date_editorially_published}}</strong></span>
 					{{#each fbRecords as |fbRecord mode|}}

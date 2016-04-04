@@ -99,7 +99,7 @@ const list = () => {
 	const now = Date.now();
 	const then = now - LIST_AGE;
 
-	return client.zrangebyscoreAsync('articles', then, now)
+	return client.zrevrangebyscoreAsync('articles', now, then)
 		.then(getMulti);
 };
 
