@@ -9,3 +9,8 @@ Facebook Instant Articles
 	- with image
 - big number - 0bdf4bb6-6676-11e4-8bf6-00144feabdc0 or b6f04f72-f12c-11e5-aff5-19b4e253664a
 - related content - e23f78ce-f4f6-11e5-9afe-dd2472ea263d
+
+ ## Development requirements
+ 
+ - [fswatch 1.3](http://emcrisostomo.github.io/fswatch/) (`brew install fswatch`)
+ - redis (`brew install redis`)
