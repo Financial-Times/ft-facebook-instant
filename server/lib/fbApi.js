@@ -6,10 +6,7 @@ const api = denodeify(Facebook.napi);
 
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
-
-let mode;
-const setMode = newMode => (mode = newMode);
-const getMode = newMode => mode;
+const mode = require('./mode').get();
 
 // See introspect()
 const defaultFields = {
@@ -159,6 +156,4 @@ module.exports = {
 	delete: del,
 	find,
 	wipe,
-	setMode,
-	getMode,
 };

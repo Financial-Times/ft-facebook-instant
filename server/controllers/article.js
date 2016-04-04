@@ -36,7 +36,7 @@ const runAction = ({url, action}, res) => {
 			return articleModel.get(url)
 				.then(article => transform(article)
 					.then(html => fbApi.post({html}))
-					.then(({id}) => articleModel.setImportStatus(article, id))
+					.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
 				)
 				.then(article => res.json(article));
 
@@ -44,7 +44,7 @@ const runAction = ({url, action}, res) => {
 			return articleModel.get(url)
 				.then(article => transform(article)
 					.then(html => fbApi.post({html, published: true}))
-					.then(({id}) => articleModel.setImportStatus(article, id))
+					.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
 				)
 				.then(article => res.json(article));
 

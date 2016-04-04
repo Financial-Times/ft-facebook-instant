@@ -32,6 +32,7 @@
 					<li>ID: {{id}}</li>
 					<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
 					<li>Status: <strong>{{status}}</strong></li>
+					<li>Type: <strong>{{type}}</strong></li>
 					{{#if messages}}
 					<li>Messages:
 						<ul>
@@ -57,7 +58,7 @@
 
 	<div class="o-techdocs-card__actions">
 		<div class="actions">
-			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="triggerImport('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if imports}}Re-import{{else}}Import{{/if}}</button>
+			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="triggerImport('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if imports}}Re-post to Facebook{{else}}Post to Facebook{{/if}}</button>
 			{{#ifEqual mode "production"}}
 				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
 				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="triggerImport('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>

@@ -3,7 +3,11 @@
 const notifications = require('../lib/notifications');
 const database = require('../lib/database');
 const articleModel = require('../models/article');
+const transform = require('../lib/transform');
+const fbApi = require('../lib/fbApi');
+const ftApi = require('../lib/ftApi');
 
+const mode = require('../lib/mode').get();
 const UPDATE_INTERVAL = 1 * 60 * 1000;
 
 const update = apiVersion => database.getLastNotificationCheck()
@@ -24,7 +28,8 @@ const union = lists => {
 	return Object.keys(uuids);
 };
 
-const getKnownArticles = uuids => database.get(uuids)
+const getKnownArticles = uuids => Promise.all(uuids.map(uuid => ftApi.getCanonicalFromUuid(uuid)))
+.then(canonicals => database.get(canonicals))
 .then(articles => Object.keys(articles).reduce((valid, uuid) => {
 	if(articles[uuid]) {
 		valid.push(articles[uuid]);
@@ -38,10 +43,18 @@ const poller = () => Promise.all([
 ])
 .then(union)
 .then(getKnownArticles)
-.then(articles => Promise.all(articles.map(article => articleModel.update(article)))
+.then(knownArticles => Promise.all(knownArticles.map(knownArticle => articleModel.update(knownArticle)
+	.then(article => {
+		if(article.fbRecords[mode]) {
+			return transform(article)
+				.then(html => fbApi.post({html, published: article.fbRecords[mode].published}))
+				.then(({id}) => articleModel.setImportStatus({article, id, type: 'notifications-api'}));
+		}
+	})
+))
 	.then(() => {
-		if(articles.length) {
-			console.log(`${Date()}: updated articles ${articles.map(article => article.uuid)}`);
+		if(knownArticles.length) {
+			console.log(`${Date()}: updated articles ${knownArticles.map(article => article.uuid)}`);
 		} else {
 			console.log(`${Date()}: no articles to update`);
 		}

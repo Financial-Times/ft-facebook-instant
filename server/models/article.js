@@ -9,9 +9,7 @@ const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 
-let mode;
-const setMode = newMode => (mode = newMode);
-const getMode = newMode => mode;
+const mode = require('../lib/mode').get();
 
 const diskCache = cacheManager.caching({
 	store: fsStore,
@@ -153,11 +151,12 @@ const update = article => cacheDel(article.canonical)
 .then(() => updateDb(article))
 .then(() => get(article.canonical));
 
-const setImportStatus = (article, id) => {
+const setImportStatus = ({article, id, type = 'unknown'}) => {
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,
 		id,
+		type,
 	});
 	return updateDb(article)
 		.then(() => get(article.canonical));
@@ -170,6 +169,4 @@ module.exports = {
 	setImportStatus,
 	ensureInDb,
 	enrichDb,
-	setMode,
-	getMode,
 };

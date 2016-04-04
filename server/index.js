@@ -1,6 +1,13 @@
 'use strict';
 
 const express = require('express');
+const app = express();
+
+const mode = (app.get('env') === 'production') ?
+	'production' :
+	'development';
+require('./lib/mode').set(mode);
+
 const handlebars = require('./lib/handlebars');
 const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
@@ -9,26 +16,13 @@ const logger = require('morgan');
 const path = require('path');
 const bodyParser = require('body-parser');
 const noCache = require('./lib/nocache');
-
-const port = process.env.PORT || 6247;
-const app = express();
-
 const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
 const apiController = require('./controllers/api');
-const articleModel = require('./models/article');
-const fbApi = require('./lib/fbApi');
 
-let mode;
-if(app.get('env') === 'production') {
-	mode = 'production';
-} else {
-	mode = 'development';
-}
-articleModel.setMode(mode);
-fbApi.setMode(mode);
+const port = process.env.PORT || 6247;
 
 assertEnv([
 	'AWS_ACCESS_KEY',
