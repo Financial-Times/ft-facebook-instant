@@ -15,6 +15,6 @@ $(LIB)/%.js: $(SRC)/%.js
 	$(BABEL) $(BABEL_OPTS) $< -o $@
 
 clean:
-	rm -rf build
+	rm -rf $(LIB)
 
 .PHONY: clean
