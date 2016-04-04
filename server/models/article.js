@@ -90,8 +90,10 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	});
 
 	imports.forEach(item => {
-		article.fbRecords[item.mode].imports = article.fbRecords[item.mode].imports || [];
-		article.fbRecords[item.mode].imports.push(item);
+		if(article.fbRecords[item.mode]) {
+			article.fbRecords[item.mode].imports = article.fbRecords[item.mode].imports || [];
+			article.fbRecords[item.mode].imports.push(item);
+		}
 	});
 
 	return article;
