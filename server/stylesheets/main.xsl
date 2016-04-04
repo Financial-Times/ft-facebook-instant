@@ -10,16 +10,5 @@
 	</xsl:template>
 
 	<xsl:include href="big-number.xsl" />
-<!-- 	<xsl:include href="pull-quotes.xsl" />
-	<xsl:include href="blockquotes.xsl" />
-	<xsl:include href="related-box.xsl" />
 	<xsl:include href="external-image.xsl" />
-	<xsl:include href="next/interactive-graphics.xsl" />
-	<xsl:include href="./amp-links.xsl" />
-	<xsl:include href="next/slideshow.xsl" />
-	<xsl:include href="next/subheaders.xsl" />
-	<xsl:include href="next/tables.xsl" />
-	<xsl:include href="next/toc.xsl" />
-	<xsl:include href="video.xsl" />
-	<xsl:include href="ft-content.xsl" /> -->
 </xsl:stylesheet>

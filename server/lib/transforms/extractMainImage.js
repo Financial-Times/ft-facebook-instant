@@ -2,14 +2,22 @@
 
 module.exports = $ => {
 	// find image in the body
-	const $firstMainImage = $('figure.n-content-image, ft-slideshow').eq(0);
+	const $figure = $('figure.n-content-image, ft-slideshow').eq(0);
 
 	// check that it is the first element in the body
 	if(
-		$firstMainImage.length &&
-			!$firstMainImage.prev().length &&
-			(!$firstMainImage.parent() || !$firstMainImage.parent().prev().length)
+		$figure.length &&
+			!$figure.prev().length &&
+			(!$figure.parent() || !$figure.parent().prev().length)
 	) {
-		return $.html($firstMainImage.remove());
+		// $figure.remove();
+
+		const $img = $('img', $figure);
+
+		const width = $img.attr('width');
+		const height = $img.attr('height');
+		console.log({width, height});
+
+		return $figure.html();
 	}
 };
