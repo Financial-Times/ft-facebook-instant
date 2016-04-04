@@ -51,6 +51,7 @@
     "signed-aws-es-fetch": "^1.1.0"
   },
   "devDependencies": {
+    "babel-cli": "^6.6.5",
     "eslint": "^2.3.0",
     "eslint-config-airbnb": "^6.1.0",
     "lintspaces-cli": "^0.1.1",
