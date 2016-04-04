@@ -2,10 +2,8 @@
 	"ext": "js json html css",
 	"watch": [
 		"package.json",
-		"gruntfile.js",
 		"resources",
 		"scripts",
-		"server",
 		"tests",
 		"build"
 	]
