@@ -3,26 +3,14 @@
 const xsltTransform = require('./xslt');
 const cheerioTransform = require('./cheerio');
 const handlebarsTransform = require('./handlebars').render;
+const getPrimaryTheme = require('./primaryTheme');
 
 const transformArticleBody = apiRecord => {
 	if(!apiRecord.bodyHTML) {
 		throw Error('Missing required [bodyHTML] field');
 	}
 
-	const xsltParams = {
-		// id: article.id,
-		// webUrl: article.webUrl,
-		// renderTOC: 0,
-		// suggestedRead: 0,
-		// brightcoveAccountId: process.env.BRIGHTCOVE_ACCOUNT_ID,
-
-		// // See: https://github.com/ampproject/amphtml/blob/master/extensions
-		// // /amp-brightcove/amp-brightcove.md#player-configuration
-		// // NB: Next don't use the native Brightcove player, so don't use this param.
-		// // Default seems fine.
-		// // brightcovePlayerId: process.env.BRIGHTCOVE_PLAYER_ID
-		// brightcovePlayerId: 'default',
-	};
+	const xsltParams = {};
 
 	return xsltTransform(
 		apiRecord.bodyHTML,
@@ -50,10 +38,14 @@ const getAuthors = apiRecord => {
 	return authors.length ? authors : [(apiRecord.byline || '').replace(/^by\s+/i, '')];
 };
 
-module.exports = article => transformArticleBody(article.apiRecord)
-.then(body => {
+module.exports = article => Promise.all([
+	transformArticleBody(article.apiRecord),
+	getPrimaryTheme(article.apiRecord),
+])
+.then(([body, primaryTheme]) => {
 	const params = {
 		body,
+		primaryTheme,
 		canonicalUrl: article.canonical,
 		style: 'default',
 		date_published: article.date_editorially_published,
