@@ -5,7 +5,6 @@
 		"gruntfile.js",
 		"resources",
 		"scripts",
-		"server",
 		"tests",
 		"build"
 	]
