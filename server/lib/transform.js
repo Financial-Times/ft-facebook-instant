@@ -5,6 +5,10 @@ const cheerioTransform = require('./cheerio');
 const handlebarsTransform = require('./handlebars').render;
 
 const transformArticleBody = apiRecord => {
+	if(!apiRecord.bodyHTML) {
+		throw Error('Missing required [bodyHTML] field');
+	}
+
 	const xsltParams = {
 		// id: article.id,
 		// webUrl: article.webUrl,
@@ -21,7 +25,7 @@ const transformArticleBody = apiRecord => {
 	};
 
 	return xsltTransform(
-		apiRecord.bodyXML,
+		apiRecord.bodyHTML,
 		`${process.cwd()}/server/stylesheets/main.xsl`,
 		xsltParams
 	)
