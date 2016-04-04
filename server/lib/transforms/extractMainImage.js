@@ -2,7 +2,7 @@
 
 module.exports = $ => {
 	// find image in the body
-	const $figure = $('figure.n-content-image, ft-slideshow').eq(0);
+	const $figure = $('figure').eq(0);
 
 	// check that it is the first element in the body
 	if(
@@ -10,7 +10,7 @@ module.exports = $ => {
 			!$figure.prev().length &&
 			(!$figure.parent() || !$figure.parent().prev().length)
 	) {
-		// $figure.remove();
+		$figure.remove();
 
 		const $img = $('img', $figure);
 
