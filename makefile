@@ -13,3 +13,8 @@ babel: $(LIB_FILES)
 $(LIB)/%.js: $(SRC)/%.js
 	@mkdir -p $(@D)
 	$(BABEL) $(BABEL_OPTS) $< -o $@
+
+clean:
+	rm -rf build
+
+.PHONY: clean
