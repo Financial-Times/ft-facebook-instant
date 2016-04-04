@@ -5,6 +5,7 @@
   "main": "build/index.js",
   "scripts": {
     "lint": "scripts/lint.sh",
+    "prestart": "wmake babel &",
     "start": "source scripts/env.sh && nodemon",
     "postinstall": "grunt build",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -55,6 +56,7 @@
     "eslint": "^2.3.0",
     "eslint-config-airbnb": "^6.1.0",
     "lintspaces-cli": "^0.1.1",
-    "nodemon": "^1.9.1"
+    "nodemon": "^1.9.1",
+    "watch-make": "^1.0.0"
   }
 }
