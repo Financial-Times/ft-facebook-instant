@@ -3,9 +3,9 @@
 
 	<xsl:output method="html" encoding="UTF-8" indent="no" />
 
-	<xsl:template match="child::node()">
+	<xsl:template match="@*|node()">
 		<xsl:copy>
-			<xsl:apply-templates select="child::node()"/>
+			<xsl:apply-templates select="@*|node()"/>
 		</xsl:copy>
 	</xsl:template>
 

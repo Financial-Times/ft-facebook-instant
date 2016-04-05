@@ -1,5 +1,7 @@
 'use strict';
 
+const targetAspectRatio = 4 / 3; // See https://developers.facebook.com/docs/instant-articles/reference/cover
+
 module.exports = $ => {
 	// find image in the body
 	const $figure = $('figure').eq(0);
@@ -14,9 +16,16 @@ module.exports = $ => {
 
 		const $img = $('img', $figure);
 
-		const width = $img.attr('width');
-		const height = $img.attr('height');
-		console.log({width, height});
+		const width = parseInt($img.attr('width'), 10);
+		const height = parseInt($img.attr('height'), 10);
+		const ratio = width / height;
+
+		let targetWidth, targetHeight;
+		// if(ratio > targetAspectRatio) {
+		// 	targetWidth =
+		// }
+
+		console.log({width, height, ratio});
 
 		return $.html($figure);
 	}
