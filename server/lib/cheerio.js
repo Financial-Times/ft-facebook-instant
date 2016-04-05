@@ -3,7 +3,7 @@
 const cheerio = require('cheerio');
 
 const stripBody = require('./transforms/stripBody');
-const getImageDimensions = require('./transforms/getImageDimensions');
+const getImageDimensions = require('./transforms/addImageDimensions');
 
 module.exports = body => {
 	const $ = cheerio.load(body, {decodeEntities: false});
