@@ -4,6 +4,7 @@ const xsltTransform = require('./xslt');
 const cheerioTransforms = require('./transforms');
 const handlebarsTransform = require('./handlebars').render;
 const extractMainImage = require('./transforms/extractMainImage');
+const getAnalyticsUrl = require('./analytics');
 
 const transformArticleBody = apiRecord => {
 	if(!apiRecord.bodyHTML) {
@@ -44,10 +45,12 @@ const getAuthors = apiRecord => {
 module.exports = article => transformArticleBody(article.apiRecord)
 .then(transformed$ => {
 	const mainImageHtml = extractMainImage(transformed$);
+	const analyticsUrl = getAnalyticsUrl(article);
 	const body = transformed$.html();
 	const params = {
 		body,
 		mainImageHtml,
+		analyticsUrl,
 		canonicalUrl: article.canonical,
 		style: 'default',
 		date_published: article.date_editorially_published,
