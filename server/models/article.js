@@ -4,6 +4,7 @@ const cacheManager = require('cache-manager');
 const fsStore = require('cache-manager-fs');
 const path = require('path');
 const denodeify = require('denodeify');
+const fetch = require('node-fetch');
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
@@ -100,11 +101,18 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 };
 
 const getCanonical = key => new Promise(resolve => {
-	const uuid = (uuidRegex.exec(key) || [])[0];
+	let uuid = (uuidRegex.exec(key) || [])[0];
 	if(uuid) {
 		return resolve(ftApi.getCanonicalFromUuid(uuid));
 	}
-	resolve(key);
+	return fetch(key)
+		.then(res => {
+			uuid = (uuidRegex.exec(res.url) || [])[0];
+			if(uuid) {
+				return resolve(ftApi.getCanonicalFromUuid(uuid));
+			}
+			return key;
+		});
 });
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
