@@ -21,8 +21,10 @@ module.exports = {
 	encodeURIComponent(val) {
 		return encodeURIComponent(val);
 	},
-	humanMode(mode, blah) {
-		// return (mode === 'production') ? 'Publish' : 'Preview';
+	humanMode(mode) {
 		return mode.charAt(0).toUpperCase() + mode.slice(1);
+	},
+	or(a, b, options) {
+		return (a || b) ? options.fn(this) : options.inverse(this);
 	},
 };

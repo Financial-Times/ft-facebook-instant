@@ -80,6 +80,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	const imports = [];
 
 	fbImports.forEach(item => {
+		if(!item) return;
 		const dbImportIndex = article.import_meta.findIndex(record => record.id === item.id);
 		const merged = (dbImportIndex >= 0) ? Object.assign({}, article.import_meta[dbImportIndex], item) : item;
 
@@ -111,7 +112,11 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 .then(fbRecords => {
 	const promises = databaseRecord.import_meta
 		.filter(item => item.mode === mode)
-		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
+		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']})
+			.catch(() => {
+				// Ignore db records which don't map to existing FB records
+			})
+		);
 	return Promise.all(promises)
 		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })

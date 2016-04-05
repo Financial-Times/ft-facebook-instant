@@ -48,11 +48,16 @@ const runAction = ({url, action}, res) => {
 				)
 				.then(article => res.json(article));
 
-		case 'updateEs':
+		case 'reingest':
 			return ftApi.updateEs(url)
 				.then(() => articleModel.get(url))
 				.then(articleModel.update)
 				.then(html => res.send(html));
+
+		case 'delete':
+			return fbApi.delete({canonical: url})
+				.then(() => articleModel.get(url))
+				.then(article => res.json(article));
 
 		default:
 			throw Error(`Action [${action}] not recognised.`);

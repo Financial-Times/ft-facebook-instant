@@ -58,10 +58,11 @@
 
 	<div class="o-techdocs-card__actions">
 		<div class="actions">
-			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="triggerImport('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if imports}}Re-post to Facebook{{else}}Post to Facebook{{/if}}</button>
+			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="runModeAction('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#or imports most_recent_import_status}}Re-post to Facebook{{else}}Post to Facebook{{/or}}</button>
+			{{#or imports most_recent_import_status}}<button class="o-techdocs-card__actionbutton {{mode}}-delete-status" onclick="runModeAction('{{mode}}', 'delete');"><i class="fa fa-arrow-circle-up"></i> Delete from Facebook</button>{{/or}}
 			{{#ifEqual mode "production"}}
 				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
-				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="triggerImport('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>
+				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>
 				{{/ifEqual}}
 			{{/ifEqual}}
 		</div>

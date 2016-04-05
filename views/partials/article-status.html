@@ -22,8 +22,8 @@ date_editorially_published}}</strong></li>
 	</div>
 	<div class="o-techdocs-card__actions">
 		<div class="actions">
-			<button class="o-techdocs-card__actionbutton update-status" onclick="update();"><i class="fa fa-arrow-circle-up"></i> Update from API</button>
-			{{#unless apiRecord.bodyHTML}}<button class="o-techdocs-card__actionbutton reingest-status" onclick="reingest();"><i class="fa fa-arrow-circle-up"></i> Re-ingest to ES</button>{{/unless}}
+			<button class="o-techdocs-card__actionbutton update-status" onclick="runArticleAction('update');"><i class="fa fa-arrow-circle-up"></i> Update from API</button>
+			{{#unless apiRecord.bodyHTML}}<button class="o-techdocs-card__actionbutton reingest-status" onclick="runArticleAction('reingest');"><i class="fa fa-arrow-circle-up"></i> Re-ingest to ES</button>{{/unless}}
 		</div>
 	</div>
 </div>
