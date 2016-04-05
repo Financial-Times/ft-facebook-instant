@@ -51,7 +51,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'deletefb':
-			return fbApi.delete({id: 474757556051614})
+			return fbApi.delete({canonical: 'http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377.html'})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'fetchByCanonical':

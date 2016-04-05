@@ -111,8 +111,13 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 .then(fbRecords => {
 	const promises = databaseRecord.import_meta
 		.filter(item => item.mode === mode)
-		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
+		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']})
+			.catch(() => {
+				// Ignore db records which don't map to existing FB records
+			})
+		);
 	return Promise.all(promises)
+		.then(fbImports => fbImports.filter(record => record !== undefined))
 		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })
 .then(mergeRecords);
