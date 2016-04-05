@@ -22,10 +22,7 @@
 			</xsl:choose>
 		</xsl:variable>
 
-		<amp-youtube
-				data-videoid="{$videoId}"
-				layout="responsive"
-				width="480" height="270"></amp-youtube>
+		<youtube data-videoid="{$videoId}" />
 	</xsl:template>
 
 </xsl:stylesheet>
