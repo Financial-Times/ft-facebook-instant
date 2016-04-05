@@ -13,4 +13,5 @@
 	<xsl:include href="blockquotes.xsl" />
 	<xsl:include href="external-image.xsl" />
 	<xsl:include href="video.xsl" />
+	<xsl:include href="links.xsl" />
 </xsl:stylesheet>
