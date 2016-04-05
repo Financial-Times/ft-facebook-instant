@@ -1,7 +1,7 @@
 'use strict';
 
 const xsltTransform = require('./xslt');
-const cheerioTransform = require('./cheerio');
+const cheerioTransforms = require('./transforms');
 const handlebarsTransform = require('./handlebars').render;
 const extractMainImage = require('./transforms/extractMainImage');
 
@@ -10,14 +10,17 @@ const transformArticleBody = apiRecord => {
 		throw Error('Missing required [bodyHTML] field');
 	}
 
-	const xsltParams = {};
+	const xsltParams = {
+		brightcoveAccountId: process.env.BRIGHTCOVE_ACCOUNT_ID,
+		brightcovePlayerId: 'default',
+	};
 
 	return xsltTransform(
 		apiRecord.bodyHTML,
 		`${process.cwd()}/server/stylesheets/main.xsl`,
 		xsltParams
 	)
-	.then(cheerioTransform);
+	.then(cheerioTransforms);
 };
 
 const getAnnotations = apiRecord => (apiRecord.annotations || [])

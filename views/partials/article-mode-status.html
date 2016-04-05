@@ -28,8 +28,8 @@
 		{{/if}}
 		{{#if imports}}
 			<p>{{#if nullRecord}} Old imports{{else}}Imports{{/if}}:</p>
-			{{#each imports}}
 			<pre>
+			{{#each imports}}
 				<ul>
 					<li>ID: {{id}}</li>
 					<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
@@ -51,8 +51,9 @@
 					</li>
 					{{/if}}
 				</ul>
-			</pre>
+				<hr />
 			{{/each}}
+			</pre>
 		{{else if most_recent_import_status}}
 			<p>No import data</p>
 		{{/if}}
