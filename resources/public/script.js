@@ -5,7 +5,7 @@
 
 var updateFrequency = 1000;
 
-function updateArticle(mode) {
+function updateArticle(mode, action) {
 	$.ajax({
 		dataType: 'json',
 		url: window.location.pathname + '/get',
@@ -15,19 +15,21 @@ function updateArticle(mode) {
 		},
 		error: function(jqXHR, status, error) {
 			console.error(jqXHR.responseText);
-			setTimeout(updateArticle.bind(null, mode), updateFrequency);
+			setTimeout(updateArticle.bind(null, mode, action), updateFrequency);
 		}
 	});
 }
 
-function checkStatus(article, mode) {
-	var status, lastImportId;
+function checkStatus(article, mode, action) {
+	var status;
 	try {
-		status = article.fbRecords[mode].imports[0].status || article.fbRecords[mode].most_recent_import_status.status;
+		var record = article.fbRecords[mode];
+		if (action === 'delete' && record.nullRecord) return;
+		status = record.imports[0].status || record.most_recent_import_status.status;
 	} catch (e) {}
 
 	if (status !== 'SUCCESS' && status !== 'FAILED') {
-		setTimeout(updateArticle.bind(null, mode), updateFrequency);
+		setTimeout(updateArticle.bind(null, mode, action), updateFrequency);
 	}
 }
 
@@ -96,7 +98,7 @@ function runModeAction(mode, action) {
 		url: '/article/' + encodeURIComponent(canonical) + '/' + mode + '/' + action,
 		success: function(article) {
 			updateStatus(article);
-			checkStatus(article, mode);
+			checkStatus(article, mode, action);
 		},
 		error: function(jqXHR, status, error) {
 			updateStatusIcon(iconSelector, 'fa-times');

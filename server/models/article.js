@@ -80,7 +80,6 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	const imports = [];
 
 	fbImports.forEach(item => {
-		if(!item) return;
 		const dbImportIndex = article.import_meta.findIndex(record => record.id === item.id);
 		const merged = (dbImportIndex >= 0) ? Object.assign({}, article.import_meta[dbImportIndex], item) : item;
 
@@ -118,6 +117,7 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 			})
 		);
 	return Promise.all(promises)
+		.then(fbImports => fbImports.filter(record => record !== undefined))
 		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })
 .then(mergeRecords);

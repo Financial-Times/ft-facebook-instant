@@ -123,7 +123,9 @@ const find = ({canonical = null} = {}) => {
 	)
 	.then(results => {
 		const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
-		if(!results[key]) return null;
+		if(!results[key]) {
+			return {nullRecord: true};
+		}
 		return get({id: results[key].id});
 	})
 	.then(item => {

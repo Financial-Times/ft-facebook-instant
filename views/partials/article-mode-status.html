@@ -17,15 +17,17 @@
 
 	<div class="o-techdocs-card__content">
 		{{#ifEqual mode "production"}}<span class="o-buttons o-buttons--small">{{#if published}}Published{{else}}Not published{{/if}}</span>{{/ifEqual}}
-		{{#if imports.0.status}}
-			<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
-		{{else if most_recent_import_status}}
-			<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
-		{{else}}
+		{{#if nullRecord}}
 			<span class="o-buttons o-buttons--small">Not imported</span>
+		{{else}}
+			{{#if imports.0.status}}
+				<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
+			{{else if most_recent_import_status}}
+				<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
+			{{/if}}
 		{{/if}}
 		{{#if imports}}
-			<p>Imports:</p>
+			<p>{{#if nullRecord}} Old imports{{else}}Imports{{/if}}:</p>
 			{{#each imports}}
 			<pre>
 				<ul>
@@ -58,8 +60,8 @@
 
 	<div class="o-techdocs-card__actions">
 		<div class="actions">
-			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="runModeAction('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#or imports most_recent_import_status}}Re-post to Facebook{{else}}Post to Facebook{{/or}}</button>
-			{{#or imports most_recent_import_status}}<button class="o-techdocs-card__actionbutton {{mode}}-delete-status" onclick="runModeAction('{{mode}}', 'delete');"><i class="fa fa-arrow-circle-up"></i> Delete from Facebook</button>{{/or}}
+			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="runModeAction('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if nullRecord}}Post to Facebook{{else}}Re-post to Facebook{{/if}}</button>
+			{{#unless nullRecord}}<button class="o-techdocs-card__actionbutton {{mode}}-delete-status" onclick="runModeAction('{{mode}}', 'delete');"><i class="fa fa-arrow-circle-up"></i> Delete from Facebook</button>{{/unless}}
 			{{#ifEqual mode "production"}}
 				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
 				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>
