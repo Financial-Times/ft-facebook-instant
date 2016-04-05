@@ -2,7 +2,7 @@
 
 const spawn = require('child_process').spawn;
 
-module.exports = (xml, stylesheet, params) => new Promise((resolve, reject) => {
+module.exports = (xml, stylesheet, params = {}) => new Promise((resolve, reject) => {
 	const output = [];
 	const errors = [];
 
@@ -12,12 +12,10 @@ module.exports = (xml, stylesheet, params) => new Promise((resolve, reject) => {
 		'--encoding', 'utf-8',
 	];
 
-	if(Array.isArray(params)) {
-		Object.keys(params).forEach(param => {
-			const string = typeof params[param] === 'string';
-			options = options.concat(string ? '--stringparam' : '--param', param, params[param]);
-		});
-	}
+	Object.keys(params).forEach(param => {
+		const string = typeof params[param] === 'string';
+		options = options.concat(string ? '--stringparam' : '--param', param, params[param]);
+	});
 
 	const env = {PATH: `${process.env.PATH}:${process.cwd()}/libxslt/bin`};
 	const xsltproc = spawn('xsltproc', options.concat(

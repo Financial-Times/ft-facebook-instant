@@ -20,7 +20,7 @@ h4 {
 .status-card pre {
 	white-space: normal;
 	background: rgba(193, 193, 193, 0.33);
-	max-height: 100px;
+	max-height: 250px;
 	overflow: scroll;
 	border: 1px solid silver;
 }
