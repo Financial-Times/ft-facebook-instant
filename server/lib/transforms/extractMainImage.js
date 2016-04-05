@@ -18,6 +18,6 @@ module.exports = $ => {
 		const height = $img.attr('height');
 		console.log({width, height});
 
-		return $figure.html();
+		return $.html($figure);
 	}
 };

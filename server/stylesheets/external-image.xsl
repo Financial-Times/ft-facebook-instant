@@ -9,7 +9,7 @@
 	</xsl:template>
 
 	<xsl:template match="img" mode="figure">
-		<img src="{@src}" />
+		<img src="{@src}" width="{@width}" height="{@height}" />
 	</xsl:template>
 
 	<xsl:template match="figcaption" mode="figcaption">
