@@ -13,8 +13,7 @@ const encodeId = id => {
 const replaceHtml = ($, el) => {
 	const $brightcove = $(el);
 
-	const width = 480;
-	const height = 270;
+	const height = 180; // Not sure why, but this works best without a width, on an iPhone at least
 	const account = $brightcove.attr('data-account');
 	const playerid = $brightcove.attr('data-player');
 	const videoId = $brightcove.attr('data-video-id');
@@ -23,7 +22,7 @@ const replaceHtml = ($, el) => {
 	const src = `https://players.brightcove.net/${encodeURIComponent(account)}/`
 		+ `${encodeURIComponent(playerid)}_${encodeURIComponent(embed)}/index.html?videoId=${encodeId(videoId)}`;
 
-	$brightcove.replaceWith($(`<figure class="op-interactive"><iframe width="${width}" height="${height}" src="${src}"></iframe></figure>`));
+	$brightcove.replaceWith($(`<figure class="op-interactive"><iframe height="${height}" src="${src}"></iframe></figure>`));
 };
 
 module.exports = $ => Promise.resolve()
