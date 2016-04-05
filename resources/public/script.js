@@ -1,11 +1,11 @@
 /* global $, Handlebars */
-/* exported triggerImport, loadTestArticle */
+/* exported runModeAction, loadTestArticle */
 
 'use strict';
 
 var updateFrequency = 1000;
 
-function updateArticle(mode) {
+function updateArticle(mode, action) {
 	$.ajax({
 		dataType: 'json',
 		url: window.location.pathname + '/get',
@@ -15,19 +15,21 @@ function updateArticle(mode) {
 		},
 		error: function(jqXHR, status, error) {
 			console.error(jqXHR.responseText);
-			setTimeout(updateArticle.bind(null, mode), updateFrequency);
+			setTimeout(updateArticle.bind(null, mode, action), updateFrequency);
 		}
 	});
 }
 
-function checkStatus(article, mode) {
-	var status, lastImportId;
+function checkStatus(article, mode, action) {
+	var status;
 	try {
-		status = article.fbRecords[mode].imports[0].status || article.fbRecords[mode].most_recent_import_status.status;
+		var record = article.fbRecords[mode];
+		if (action === 'delete' && record.nullRecord) return;
+		status = record.imports[0].status || record.most_recent_import_status.status;
 	} catch (e) {}
 
 	if (status !== 'SUCCESS' && status !== 'FAILED') {
-		setTimeout(updateArticle.bind(null, mode), updateFrequency);
+		setTimeout(updateArticle.bind(null, mode, action), updateFrequency);
 	}
 }
 
@@ -82,22 +84,25 @@ function restoreForm() {
 	$('.js-url-submission-button').removeAttr('disabled').text('Process').removeClass('activity');
 }
 
-function triggerImport(mode, type) {
-	updateStatusIcon('.' + mode + '-' + type + '-status i', 'fa-spinner fa-spin');
-	setButtonState('.' + mode + '-status-card .actions button', false);
+function runModeAction(mode, action) {
+	var iconSelector = '.' + mode + '-' + action + '-status i';
+	var buttonSelector = '.' + mode + '-status-card .actions button';
+	var canonical = $('.article-status-card').attr('data-canonical');
+
+	updateStatusIcon(iconSelector, 'fa-spinner fa-spin');
+	setButtonState(buttonSelector, false);
 	$('.error-card').remove();
 
 	$.ajax({
 		type: 'POST',
-		url: '/article/' + encodeURIComponent($('.article-status-card').attr('data-canonical')) + '/' + mode + '/' + type,
+		url: '/article/' + encodeURIComponent(canonical) + '/' + mode + '/' + action,
 		success: function(article) {
 			updateStatus(article);
-			checkStatus(article, mode);
+			checkStatus(article, mode, action);
 		},
 		error: function(jqXHR, status, error) {
-			updateStatusIcon('.' + mode + '-' + type + '-status i', 'fa-times');
-			setButtonState('.' + mode + '-status-card .actions button', true);
-			$('.' + mode + '-publish-status-text').html(jqXHR.responseJSON.error);
+			updateStatusIcon(iconSelector, 'fa-times');
+			setButtonState(buttonSelector, true);
 			$('.' + mode + '-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
 		}
 	});
@@ -105,41 +110,24 @@ function triggerImport(mode, type) {
 	return false;
 }
 
-function update() {
-	updateStatusIcon('.update-status i', 'fa-spinner fa-spin');
-	setButtonState('.article-status-card .actions button', false);
+function runArticleAction(action) {
+	var iconSelector = '.' + action + '-status i';
+	var buttonSelector = '.article-status-card .actions button';
+	var canonical = $('.article-status-card').attr('data-canonical');
+
+	updateStatusIcon(iconSelector, 'fa-spinner fa-spin');
+	setButtonState(buttonSelector, false);
 	$('.error-card').remove();
 
 	$.ajax({
 		type: 'POST',
-		url: '/article/' + encodeURIComponent($('.article-status-card').attr('data-canonical')) + '/update',
+		url: '/article/' + encodeURIComponent(canonical) + '/' + action,
 		success: function(article) {
 			updateStatus(article);
 		},
 		error: function(jqXHR, status, error) {
-			updateStatusIcon('.update-status i', 'fa-times');
-			setButtonState('.article-status-card .actions button', true);
-			$('.article-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
-		}
-	});
-
-	return false;
-}
-
-function reingest() {
-	updateStatusIcon('.reingest-status i', 'fa-spinner fa-spin');
-	setButtonState('.article-status-card .actions button', false);
-	$('.error-card').remove();
-
-	$.ajax({
-		type: 'POST',
-		url: '/article/' + $('.article-status-card').attr('data-uuid') + '/updateEs',
-		success: function(article) {
-			updateStatus(article);
-		},
-		error: function(jqXHR, status, error) {
-			updateStatusIcon('.reingest-status i', 'fa-times');
-			setButtonState('.article-status-card .actions button', true);
+			updateStatusIcon(iconSelector, 'fa-times');
+			setButtonState(buttonSelector, true);
 			$('.article-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
 		}
 	});

@@ -106,24 +106,12 @@ const post = ({published = false, html = ''} = {}) => {
 	);
 };
 
-const del = ({id = null} = {}) => {
-	if(!id) {
-		throw Error('Missing required parameter [id]');
-	}
-
-	return api(
-		`/${id}`,
-		'DELETE',
-		{}
-	);
-};
-
 const find = ({canonical = null} = {}) => {
-	const fields = (mode === 'production') ? 'instant_article' : 'development_instant_article{id}';
-
 	if(!canonical) {
 		throw Error('Missing required parameter [canonical]');
 	}
+
+	const fields = (mode === 'production') ? 'instant_article' : 'development_instant_article{id}';
 
 	return api(
 		'/',
@@ -135,7 +123,9 @@ const find = ({canonical = null} = {}) => {
 	)
 	.then(results => {
 		const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
-		if(!results[key]) return null;
+		if(!results[key]) {
+			return {nullRecord: true};
+		}
 		return get({id: results[key].id});
 	})
 	.then(item => {
@@ -143,6 +133,20 @@ const find = ({canonical = null} = {}) => {
 		results[mode] = item;
 		return results;
 	});
+};
+
+const del = ({canonical = null} = {}) => {
+	if(!canonical) {
+		throw Error('Missing required parameter [id]');
+	}
+
+	return find({canonical})
+		.then(results => results[mode])
+		.then(result => result && api(
+			`/${result.id}`,
+			'DELETE',
+			{}
+		));
 };
 
 const wipe = () => list({fields: ['id']})
