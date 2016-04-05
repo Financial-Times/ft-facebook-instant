@@ -10,6 +10,5 @@ module.exports = body => {
 	return Promise.all([
 		stripBody,
 	].map(transform => transform($)))
-	.then(() => $)
-	.then(transformed$ => transformed$.html());
+	.then(() => $);
 };
