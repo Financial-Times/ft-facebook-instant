@@ -35,6 +35,7 @@ const getApi = canonical => cacheGet(canonical)
 	}
 
 	return ftApi.fetchByCanonical(canonical)
+		.then(article => article || Promise.reject(Error(`Canonical URL [${canonical}] is not in Elastic Search`)))
 		.then(article => cacheSet(canonical, article));
 });
 
