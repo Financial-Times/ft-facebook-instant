@@ -62,7 +62,7 @@ const poller = () => Promise.all([
 		return database.setLastNotificationCheck(Date.now());
 	})
 )
-.catch(e => console.log(e)); // TODO: error reporting
+.catch(e => console.log(e.stack || e)); // TODO: error reporting
 
 module.exports.init = () => {
 	poller();
