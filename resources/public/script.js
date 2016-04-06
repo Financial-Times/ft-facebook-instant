@@ -111,7 +111,7 @@ function runModeAction(mode, action) {
 			var message = getError(jqXHR);
 			updateStatusIcon(iconSelector, 'fa-times');
 			setButtonState(buttonSelector, true);
-			$('.' + mode + '-status-card').after(Handlebars.partials['error-card'](message));
+			$('.' + mode + '-status-card').after(Handlebars.partials['error-card']({error: message}));
 		}
 	});
 
