@@ -6,6 +6,8 @@ const stripBody = require('./stripBody');
 const addImageDimensions = require('./addImageDimensions');
 const convertBrightcove = require('./convertBrightcove');
 const convertYoutube = require('./convertYoutube');
+const removeEmptyElements = require('./removeEmptyElements');
+const removeInvalidLinks = require('./removeInvalidLinks');
 
 module.exports = body => {
 	const $ = cheerio.load(body, {decodeEntities: false});
@@ -15,6 +17,8 @@ module.exports = body => {
 		addImageDimensions,
 		convertBrightcove,
 		convertYoutube,
+		removeEmptyElements,
+		removeInvalidLinks,
 	].map(transform => transform($)))
 	.then(() => $);
 };
