@@ -5,6 +5,16 @@
 
 var updateFrequency = 1000;
 
+function getError(jqXHR) {
+	if (jqXHR.responseJSON) {
+		console.error(jqXHR.responseJSON.stack || jqXHR.responseJSON);
+		return jqXHR.responseJSON.error || jqXHR.responseText;
+	} else {
+		console.error(jqXHR.responseText);
+		return jqXHR.responseText;
+	}
+}
+
 function updateArticle(mode, action) {
 	$.ajax({
 		dataType: 'json',
@@ -14,7 +24,7 @@ function updateArticle(mode, action) {
 			checkStatus(article, mode);
 		},
 		error: function(jqXHR, status, error) {
-			console.error(jqXHR.responseText);
+			getError(jqXHR);
 			setTimeout(updateArticle.bind(null, mode, action), updateFrequency);
 		}
 	});
@@ -45,10 +55,6 @@ function submitForm() {
 	}
 
 	var url = encodeURIComponent(val);
-	if (window.location.pathname !== '/' + url) {
-		window.history.pushState({}, '', '/article/' + url);
-	}
-
 	$('.js-url-submission-button').attr('disabled', 'disabled').text('Processing').addClass('activity');
 
 	$.ajax({
@@ -65,7 +71,8 @@ function submitForm() {
 			updateStatus(article);
 		},
 		error: function(jqXHR, status, error) {
-			handleFormError('Server returned error: ' + jqXHR.responseText);
+			var message = getError(jqXHR);
+			handleFormError(message);
 		}
 	});
 }
@@ -101,9 +108,10 @@ function runModeAction(mode, action) {
 			checkStatus(article, mode, action);
 		},
 		error: function(jqXHR, status, error) {
+			var message = getError(jqXHR);
 			updateStatusIcon(iconSelector, 'fa-times');
 			setButtonState(buttonSelector, true);
-			$('.' + mode + '-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
+			$('.' + mode + '-status-card').after(Handlebars.partials['error-card'](message));
 		}
 	});
 
@@ -126,9 +134,10 @@ function runArticleAction(action) {
 			updateStatus(article);
 		},
 		error: function(jqXHR, status, error) {
+			var message = getError(jqXHR);
 			updateStatusIcon(iconSelector, 'fa-times');
 			setButtonState(buttonSelector, true);
-			$('.article-status-card').after(Handlebars.partials['error-card'](jqXHR.responseJSON));
+			$('.article-status-card').after(Handlebars.partials['error-card']({error: message}));
 		}
 	});
 
