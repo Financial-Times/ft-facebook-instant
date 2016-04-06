@@ -3,12 +3,17 @@
 const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
 const fetchres = require('fetchres');
+const uuidRegex = require('./uuid');
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
 
 
 const fetch = uuid => signedFetch(`https://${elasticSearchUrl}/${index}/item/${uuid}`)
+.then(fetchres.json)
+.then(json => json._source);
+
+const fetchByUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${index}/item/${uuid}`)
 .then(fetchres.json)
 .then(json => json._source);
 
@@ -27,6 +32,11 @@ const fetchByCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/$
 	try{
 		return json.hits.hits[0]._source;
 	} catch(e) {
+		const uuid = (uuidRegex.exec(canonical) || [])[0];
+		if(uuid) {
+			return fetchByUuid(uuid);
+		}
+
 		return null;
 	}
 });

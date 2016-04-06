@@ -101,18 +101,26 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	return article;
 };
 
-const getCanonical = key => {
-	// Follow redirects first
-	return fetch(key)
-		.then(res => {
-			const uuid = (uuidRegex.exec(res.url) || [])[0];
-			if(uuid) {
-				return ftApi.getCanonicalFromUuid(uuid);
-			}
-			return ftApi.verifyCanonical(key)
-				.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)))
-		});
-};
+// Follow redirects first
+const deriveCanonical = key => fetch(key)
+.then(res => {
+	const uuid = (uuidRegex.exec(res.url) || [])[0];
+	if(uuid) {
+		return ftApi.getCanonicalFromUuid(uuid);
+	}
+	return ftApi.verifyCanonical(key)
+		.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)));
+});
+
+const getCanonical = key => cacheGet(`canonical:${key}`)
+.then(cached => {
+	if(cached) {
+		return cached;
+	}
+
+	return deriveCanonical(key)
+		.then(canonical => cacheSet(`canonical:${key}`, canonical));
+});
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 .then(fbRecords => {
@@ -146,14 +154,9 @@ const get = key => getCanonical(key)
 
 const ensureInDb = key => getCanonical(key)
 .then(canonical => database.get(canonical)
-	.then(databaseRecord => {
-		if(databaseRecord) {
-			return databaseRecord;
-		}
-
-		return getApi(canonical)
-			.then(apiRecord => setDb(apiRecord));
-	})
+	.then(databaseRecord => databaseRecord || getApi(canonical)
+		.then(apiRecord => setDb(apiRecord))
+	)
 );
 
 const enrichDb = databaseRecord => getApi(databaseRecord.canonical)
