@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const stripBody = require('./stripBody');
 const addImageDimensions = require('./addImageDimensions');
 const convertBrightcove = require('./convertBrightcove');
+const convertYoutube = require('./convertYoutube');
 const removeEmptyElements = require('./removeEmptyElements');
 const removeInvalidLinks = require('./removeInvalidLinks');
 
@@ -15,6 +16,7 @@ module.exports = body => {
 		stripBody,
 		addImageDimensions,
 		convertBrightcove,
+		convertYoutube,
 		removeEmptyElements,
 		removeInvalidLinks,
 	].map(transform => transform($)))

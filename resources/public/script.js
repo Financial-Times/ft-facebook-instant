@@ -1,5 +1,5 @@
 /* global $, Handlebars */
-/* exported runModeAction, loadTestArticle */
+/* exported runModeAction */
 
 'use strict';
 
@@ -142,11 +142,6 @@ function runArticleAction(action) {
 	});
 
 	return false;
-}
-
-function loadTestArticle(url) {
-	$('#url').val(url);
-	submitForm();
 }
 
 function updateStatusIcon(selector, iconName) {

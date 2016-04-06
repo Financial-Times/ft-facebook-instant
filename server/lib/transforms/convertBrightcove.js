@@ -13,15 +13,15 @@ const encodeId = id => {
 const replaceHtml = ($, el) => {
 	const $brightcove = $(el);
 
-	const width = 480;
-	const height = 270;
+	const width = 320;
+	const height = 180;
 	const account = $brightcove.attr('data-account');
 	const playerid = $brightcove.attr('data-player');
 	const videoId = $brightcove.attr('data-video-id');
 	const embed = 'default';
 
 	const src = `https://players.brightcove.net/${encodeURIComponent(account)}/`
-		+ `${encodeURIComponent(playerid)}_${encodeURIComponent(embed)}/index.html?videoId=${encodeId(videoId)}`;
+		+ `${encodeURIComponent(playerid)}_${encodeURIComponent(embed)}/index.html?videoId=${encodeId(videoId)}&autoplay=true`;
 
 	$brightcove.replaceWith($(`<figure class="op-interactive"><iframe width="${width}" height="${height}" src="${src}"></iframe></figure>`));
 };
