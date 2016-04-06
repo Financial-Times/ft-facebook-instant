@@ -13,8 +13,8 @@ const encodeId = id => {
 const replaceHtml = ($, el) => {
 	const $brightcove = $(el);
 
-	const width = 640;
-	const height = 360;
+	const width = 320;
+	const height = 180;
 	const account = $brightcove.attr('data-account');
 	const playerid = $brightcove.attr('data-player');
 	const videoId = $brightcove.attr('data-video-id');
