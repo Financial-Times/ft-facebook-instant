@@ -164,6 +164,7 @@ const setImportStatus = ({article, id, type = 'unknown'}) => {
 		mode,
 		id,
 		type,
+		appVersion: process.env.HEROKU_RELEASE_VERSION,
 	});
 	return updateDb(article)
 		.then(() => get(article.canonical));
