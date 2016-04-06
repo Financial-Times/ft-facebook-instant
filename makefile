@@ -11,12 +11,15 @@ BABEL_OPTS = --presets es2015
 
 all: babel
 
-babel: $(LIB_DIRS) $(LIB_FILES)
+babel: $(LIB) $(LIB_DIRS) $(LIB_FILES)
 
 $(LIB)/%.js: $(SRC)/%.js
 	$(BABEL) $(BABEL_OPTS) $< -o $@
 
 $(LIB)/%: $(SRC)/% clean-$(LIB)/%
+	mkdir -p $@
+
+$(LIB): $(SRC)
 	mkdir -p $@
 
 clean-$(LIB)/%:
