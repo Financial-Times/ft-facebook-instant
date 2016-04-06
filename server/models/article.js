@@ -101,16 +101,25 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	return article;
 };
 
+const extractUuid = string => (uuidRegex.exec(string) || [])[0];
+
 // Follow redirects first
-const deriveCanonical = key => fetch(key)
-.then(res => {
-	const uuid = (uuidRegex.exec(res.url) || [])[0];
+const deriveCanonical = key => {
+	let uuid = extractUuid(key);
 	if(uuid) {
 		return ftApi.getCanonicalFromUuid(uuid);
 	}
-	return ftApi.verifyCanonical(key)
-		.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)));
-});
+
+	return fetch(key)
+	.then(res => {
+		uuid = extractUuid(res.url);
+		if(uuid) {
+			return ftApi.getCanonicalFromUuid(uuid);
+		}
+		return ftApi.verifyCanonical(key)
+			.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)));
+	});
+};
 
 const getCanonical = key => cacheGet(`canonical:${key}`)
 .then(cached => {
