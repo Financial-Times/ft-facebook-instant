@@ -5,6 +5,7 @@ const elementsToCheck = [
 	'p',
 	'strong',
 	'em',
+	'span',
 ];
 
 module.exports = $ => Promise.resolve()
