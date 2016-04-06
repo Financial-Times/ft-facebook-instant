@@ -13,6 +13,7 @@ const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
 const assertEnv = require('@quarterto/assert-env');
 const logger = require('morgan');
+const favicon = require('serve-favicon');
 const path = require('path');
 const bodyParser = require('body-parser');
 const noCache = require('./lib/nocache');
@@ -35,6 +36,7 @@ assertEnv([
 	'FB_APP_ID',
 	'FB_PAGE_ACCESS_TOKEN',
 	'BRIGHTCOVE_ACCOUNT_ID',
+	'SPOOR_API_KEY',
 ]);
 
 
@@ -42,6 +44,8 @@ assertEnv([
 
 // __about, __gtg, etc.
 ftwebservice(app, require('./controllers/ftWebService'));
+
+app.use(favicon(path.resolve(process.cwd(), 'resources/public/favicon.ico')));
 
 // Handlebars middleware
 handlebars(app);

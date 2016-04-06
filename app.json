@@ -12,7 +12,8 @@
     "FB_PAGE_ID": {"required": true},
     "FB_APP_ID": {"required": true},
     "FB_PAGE_ACCESS_TOKEN": {"required": true},
-    "BRIGHTCOVE_ACCOUNT_ID": {"required": true}
+    "BRIGHTCOVE_ACCOUNT_ID": {"required": true},
+    "SPOOR_API_KEY": {"required": true}
   },
   "addons": [
 
