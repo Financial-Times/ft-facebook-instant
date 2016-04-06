@@ -12,5 +12,7 @@
 	<xsl:include href="big-number.xsl" />
 	<xsl:include href="blockquotes.xsl" />
 	<xsl:include href="external-image.xsl" />
+	<xsl:include href="related-box.xsl" />
 	<xsl:include href="video.xsl" />
+	<xsl:include href="links.xsl" />
 </xsl:stylesheet>

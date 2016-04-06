@@ -2,7 +2,7 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 
 	<xsl:template match="//*[contains(concat(' ',normalize-space(@class),' '),' n-content-image ')]">
-		<figure>
+		<figure data-feedback="fb:likes,fb:comments">
 			<xsl:apply-templates select="img" mode="figure" />
 			<xsl:apply-templates select="figcaption" mode="figcaption" />
 		</figure>
