@@ -100,20 +100,20 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	return article;
 };
 
-const getCanonical = key => new Promise(resolve => {
+const getCanonical = key => {
 	let uuid = (uuidRegex.exec(key) || [])[0];
 	if(uuid) {
-		return resolve(ftApi.getCanonicalFromUuid(uuid));
+		return ftApi.getCanonicalFromUuid(uuid);
 	}
 	return fetch(key)
 		.then(res => {
 			uuid = (uuidRegex.exec(res.url) || [])[0];
 			if(uuid) {
-				return resolve(ftApi.getCanonicalFromUuid(uuid));
+				return ftApi.getCanonicalFromUuid(uuid);
 			}
 			return key;
 		});
-});
+};
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 .then(fbRecords => {
