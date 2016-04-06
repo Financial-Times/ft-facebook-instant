@@ -1,9 +1,13 @@
 'use strict';
 
+const unsupportedSelectors = [
+	'ft-slideshow',
+];
+
 module.exports = $ => {
 	const invalid = [];
 
-	$('ft-slideshow').each((index, el) => {
+	$(unsupportedSelectors.join(', ')).each((index, el) => {
 		const $el = $(el);
 		const cl = ($el.attr('class') || '').split(' ').join('.');
 		invalid.push(`${el.tagName}${cl && '.' + cl}`);
