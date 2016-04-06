@@ -15,6 +15,9 @@ const update = apiVersion => database.getLastNotificationCheck()
 	lastCheck = new Date(lastCheck || (Date.now() - UPDATE_INTERVAL)).toISOString();
 	return notifications.createNotificationsList(lastCheck, {apiVersion});
 })
+.then(notificationsList => Array.isArray(notificationsList) && notificationsList ||
+	Promise.reject(`Invalid notificationsList: (${typeof notificationsList}) ${JSON.stringify(notificationsList)}`)
+)
 .then(notificationsList => notificationsList
 	.filter(item => item.type === 'content-item-update')
 	.map(item => item.data['content-item'].id)
