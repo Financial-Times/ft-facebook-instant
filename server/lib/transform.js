@@ -5,6 +5,7 @@ const cheerioTransforms = require('./transforms');
 const handlebarsTransform = require('./handlebars').render;
 const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
+const validateArticleElements = require('./validator');
 
 const transformArticleBody = apiRecord => {
 	if(!apiRecord.bodyHTML) {
@@ -44,6 +45,8 @@ const getAuthors = apiRecord => {
 
 module.exports = article => transformArticleBody(article.apiRecord)
 .then(transformed$ => {
+	validateArticleElements(transformed$);
+
 	const mainImageHtml = extractMainImage(transformed$);
 	const analyticsUrl = getAnalyticsUrl(article);
 	const body = transformed$.html();
