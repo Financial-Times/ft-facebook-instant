@@ -102,17 +102,15 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 };
 
 const getCanonical = key => {
-	let uuid = (uuidRegex.exec(key) || [])[0];
-	if(uuid) {
-		return ftApi.getCanonicalFromUuid(uuid);
-	}
+	// Follow redirects first
 	return fetch(key)
 		.then(res => {
-			uuid = (uuidRegex.exec(res.url) || [])[0];
+			const uuid = (uuidRegex.exec(res.url) || [])[0];
 			if(uuid) {
 				return ftApi.getCanonicalFromUuid(uuid);
 			}
-			return key;
+			return ftApi.verifyCanonical(key)
+				.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)))
 		});
 };
 

@@ -51,6 +51,26 @@ const getCanonicalFromUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${
 	}
 });
 
+const verifyCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${index}/_search`, {
+	method: 'POST',
+	body: JSON.stringify({
+		query: {
+			match: {
+				'item.webUrl': canonical,
+			},
+		},
+		_source: 'webUrl',
+	}),
+})
+.then(fetchres.json)
+.then(json => {
+	try{
+		return json.hits.hits[0]._source.webUrl;
+	} catch(e) {
+		return null;
+	}
+});
+
 const updateEsRegion = (region, uuid) => nodeFetch(
 	`https://ft-next-es-interface-${region}.herokuapp.com/api/item?apiKey=${process.env.ES_INTERFACE_API_KEY}`,
 	{
@@ -68,5 +88,6 @@ module.exports = {
 	fetch,
 	fetchByCanonical,
 	getCanonicalFromUuid,
+	verifyCanonical,
 	updateEs,
 };
