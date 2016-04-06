@@ -10,7 +10,7 @@ module.exports = $ => {
 	$(unsupportedSelectors.join(', ')).each((index, el) => {
 		const $el = $(el);
 		const cl = ($el.attr('class') || '').split(' ').join('.');
-		invalid.push(`${el.tagName}${cl && '.' + cl}`);
+		invalid.push(`${el.tagName}${cl && `.${cl}`}`);
 	});
 
 	if(!invalid.length) return;
