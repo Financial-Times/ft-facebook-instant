@@ -29,6 +29,8 @@ const defaultFields = {
 		'instant_article',
 		'status',
 	],
+
+	related: []
 };
 
 Facebook.options({
