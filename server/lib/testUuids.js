@@ -11,4 +11,5 @@ module.exports = [
 	{uuid: 'adc52e62-f1e6-11e5-9f20-c3a047354386', description: 'Schroders dumps PwC as its auditor after 57 years (Big number)'},
 	{uuid: '60d88fa0-fb27-11e5-b3f6-11d5706b613b', description: 'Iceland PM ‘resigns’ over Panama Papers leak (Brightcove video)'},
 	{uuid: '735eb4c8-998f-11e5-9228-87e603d47bdc', description: 'UK’s first air strikes on Syria target Isis oilfields (Youtube video)'},
+	{uuid: '704d4c91-3486-3769-bc6b-a294bde6c330', description: 'CNH Hibor, nothing to see here (Twitter tweet)'},
 ];
