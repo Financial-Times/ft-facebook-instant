@@ -35,18 +35,22 @@ const runAction = ({url, action}, res) => {
 		case 'import':
 			return articleModel.get(url)
 				.then(article => transform(article)
-					.then(html => fbApi.post({html}))
-					.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
+					.then(({html, warnings}) => fbApi.post({html})
+						.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
+						.then(article => {article, warnings})
+					)
 				)
-				.then(article => res.json(article));
+				.then(({article, warnings}) => res.json({article, warnings}));
 
 		case 'publish':
 			return articleModel.get(url)
 				.then(article => transform(article)
-					.then(html => fbApi.post({html, published: true}))
-					.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
+					.then(({html, warnings}) => fbApi.post({html, published: true})
+						.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
+						.then(article => {article, warnings})
+					)
 				)
-				.then(article => res.json(article));
+				.then(({article, warnings}) => res.json({article, warnings}));
 
 		case 'reingest':
 			return ftApi.updateEs(url)

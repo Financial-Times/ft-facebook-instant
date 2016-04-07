@@ -10,7 +10,7 @@ const removeEmptyElements = require('./removeEmptyElements');
 const removeInvalidLinks = require('./removeInvalidLinks');
 const removeInvalidRelated = require('./removeInvalidRelated');
 
-module.exports = body => {
+module.exports = (body, warnings) => {
 	const $ = cheerio.load(body, {decodeEntities: false});
 
 	return Promise.all([
@@ -21,6 +21,6 @@ module.exports = body => {
 		removeEmptyElements,
 		removeInvalidLinks,
 		removeInvalidRelated,
-	].map(transform => transform($)))
+	].map(transform => transform($, warnings)))
 	.then(() => $);
 };
