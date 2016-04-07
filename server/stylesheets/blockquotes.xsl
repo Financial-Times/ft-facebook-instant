@@ -6,7 +6,7 @@
 		</blockquote>
 	</xsl:template>
 
-	<xsl:template match="blockquote[@class='twitter-tweet']">
+	<xsl:template match="blockquote[.//a[starts-with(@href, 'https://twitter.com/')]]">
 		<xsl:variable name="tweetHref" select="a[starts-with(@href, 'https://twitter.com/')][last()]/@href" />
 		<xsl:variable name="tweetId">
 			<xsl:call-template name="substring-after-last">
@@ -14,17 +14,7 @@
 				<xsl:with-param name="separator" select="'/'" />
 			</xsl:call-template>
 		</xsl:variable>
-
-		<figure class="op-social">
-			<iframe>
-				<html>
-					<body>
-						<script>window.twttr=function(a,b,c){var d,e=a.getElementsByTagName(b)[0],f=window.twttr||{};return a.getElementById(c)?f:(d=a.createElement(b),d.id=c,d.src="https://platform.twitter.com/widgets.js",e.parentNode.insertBefore(d,e),f._e=[],f.ready=function(a){f._e.push(a)},f)}(document,"script","twitter-wjs");</script>
-						<xsl:apply-templates />
-					</body>
-				</html>
-			</iframe>
-		</figure>
+		<twitter data-tweet-id="{$tweetId}" />
 	</xsl:template>
 
 	<xsl:template name="substring-after-last">

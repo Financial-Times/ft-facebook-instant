@@ -6,6 +6,7 @@ const stripBody = require('./stripBody');
 const addImageDimensions = require('./addImageDimensions');
 const convertBrightcove = require('./convertBrightcove');
 const convertYoutube = require('./convertYoutube');
+const convertTweets = require('./convertTweets');
 const removeEmptyElements = require('./removeEmptyElements');
 const removeInvalidLinks = require('./removeInvalidLinks');
 
@@ -17,6 +18,7 @@ module.exports = body => {
 		addImageDimensions,
 		convertBrightcove,
 		convertYoutube,
+		convertTweets,
 		removeEmptyElements,
 		removeInvalidLinks,
 	].map(transform => transform($)))

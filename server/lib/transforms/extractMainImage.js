@@ -5,7 +5,7 @@ const minHeight = 1024;
 
 module.exports = $ => {
 	// find image in the body
-	const $figure = $('figure:not(.op-interactive)').eq(0);
+	const $figure = $('figure:not(.op-interactive):not(.op-social)').eq(0);
 
 	// check that it is the first element in the body
 	if(
