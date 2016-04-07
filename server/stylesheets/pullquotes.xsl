@@ -3,11 +3,14 @@
 
 	<xsl:template match="//*[contains(concat(' ',normalize-space(@class),' '),' n-content-pullquote ')]">
 		<aside>
-		<xsl:apply-templates select="*[contains(concat(' ',normalize-space(@class),' '),' n-content-pullquote__content ')]/node()" />
-			<cite>
-			<xsl:apply-templates select="*[contains(concat(' ',normalize-space(@class),' '),' n-content-pullquote__footer ')]/node()" />
-			</cite>
+			<xsl:apply-templates select="*[contains(concat(' ',normalize-space(@class),' '),' n-content-pullquote__content ')]/node()" />
 		</aside>
+	</xsl:template>
+
+	<xsl:template match="//*[contains(concat(' ',normalize-space(@class),' '),' n-content-pullquote__footer ')]">
+		<cite>
+			<xsl:apply-templates />
+		</cite>
 	</xsl:template>
 
 </xsl:stylesheet>
