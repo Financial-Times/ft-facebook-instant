@@ -72,6 +72,8 @@ app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleCon
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);
 
+app.route('^/republish$').post(republishController.route);
+
 
 /* Errors */
 

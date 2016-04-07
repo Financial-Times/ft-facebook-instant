@@ -23,14 +23,17 @@ const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
 							})
 					)
 				)
-					.then(updatedArticles => updatedArticles.filter(a => !!a))
-					.then(updatedArticles => {
-						if(updatedArticles.length) {
-							console.log(`${Date()}: updated articles ${updatedArticles.map(({uuid}) => uuid)}`);
-						} else {
-							console.log(`${Date()}: no articles to update`);
-						}
-					})
-			).catch(e => console.log(e.stack)); // TODO: error reporting
+					.then(updatedArticles => updatedArticles.filter(a => !!a)));
 
-module.exports = republish;
+module.exports = (options) => republish(options)
+	.then(updatedArticles => {
+		if(updatedArticles.length) {
+			console.log(`${Date()}: updated articles ${updatedArticles.map(({uuid}) => uuid)}`);
+		} else {
+			console.log(`${Date()}: no articles to update`);
+		}
+	}).catch(e => console.log(e.stack)); // TODO: error reporting
+
+module.exports.route = (req, res, next) => republish({onlyAfterRedeploy: false}).then(updatedArticles => {
+	res.status(200).json(updatedArticles.map(({uuid}) => uuid));
+}).catch(next);
