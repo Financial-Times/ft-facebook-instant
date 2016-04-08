@@ -4,6 +4,13 @@ const database = require('../lib/database');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
 
+const clearCookies = (req, res) => Object.keys(req.cookies)
+.filter(name => (name.indexOf('s3o') === -1)) // Don't clear S3O cookies!
+.map(name => {
+	res.clearCookie(name);
+	return name;
+});
+
 module.exports = (req, res, next) => {
 	switch(req.params.action) {
 		case 'wipe':
@@ -67,10 +74,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'clearCookies':
-			Object.keys(req.cookies).forEach(name => {
-				res.clearCookie(name);
-			});
-			return res.json({cleared: Object.keys(req.cookies)});
+			return res.json({cleared: clearCookies(req, res)});
 		case 'showCookies':
 			return res.json({cookies: req.cookies});
 		default:
