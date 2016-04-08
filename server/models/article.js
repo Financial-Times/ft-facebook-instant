@@ -4,6 +4,7 @@ const cacheManager = require('cache-manager');
 const fsStore = require('cache-manager-fs');
 const path = require('path');
 const denodeify = require('denodeify');
+const fetch = require('node-fetch');
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
@@ -34,6 +35,7 @@ const getApi = canonical => cacheGet(canonical)
 	}
 
 	return ftApi.fetchByCanonical(canonical)
+		.then(article => article || Promise.reject(Error(`Canonical URL [${canonical}] is not in Elastic Search`)))
 		.then(article => cacheSet(canonical, article));
 });
 
@@ -99,12 +101,34 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	return article;
 };
 
-const getCanonical = key => new Promise(resolve => {
-	const uuid = (uuidRegex.exec(key) || [])[0];
+const extractUuid = string => (uuidRegex.exec(string) || [])[0];
+
+// Follow redirects first
+const deriveCanonical = key => {
+	let uuid = extractUuid(key);
 	if(uuid) {
-		return resolve(ftApi.getCanonicalFromUuid(uuid));
+		return ftApi.getCanonicalFromUuid(uuid);
 	}
-	resolve(key);
+
+	return fetch(key)
+	.then(res => {
+		uuid = extractUuid(res.url);
+		if(uuid) {
+			return ftApi.getCanonicalFromUuid(uuid);
+		}
+		return ftApi.verifyCanonical(key)
+			.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)));
+	});
+};
+
+const getCanonical = key => cacheGet(`canonical:${key}`)
+.then(cached => {
+	if(cached) {
+		return cached;
+	}
+
+	return deriveCanonical(key)
+		.then(canonical => cacheSet(`canonical:${key}`, canonical));
 });
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
@@ -139,14 +163,9 @@ const get = key => getCanonical(key)
 
 const ensureInDb = key => getCanonical(key)
 .then(canonical => database.get(canonical)
-	.then(databaseRecord => {
-		if(databaseRecord) {
-			return databaseRecord;
-		}
-
-		return getApi(canonical)
-			.then(apiRecord => setDb(apiRecord));
-	})
+	.then(databaseRecord => databaseRecord || getApi(canonical)
+		.then(apiRecord => setDb(apiRecord))
+	)
 );
 
 const enrichDb = databaseRecord => getApi(databaseRecord.canonical)
@@ -158,13 +177,14 @@ const update = article => cacheDel(article.canonical)
 .then(() => updateDb(article))
 .then(() => get(article.canonical));
 
-const setImportStatus = ({article, id, type = 'unknown'}) => {
+const setImportStatus = ({article, id, warnings, type = 'unknown'}) => {
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,
 		id,
 		type,
 		appVersion: process.env.HEROKU_RELEASE_VERSION,
+		warnings,
 	});
 	return updateDb(article)
 		.then(() => get(article.canonical));

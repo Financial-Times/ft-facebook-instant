@@ -6,26 +6,9 @@
 		<brightcove data-account="{$brightcoveAccountId}" data-player="{$brightcovePlayerId}" data-video-id="{$videoId}" />
 	</xsl:template>
 
-	<xsl:template match="p[a[contains(@href, 'youtube.com/watch') and string-length(text()) = 0]]">
-		<xsl:apply-templates select="a" />
-	</xsl:template>
-
-	<xsl:template match="a[contains(@href, 'youtube.com/watch') and string-length(text()) = 0]">
-		<xsl:variable name="videoId">
-			<xsl:choose>
-				<xsl:when test="contains(@href, '&amp;')">
-					<xsl:value-of select="substring-before(substring-after(@href, 'v='), '&amp;')" />
-				</xsl:when>
-				<xsl:otherwise>
-					<xsl:value-of select="substring-after(@href, 'v=')" />
-				</xsl:otherwise>
-			</xsl:choose>
-		</xsl:variable>
-
-		<amp-youtube
-				data-videoid="{$videoId}"
-				layout="responsive"
-				width="480" height="270"></amp-youtube>
+	<xsl:template match="//*[contains(concat(' ',normalize-space(@class),' '),' n-content-video--youtube ')]">
+		<xsl:variable name="videoId" select="substring-after(iframe/@src, 'https://www.youtube.com/embed/')" />
+		<youtube data-video-id="{$videoId}" />
 	</xsl:template>
 
 </xsl:stylesheet>

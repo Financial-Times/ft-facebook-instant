@@ -44,6 +44,7 @@
     "redis": "^2.5.1",
     "request": "^2.69.0",
     "s3o-middleware": "^1.4.0",
+    "serve-favicon": "^2.3.0",
     "signed-aws-es-fetch": "^1.1.0"
   },
   "devDependencies": {

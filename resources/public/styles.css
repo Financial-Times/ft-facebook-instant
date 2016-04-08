@@ -15,10 +15,24 @@ h4 {
 	font-size: 0.7em;
 }
 
+.fatal,
 .error,
-.error * {
-	color: red;
-	background: pink;
+.warning {
+	border-width: 2px;
+	border-style: solid;
+	padding: 5px;
+	margin: 5px;
+}
+
+.fatal,
+.error {
+	border-color: #c00;
+	background: rgba(204, 0, 0, 0.25);
+}
+
+.warning {
+	border-color: #f38800;
+	background: rgba(243, 136, 0, 0.25);
 }
 
 .status-card pre {

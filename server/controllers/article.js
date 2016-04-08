@@ -25,7 +25,7 @@ const runAction = ({url, action}, res) => {
 		case 'transform':
 			return articleModel.get(url)
 				.then(transform)
-				.then(transformed => res.send(transformed));
+				.then(({html, warnings}) => res.send(html));
 
 		case 'update':
 			return articleModel.get(url)
@@ -35,16 +35,18 @@ const runAction = ({url, action}, res) => {
 		case 'import':
 			return articleModel.get(url)
 				.then(article => transform(article)
-					.then(html => fbApi.post({html}))
-					.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
+					.then(({html, warnings}) => fbApi.post({html})
+						.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'ui'}))
+					)
 				)
 				.then(article => res.json(article));
 
 		case 'publish':
 			return articleModel.get(url)
 				.then(article => transform(article)
-					.then(html => fbApi.post({html, published: true}))
-					.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
+					.then(({html, warnings}) => fbApi.post({html, published: true})
+						.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'ui'}))
+					)
 				)
 				.then(article => res.json(article));
 
