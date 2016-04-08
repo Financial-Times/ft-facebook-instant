@@ -25,7 +25,7 @@ const runAction = ({url, action}, res) => {
 		case 'transform':
 			return articleModel.get(url)
 				.then(transform)
-				.then(transformed => res.send(transformed));
+				.then(({html, warnings}) => res.send(html));
 
 		case 'update':
 			return articleModel.get(url)
@@ -36,21 +36,19 @@ const runAction = ({url, action}, res) => {
 			return articleModel.get(url)
 				.then(article => transform(article)
 					.then(({html, warnings}) => fbApi.post({html})
-						.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
-						.then(article => {article, warnings})
+						.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'ui'}))
 					)
 				)
-				.then(({article, warnings}) => res.json({article, warnings}));
+				.then(article => res.json(article));
 
 		case 'publish':
 			return articleModel.get(url)
 				.then(article => transform(article)
 					.then(({html, warnings}) => fbApi.post({html, published: true})
-						.then(({id}) => articleModel.setImportStatus({article, id, type: 'ui'}))
-						.then(article => {article, warnings})
+						.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'ui'}))
 					)
 				)
-				.then(({article, warnings}) => res.json({article, warnings}));
+				.then(article => res.json(article));
 
 		case 'reingest':
 			return ftApi.updateEs(url)
@@ -61,7 +59,7 @@ const runAction = ({url, action}, res) => {
 		case 'delete':
 			return fbApi.delete({canonical: url})
 				.then(() => articleModel.get(url))
-				.then(article => res.json(article));
+				.then(article => res.json({article, warnings: []}));
 
 		default:
 			throw Error(`Action [${action}] not recognised.`);

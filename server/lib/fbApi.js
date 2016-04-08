@@ -30,7 +30,7 @@ const defaultFields = {
 		'status',
 	],
 
-	related: []
+	related: [],
 };
 
 Facebook.options({
@@ -39,10 +39,21 @@ Facebook.options({
 	timeout: 2000,
 });
 
+const call = (...params) => api.apply(null, params)
+.catch(e => {
+	if(e.name === 'FacebookApiException' &&
+		e.response &&
+		e.response.error &&
+		e.response.error.code === 'ETIMEDOUT') {
+		throw Error('Facebook API call timed-out');
+	}
+	throw e;
+})
+
 const list = ({fields = []} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
 
-	return api(
+	return call(
 		`/${pageId}/instant_articles`,
 		'GET',
 		{
@@ -68,7 +79,7 @@ const get = ({type = 'article', id = null, fields = []} = {}) => {
 
 	fields = fields.length ? fields : defaultFields[type];
 
-	return api(
+	return call(
 		`/${id}`,
 		'GET',
 		{
@@ -82,7 +93,7 @@ const introspect = ({id = null} = {}) => {
 		throw Error('Missing required parameter [id]');
 	}
 
-	return api(
+	return call(
 		`/${id}`,
 		'GET',
 		{
@@ -97,7 +108,7 @@ const post = ({published = false, html = ''} = {}) => {
 		throw Error('Missing required parameter [html]');
 	}
 
-	return api(
+	return call(
 		`/${pageId}/instant_articles`,
 		'POST',
 		{
@@ -115,7 +126,7 @@ const find = ({canonical = null} = {}) => {
 
 	const fields = (mode === 'production') ? 'instant_article' : 'development_instant_article{id}';
 
-	return api(
+	return call(
 		'/',
 		'GET',
 		{
@@ -144,7 +155,7 @@ const del = ({canonical = null} = {}) => {
 
 	return find({canonical})
 		.then(results => results[mode])
-		.then(result => result && api(
+		.then(result => result && call(
 			`/${result.id}`,
 			'DELETE',
 			{}

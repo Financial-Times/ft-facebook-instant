@@ -27,4 +27,7 @@ module.exports = {
 	or(a, b, options) {
 		return (a || b) ? options.fn(this) : options.inverse(this);
 	},
+	lowercase(str) {
+		return str.toLowerCase();
+	},
 };

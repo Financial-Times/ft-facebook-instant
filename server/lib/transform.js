@@ -67,7 +67,7 @@ module.exports = article => {
 			authors: getAuthors(article.apiRecord, warnings),
 		};
 
-		const html = handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params);
-		return {html, warnings};
+		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
+			.then(html => ({html, warnings}));
 	});
 };

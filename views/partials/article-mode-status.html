@@ -35,11 +35,20 @@
 					<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
 					<li>Status: <strong>{{status}}</strong></li>
 					<li>Type: <strong>{{type}}</strong></li>
+					{{#if warnings}}
+					<li class="warning">Transform warnings:
+						<ul>
+							{{#each warnings}}
+							<li>{{.}}</li>
+							{{/each}}
+						</ul>
+					</li>
+					{{/if}}
 					{{#if messages}}
 					<li>Messages:
 						<ul>
 							{{#each messages as |messageList type|}}
-							<li>{{type}}:
+							<li class="{{lowercase type}}">{{type}}:
 								<ul>
 									{{#each messageList as |message|}}
 									<li>{{message}}</li>

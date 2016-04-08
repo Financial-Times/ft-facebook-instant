@@ -50,8 +50,9 @@ const poller = () => Promise.all([
 	.then(article => {
 		if(article.fbRecords[mode]) {
 			return transform(article)
-				.then(html => fbApi.post({html, published: article.fbRecords[mode].published}))
-				.then(({id}) => articleModel.setImportStatus({article, id, type: 'notifications-api'}));
+				.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
+					.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'notifications-api'}))
+				);
 		}
 	})
 ))
