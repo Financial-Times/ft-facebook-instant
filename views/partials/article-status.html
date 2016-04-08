@@ -20,11 +20,9 @@ date_editorially_published}}</strong></li>
 			{{#unless apiRecord.bodyHTML}}<li class="error">This article doesn't have <code>bodyHTML</code> set in the ES response, so can't be transformed. Consider <a href="/article/{{uuid}}/updateEs">re-ingesting</a>?</li>{{/unless}}
 		</ul>
 	</div>
-	<div class="o-techdocs-card__actions">
-		<div class="actions">
-			<button class="o-techdocs-card__actionbutton update-status" onclick="runArticleAction('update');"><i class="fa fa-arrow-circle-up"></i> Update from API</button>
-			{{#unless apiRecord.bodyHTML}}<button class="o-techdocs-card__actionbutton reingest-status" onclick="runArticleAction('reingest');"><i class="fa fa-arrow-circle-up"></i> Re-ingest to ES</button>{{/unless}}
-		</div>
+	<div class="o-techdocs-card__actions actions">
+		<button class="o-techdocs-card__actionbutton update-status" onclick="runArticleAction('update');"><i class="fa fa-arrow-circle-up"></i> Update from API</button>
+		{{#unless apiRecord.bodyHTML}}<button class="o-techdocs-card__actionbutton reingest-status" onclick="runArticleAction('reingest');"><i class="fa fa-arrow-circle-up"></i> Re-ingest to ES</button>{{/unless}}
 	</div>
 </div>
 

@@ -11,6 +11,10 @@ h4 {
 	padding: 0;
 }
 
+.small {
+	font-size: 0.7em;
+}
+
 .error,
 .error * {
 	color: red;
@@ -81,6 +85,10 @@ a.o-techdocs-card__actionbutton {
 .actions {
 	margin-top:10px;
 	text-align:right;
+}
+
+.o-techdocs-card__quickactions {
+	margin-left: 10px;
 }
 
 .mode-target-options small {
