@@ -16,7 +16,7 @@ module.exports = ($, warnings) => Promise.resolve()
 			if(!ogObject) {
 				return;
 			}
-			if(ogObject.type !== 'article') {
+			if(!og_object.title) {
 				$el.remove();
 				warnings.push(`Removed invalid related article with link to [${ogObject.url}]`);
 			}
