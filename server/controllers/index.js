@@ -11,8 +11,13 @@ module.exports = (req, res, next) => fbApi.list({fields: ['canonical_url']})
 })
 .then(fbList => fbList.sort((a, b) => b.date_record_updated - a.date_record_updated))
 .then(fbList => Promise.all(fbList.map(fbItem => articleModel.get(fbItem.canonical))))
-.then(articles => res.render('index', {
-	articles,
-	testUuids,
-}))
+.then(articles => (
+	req.accepts(['html', 'json']) === 'json' ?
+		data => res.json(data) :
+		data => res.render('index', data)
+	)({
+		articles,
+		testUuids,
+	})
+)
 .catch(next);

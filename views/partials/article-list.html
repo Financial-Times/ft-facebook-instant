@@ -5,6 +5,12 @@
 			<div class="o-techdocs-card__title">Recent articles</div>
 		</div>
 	</div>
+	<div class="o-techdocs-card__actions">
+		<div class="o-techdocs-card__quickactions">
+			<button class="o-techdocs-card__actionbutton republish-status" onclick="republishAll();"><i class="fa fa-arrow-circle-up"></i> Re-post all articles to Facebook</button>
+		</div>
+		<div class="small">Quickly re-post all articles to Facebook. This will respect the current status of each article, and only update the HTML with any new features. No articles will be added or removed, and the 'live' status will not change.</div>
+	</div>
 	<div class="o-techdocs-card__content">
 		<ul class="fa-ul article-list__items">
 			{{#each articles}}

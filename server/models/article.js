@@ -180,6 +180,7 @@ const setImportStatus = ({article, id, warnings, type = 'unknown'}) => {
 		mode,
 		id,
 		type,
+		appVersion: process.env.HEROKU_RELEASE_VERSION,
 		warnings,
 	});
 	return updateDb(article)

@@ -68,15 +68,13 @@
 		{{/if}}
 	</div>
 
-	<div class="o-techdocs-card__actions">
-		<div class="actions">
-			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="runModeAction('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if nullRecord}}Post to Facebook{{else}}Re-post to Facebook{{/if}}</button>
-			{{#unless nullRecord}}<button class="o-techdocs-card__actionbutton {{mode}}-delete-status" onclick="runModeAction('{{mode}}', 'delete');"><i class="fa fa-arrow-circle-up"></i> Delete from Facebook</button>{{/unless}}
-			{{#ifEqual mode "production"}}
-				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
-				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>
-				{{/ifEqual}}
+	<div class="o-techdocs-card__actions actions">
+		<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="runModeAction('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if nullRecord}}Post to Facebook{{else}}Re-post to Facebook{{/if}}</button>
+		{{#unless nullRecord}}<button class="o-techdocs-card__actionbutton {{mode}}-delete-status" onclick="runModeAction('{{mode}}', 'delete');"><i class="fa fa-arrow-circle-up"></i> Delete from Facebook</button>{{/unless}}
+		{{#ifEqual mode "production"}}
+			{{#ifEqual most_recent_import_status.status "SUCCESS"}}
+			<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>
 			{{/ifEqual}}
-		</div>
+		{{/ifEqual}}
 	</div>
 </div>
