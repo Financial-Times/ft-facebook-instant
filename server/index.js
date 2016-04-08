@@ -21,7 +21,7 @@ const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
-const republishController = require('./controllers/update-republish');
+const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
 
 const port = process.env.PORT || 6247;
