@@ -2,7 +2,6 @@
 
 const testUuids = require('../lib/testUuids');
 const fbApi = require('../lib/fbApi');
-const database = require('../lib/database');
 const articleModel = require('../models/article');
 
 module.exports = (req, res, next) => fbApi.list({fields: ['canonical_url']})
@@ -10,8 +9,7 @@ module.exports = (req, res, next) => fbApi.list({fields: ['canonical_url']})
 	const promises = fbList.map(({canonical_url}) => articleModel.ensureInDb(canonical_url));
 	return Promise.all(promises);
 })
-.then(() => database.list())
-.then(dbList => Promise.all(dbList.map(dbItem => articleModel.enrichDb(dbItem))))
+.then(fbList => Promise.all(fbList.map(fbItem => articleModel.get(fbItem.canonical))))
 // .then(articles => res.json(articles));
 .then(articles => res.render('index', {
 	articles,

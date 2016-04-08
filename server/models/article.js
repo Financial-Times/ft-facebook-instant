@@ -168,9 +168,6 @@ const ensureInDb = key => getCanonical(key)
 	)
 );
 
-const enrichDb = databaseRecord => getApi(databaseRecord.canonical)
-.then(apiRecord => addFbData({databaseRecord, apiRecord}));
-
 const update = article => cacheDel(article.canonical)
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
@@ -195,5 +192,4 @@ module.exports = {
 	update,
 	setImportStatus,
 	ensureInDb,
-	enrichDb,
 };
