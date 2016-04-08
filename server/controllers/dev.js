@@ -66,6 +66,13 @@ module.exports = (req, res, next) => {
 			return ftApi.fetch('3ee29f96-88e0-11e3-bb5f-00144feab7de')
 				.then(result => res.json(result))
 				.catch(next);
+		case 'clearCookies':
+			Object.keys(req.cookies).forEach(name => {
+				res.clearCookie(name);
+			});
+			return res.json({cleared: Object.keys(req.cookies)});
+		case 'showCookies':
+			return res.json({cookies: req.cookies});
 		default:
 			res.sendStatus(404);
 			break;
