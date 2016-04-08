@@ -8,6 +8,7 @@ const mode = (app.get('env') === 'production') ?
 	'development';
 require('./lib/mode').set(mode);
 
+const cookieParser = require('cookie-parser');
 const handlebars = require('./lib/handlebars');
 const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
@@ -48,6 +49,8 @@ assertEnv([
 ftwebservice(app, require('./controllers/ftWebService'));
 
 app.use(favicon(path.resolve(process.cwd(), 'resources/public/favicon.ico')));
+
+app.use(cookieParser());
 
 // Handlebars middleware
 handlebars(app);
