@@ -10,6 +10,7 @@ const convertTweets = require('./convertTweets');
 const removeEmptyElements = require('./removeEmptyElements');
 const removeInvalidLinks = require('./removeInvalidLinks');
 const removeInvalidRelated = require('./removeInvalidRelated');
+const transformLinks = require('./transformLinks');
 
 module.exports = (body, warnings) => {
 	const $ = cheerio.load(body, {decodeEntities: false});
@@ -23,6 +24,7 @@ module.exports = (body, warnings) => {
 		removeEmptyElements,
 		removeInvalidLinks,
 		removeInvalidRelated,
+		transformLinks,
 	].map(transform => transform($, warnings)))
 	.then(() => $);
 };
