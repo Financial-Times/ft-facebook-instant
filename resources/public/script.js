@@ -184,7 +184,7 @@ function republishAll() {
 		function(jqXHR, status, error) {
 			updateStatusIcon(iconSelector, 'fa-times');
 			setButtonState(buttonSelector, true);
-			$('.article-before').before(Handlebars.partials['error-card'](jqXHR.responseJSON));
+			$('.article-list').before(Handlebars.partials['error-card'](jqXHR.responseJSON));
 		}
 	);
 
