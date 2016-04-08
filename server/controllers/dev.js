@@ -76,9 +76,9 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'clearCookies':
-			return res.json({cleared: clearCookies(req, res)});
+			return res.send(`<code><pre>${JSON.stringify({cleared: clearCookies(req, res)}, undefined, '\t')}`);
 		case 'showCookies':
-			return res.json({cookies: req.cookies});
+			return res.send(`<code><pre>${JSON.stringify({cookies: req.cookies}, undefined, '\t')}`);
 		default:
 			res.sendStatus(404);
 			break;
