@@ -38,6 +38,7 @@ assertEnv([
 	'FB_PAGE_ACCESS_TOKEN',
 	'BRIGHTCOVE_ACCOUNT_ID',
 	'SPOOR_API_KEY',
+	'SEGMENT_ID',
 ]);
 
 
