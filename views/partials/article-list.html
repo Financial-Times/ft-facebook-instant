@@ -11,6 +11,8 @@
 			<li>
 				<i class="fa-li fa fa-hand-o-right"></i> <a href="/article/{{encodeURIComponent canonical}}">{{title}}</a>
 				<ul class="article-list__status">
+					<li>Instant Article last updated: <strong title="{{rfcDate date_record_updated}}">{{relativeDate date_record_updated}}</strong></li>
+					<li>Published on FT.com: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate date_editorially_published}}</strong></li>
 					{{#each fbRecords as |fbRecord mode|}}
 						{{#if imports.0.status}}
 							<li>Last import: <span class="o-buttons o-buttons--small"><strong>{{fbRecord.imports.0.status}}</strong></span> (<span title="{{rfcDate fbRecord.imports.0.timestamp}}">{{relativeDate fbRecord.imports.0.timestamp}}</span>)</li>
@@ -18,8 +20,6 @@
 							<li>Last import: <span class="o-buttons o-buttons--small"><strong>{{fbRecord.most_recent_import_status.status}}</strong></span></li>
 						{{/if}}
 					{{/each}}
-					<li>Published on FT.com: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate date_editorially_published}}</strong></li>
-					<li>Instant Article last updated: <strong title="{{rfcDate date_record_updated}}">{{relativeDate date_record_updated}}</strong></li>
 				</ul>
 			</li>
 			{{/each}}
