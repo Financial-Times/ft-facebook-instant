@@ -7,7 +7,7 @@ const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
 
-const transformArticleBody = apiRecord => {
+const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
 		throw Error('Missing required [bodyHTML] field');
 	}
@@ -22,7 +22,7 @@ const transformArticleBody = apiRecord => {
 		`${process.cwd()}/server/stylesheets/main.xsl`,
 		xsltParams
 	)
-	.then(cheerioTransforms);
+	.then(body => cheerioTransforms(body, warnings));
 };
 
 const getAnnotations = apiRecord => (apiRecord.annotations || [])
@@ -43,26 +43,31 @@ const getAuthors = apiRecord => {
 	return authors.length ? authors : [(apiRecord.byline || '').replace(/^by\s+/i, '')];
 };
 
-module.exports = article => transformArticleBody(article.apiRecord)
-.then(transformed$ => {
-	validateArticleElements(transformed$);
+module.exports = article => {
+	const warnings = [];
 
-	const mainImageHtml = extractMainImage(transformed$);
-	const analyticsUrl = getAnalyticsUrl(article);
-	const body = transformed$.html();
-	const params = {
-		body,
-		mainImageHtml,
-		analyticsUrl,
-		canonicalUrl: article.canonical,
-		style: 'default',
-		date_published: article.date_editorially_published,
-		date_updated: article.date_record_updated,
-		tags: getAnnotations(article.apiRecord),
-		title: getTitle(article.apiRecord),
-		subtitle: getSubtitle(article.apiRecord),
-		authors: getAuthors(article.apiRecord),
-	};
+	return transformArticleBody(article.apiRecord, warnings)
+	.then(transformed$ => {
+		validateArticleElements(transformed$, warnings);
 
-	return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params);
-});
+		const mainImageHtml = extractMainImage(transformed$, warnings);
+		const analyticsUrl = getAnalyticsUrl(article);
+		const body = transformed$.html();
+		const params = {
+			body,
+			mainImageHtml,
+			analyticsUrl,
+			canonicalUrl: article.canonical,
+			style: 'default',
+			date_published: article.date_editorially_published,
+			date_updated: article.date_record_updated,
+			tags: getAnnotations(article.apiRecord, warnings),
+			title: getTitle(article.apiRecord, warnings),
+			subtitle: getSubtitle(article.apiRecord, warnings),
+			authors: getAuthors(article.apiRecord, warnings),
+		};
+
+		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
+			.then(html => ({html, warnings}));
+	});
+};

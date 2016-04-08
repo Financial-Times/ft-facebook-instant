@@ -177,12 +177,13 @@ const update = article => cacheDel(article.canonical)
 .then(() => updateDb(article))
 .then(() => get(article.canonical));
 
-const setImportStatus = ({article, id, type = 'unknown'}) => {
+const setImportStatus = ({article, id, warnings, type = 'unknown'}) => {
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,
 		id,
 		type,
+		warnings,
 	});
 	return updateDb(article)
 		.then(() => get(article.canonical));
