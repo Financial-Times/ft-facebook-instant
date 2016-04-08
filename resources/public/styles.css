@@ -35,6 +35,20 @@ h4 {
 	background: rgba(243, 136, 0, 0.25);
 }
 
+.article-list__status {
+	margin: 5px 0 0;
+	padding-left: 10px;
+	font-size: 0.8em;
+}
+
+.article-list__status li {
+	line-height: 1.7em;
+}
+
+.article-list__status .o-buttons--small {
+	margin: -4px 0;
+}
+
 .status-card pre {
 	white-space: normal;
 	background: rgba(193, 193, 193, 0.33);
