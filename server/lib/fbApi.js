@@ -48,7 +48,7 @@ const call = (...params) => api.apply(null, params)
 		throw Error('Facebook API call timed-out');
 	}
 	throw e;
-})
+});
 
 const list = ({fields = []} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
