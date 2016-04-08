@@ -7,7 +7,9 @@ const ftApi = require('../lib/ftApi');
 const clearCookies = (req, res) => Object.keys(req.cookies)
 .filter(name => (name.indexOf('s3o') === -1)) // Don't clear S3O cookies!
 .map(name => {
-	res.clearCookie(name);
+	res.clearCookie(name, {
+		domain: '.ft.com',
+	});
 	return name;
 });
 
