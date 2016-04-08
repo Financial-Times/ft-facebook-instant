@@ -32,6 +32,10 @@
 			</figure>
 			{{/if}}
 
+			{{#ifEqual mode "development"}}
+				<p>Dev-only cookie checker (not shown in live). <a href="http://facebookinstant.ft.com/dev/showCookies">List all cookies</a>. <a href="http://facebookinstant.ft.com/dev/clearCookies">Clear all cookies</a></p>
+			{{/ifEqual}}
+
 			{{{body}}}
 
 			<footer>
