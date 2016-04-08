@@ -59,7 +59,7 @@ const runAction = ({url, action}, res) => {
 		case 'delete':
 			return fbApi.delete({canonical: url})
 				.then(() => articleModel.get(url))
-				.then(article => res.json({article, warnings: []}));
+				.then(article => res.json(article));
 
 		default:
 			throw Error(`Action [${action}] not recognised.`);
