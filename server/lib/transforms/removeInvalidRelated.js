@@ -9,10 +9,16 @@ module.exports = ($, warnings) => Promise.resolve()
 	.then(() => Promise.all($(relatedSelector).map((index, el) => {
 		const $el = $(el);
 		const href = $el.find(linkSelector).attr('href');
-		return fbApi.get({id: href, type: 'related'}).then(({og_object}) => {
-			if(og_object.type !== 'article') {
+		if(!href) {
+			return Promise.resolve();
+		}
+		return fbApi.get({id: href, type: 'related'}).then(({ogObject}) => {
+			if(!ogObject) {
+				return;
+			}
+			if(ogObject.type !== 'article') {
 				$el.remove();
-				warnings.push(`Removed invalid related article with link to [${og_object.url}]`);
+				warnings.push(`Removed invalid related article with link to [${ogObject.url}]`);
 			}
 		});
 	}).toArray()))
