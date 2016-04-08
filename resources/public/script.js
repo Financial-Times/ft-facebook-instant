@@ -81,6 +81,10 @@ function updateStatus(article) {
 	$('.article-status-container').html(Handlebars.partials['article-status'](article));
 }
 
+function updateList(data) {
+	$('.article-list').replaceWith(Handlebars.partials['article-list'](data));
+}
+
 function handleFormError(error) {
 	restoreForm();
 	$('.js-url-error').html(error);
@@ -156,4 +160,37 @@ function setButtonState(selector, enabled) {
 			$(this).attr('disabled', 'disabled');
 		}
 	});
+}
+
+function getArticles() {
+	return $.ajax({
+		type: 'GET',
+		url: '/',
+		dataType: 'json'
+	});
+}
+
+function republishAll() {
+	var iconSelector = '.republish-status i';
+	var buttonSelector = '.republish-status';
+
+	updateStatusIcon(iconSelector, 'fa-spinner fa-spin');
+	setButtonState(buttonSelector, false);
+	$('.error-card').remove();
+
+	$.ajax({
+		type: 'POST',
+		url: '/republish'
+	}).then(
+		getArticles
+	).then(
+		updateList,
+		function(jqXHR, status, error) {
+			updateStatusIcon(iconSelector, 'fa-times');
+			setButtonState(buttonSelector, true);
+			$('.article-list').before(Handlebars.partials['error-card'](jqXHR.responseJSON));
+		}
+	);
+
+	return false;
 }

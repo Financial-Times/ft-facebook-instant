@@ -8,5 +8,6 @@
 	<div class="o-techdocs-card__content">
 		{{#if error}}<pre><code>{{error}}</code></pre>{{/if}}
 		{{#if stack}}<pre><code>{{stack}}</code></pre>{{/if}}
+		{{#unless error}}{{#unless stack}}Unknown error{{/unless}}{{/unless}}
 	</div>
 </div>

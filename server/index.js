@@ -21,6 +21,7 @@ const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
+const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
 
 const port = process.env.PORT || 6247;
@@ -37,6 +38,7 @@ assertEnv([
 	'FB_PAGE_ACCESS_TOKEN',
 	'BRIGHTCOVE_ACCOUNT_ID',
 	'SPOOR_API_KEY',
+	'SEGMENT_ID',
 ]);
 
 
@@ -73,6 +75,8 @@ app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleCon
 
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);
+
+app.route('^/republish$').post(republishController.route);
 
 
 /* Errors */
@@ -117,5 +121,9 @@ app.use(notFoundHandler);
 /* Start */
 
 notificationsController.init();
+
+if(app.get('env') !== 'production') {
+	republishController();
+}
 
 app.listen(port, () => console.log('Up and running on port', port));

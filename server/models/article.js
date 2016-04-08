@@ -168,9 +168,6 @@ const ensureInDb = key => getCanonical(key)
 	)
 );
 
-const enrichDb = databaseRecord => getApi(databaseRecord.canonical)
-.then(apiRecord => addFbData({databaseRecord, apiRecord}));
-
 const update = article => cacheDel(article.canonical)
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
@@ -183,6 +180,7 @@ const setImportStatus = ({article, id, warnings, type = 'unknown'}) => {
 		mode,
 		id,
 		type,
+		appVersion: process.env.HEROKU_RELEASE_VERSION,
 		warnings,
 	});
 	return updateDb(article)
@@ -195,5 +193,4 @@ module.exports = {
 	update,
 	setImportStatus,
 	ensureInDb,
-	enrichDb,
 };
