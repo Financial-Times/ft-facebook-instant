@@ -192,4 +192,5 @@ module.exports = {
 	update,
 	setImportStatus,
 	ensureInDb,
+	getCanonical,
 };
