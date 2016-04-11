@@ -1,7 +1,6 @@
 'use strict';
 
 const unsupportedSelectors = [
-	'ft-slideshow',
 ];
 
 module.exports = $ => {

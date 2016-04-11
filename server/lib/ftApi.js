@@ -94,10 +94,14 @@ const updateEsRegion = (region, uuid) => nodeFetch(
 
 const updateEs = uuid => Promise.all(['eu', 'us'].map(region => updateEsRegion(region, uuid)));
 
+const fetchAsset = uuid => nodeFetch(`https://api.ft.com/content/items/v1/${uuid}?apiKey=${process.env.API_V1_KEY}`)
+.then(fetchres.json);
+
 module.exports = {
 	fetch,
 	fetchByCanonical,
 	getCanonicalFromUuid,
 	verifyCanonical,
 	updateEs,
+	fetchAsset,
 };
