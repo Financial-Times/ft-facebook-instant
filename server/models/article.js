@@ -1,34 +1,15 @@
 'use strict';
 
-const cacheManager = require('cache-manager');
-const fsStore = require('cache-manager-fs');
-const path = require('path');
-const denodeify = require('denodeify');
 const fetch = require('node-fetch');
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
+const diskCache = require('../lib/diskCache');
 
 const mode = require('../lib/mode').get();
 
-const diskCache = cacheManager.caching({
-	store: fsStore,
-	options: {
-		ttl: 6 * 60 * 60, // time to live in seconds
-		maxsize: 20 * 1024 * 1024, // max on-disk cache size in bytes
-		path: path.resolve(process.cwd(), 'cache/articles'), // path for on-disk cache
-		preventfill: false, // prevent automatically populating the memory cache with existing files
-		fillcallback: undefined, // callback fired after the initial cache filling is completed
-		zip: false, // zip cache files on disk to save space
-	},
-});
-
-const cacheSet = denodeify(diskCache.set);
-const cacheGet = denodeify(diskCache.get);
-const cacheDel = denodeify(diskCache.del);
-
-const getApi = canonical => cacheGet(canonical)
+const getApi = canonical => diskCache.articles.get(canonical)
 .then(cached => {
 	if(cached) {
 		return cached;
@@ -36,7 +17,7 @@ const getApi = canonical => cacheGet(canonical)
 
 	return ftApi.fetchByCanonical(canonical)
 		.then(article => article || Promise.reject(Error(`Canonical URL [${canonical}] is not in Elastic Search`)))
-		.then(article => cacheSet(canonical, article));
+		.then(article => diskCache.articles.set(canonical, article));
 });
 
 const setDb = apiRecord => database.set({
@@ -121,14 +102,14 @@ const deriveCanonical = key => {
 	});
 };
 
-const getCanonical = key => cacheGet(`canonical:${key}`)
+const getCanonical = key => diskCache.canonical.get(`canonical:${key}`)
 .then(cached => {
 	if(cached) {
 		return cached;
 	}
 
 	return deriveCanonical(key)
-		.then(canonical => cacheSet(`canonical:${key}`, canonical));
+		.then(canonical => diskCache.canonical.set(`canonical:${key}`, canonical));
 });
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
@@ -168,7 +149,7 @@ const ensureInDb = key => getCanonical(key)
 	)
 );
 
-const update = article => cacheDel(article.canonical)
+const update = article => diskCache.articles.del(article.canonical)
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
 .then(() => updateDb(article))

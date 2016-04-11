@@ -1,27 +1,34 @@
 'use strict';
 
-const fetch = require('node-fetch');
-const fetchres = require('fetchres');
 const handlebarsTransform = require('../handlebars').render;
+const diskCache = require('../diskCache');
+const ftApi = require('../ftApi');
 
-const fetchSlideshow = uuid => fetch(`https://api.ft.com/content/items/v1/${uuid}?apiKey=${process.env.API_V1_KEY}`)
-.then(fetchres.json)
-.then(data => {
-	if(data
-		&& data.item
-		&& data.item.assets
-		&& data.item.assets[0]
-		&& data.item.assets[0].type === 'slideshow') {
-		return {
-			uuid,
-			title: data.item.assets[0].fields.title,
-			slides: data.item.assets[0].fields.slides,
-		};
+const fetchSlideshow = uuid => diskCache.assets.get(uuid)
+.then(cached => {
+	if(cached) {
+		return cached;
 	}
 
-	throw Error(`No slideshow asset found for UUID ${uuid}`);
-})
-.catch(e => Promise.reject(new Error(`Failed to fetch slideshow for UUID ${uuid}. Error: [${e.toString()}]`)));
+	return ftApi.fetchAsset(uuid)
+		.then(data => {
+			if(data
+				&& data.item
+				&& data.item.assets
+				&& data.item.assets[0]
+				&& data.item.assets[0].type === 'slideshow') {
+				return {
+					uuid,
+					title: data.item.assets[0].fields.title,
+					slides: data.item.assets[0].fields.slides,
+				};
+			}
+
+			throw Error(`No slideshow asset found for UUID ${uuid}`);
+		})
+		.then(asset => diskCache.assets.set(uuid, asset))
+		.catch(e => Promise.reject(new Error(`Failed to fetch slideshow for UUID ${uuid}. Error: [${e.toString()}]`)));
+});
 
 module.exports = function externalImages($, options) {
 	return Promise.all($('ft-slideshow[data-uuid]').map((index, placeholder) => {

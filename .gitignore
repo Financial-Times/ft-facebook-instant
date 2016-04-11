@@ -3,5 +3,5 @@ env.sh
 .DS_Store
 build
 *.log
-cache/articles
+cache/*
 redis.conf
