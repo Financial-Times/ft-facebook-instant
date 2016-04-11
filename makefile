@@ -52,6 +52,9 @@ lint: $(SRC_FILES)
 	$(ESLINT) $(ESLINT_OPTS) $^
 
 test: lint lintspace babel $(TEST_DIRS) $(TEST_FILES)
-	$(MOCHA) $(MOCHA_OPTS)
+	$(MOCHA) $(MOCHA_OPTS) test/**/*.js
+
+$(TEST)/stylesheets/%.js: $(SRC)/stylesheets/%.xsl
+	@: # dummy target just to inform watch-make
 
 .PHONY: clean lint lintspace test
