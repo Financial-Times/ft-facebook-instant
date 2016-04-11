@@ -1,4 +1,6 @@
 # ft-facebook-instant
+[![Circle CI](https://circleci.com/gh/Financial-Times/ft-facebook-instant/tree/master.svg?style=svg)](https://circleci.com/gh/Financial-Times/ft-facebook-instant/tree/master)
+
 Facebook Instant Articles
 
 ## Development requirements
