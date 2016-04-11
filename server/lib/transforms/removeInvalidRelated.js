@@ -1,6 +1,7 @@
 'use strict';
 
 const fbApi = require('../fbApi');
+const articleModel = require('../../models/article');
 
 const relatedSelector = '.op-related-articles';
 const linkSelector = 'a';
@@ -12,14 +13,18 @@ module.exports = ($, warnings) => Promise.resolve()
 		if(!href) {
 			return Promise.resolve();
 		}
-		return fbApi.get({id: href, type: 'related'}).then(({og_object: ogObject}) => {
-			if(!ogObject) {
-				return;
-			}
-			if(!ogObject.title) {
-				$el.remove();
-				warnings.push(`Removed invalid related article with link to [${ogObject.url}]`);
-			}
-		});
+		return articleModel.getCanonical(href)
+			.catch(() => href)
+			.then(canonical => fbApi.get({id: canonical, type: 'related'})
+				.then(({og_object: ogObject}) => {
+					if(!ogObject) {
+						return;
+					}
+					if(!ogObject.title) {
+						$el.remove();
+						warnings.push(`Removed invalid related article with link to [${ogObject.url}]`);
+					}
+				})
+			);
 	}).toArray()))
 	.then(() => $);
