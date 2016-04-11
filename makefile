@@ -9,6 +9,12 @@ LIB_DIRS = $(dir $(LIB_FILES))
 BABEL = node_modules/.bin/babel
 BABEL_OPTS = --presets es2015
 
+ESLINT = node_modules/.bin/eslint
+ESLINT_OPTS = --fix
+
+LINTSPACE = node_modules/.bin/lintspaces
+LINTSPACE_OPTS = -n -d tabs -l 2
+
 all: babel
 
 babel: $(LIB) $(LIB_DIRS) $(LIB_FILES)
@@ -31,4 +37,13 @@ clean-$(LIB)/%:
 clean:
 	rm -rf $(LIB)
 
-.PHONY: clean
+lintspace: $(LINTSPACE_FILES)
+	$(LINTSPACE) $(LINTSPACE_OPTS) $^
+
+lint: $(SRC_FILES)
+	$(ESLINT) $(ESLINT_OPTS) $^
+
+test: lint lintspace babel
+	@echo "No actual tests yet"
+
+.PHONY: clean lint lintspace test
