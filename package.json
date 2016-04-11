@@ -8,7 +8,7 @@
     "prestart": "wmake babel &",
     "start": "source scripts/env.sh && nodemon",
     "postinstall": "make",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run lint"
   },
   "repository": {
     "type": "git",
