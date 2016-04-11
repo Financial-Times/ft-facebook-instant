@@ -149,6 +149,8 @@ const ensureInDb = key => getCanonical(key)
 	)
 );
 
+// TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
+// contents as part of the article JSON?
 const update = article => diskCache.articles.del(article.canonical)
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
