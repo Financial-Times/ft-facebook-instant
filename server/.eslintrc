@@ -33,6 +33,7 @@
 		}],
 		"consistent-return": 0,
 		"object-shorthand": 1,
-		"prefer-rest-params": 0
+		"prefer-rest-params": 0,
+		"no-confusing-arrow": [2, {"allowParens": true}]
 	}
 }
