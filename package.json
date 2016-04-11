@@ -4,11 +4,10 @@
   "description": "Facebook Instant Articles",
   "main": "build/index.js",
   "scripts": {
-    "lint": "scripts/lint.sh",
     "prestart": "wmake babel &",
     "start": "source scripts/env.sh && nodemon",
     "postinstall": "make",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "make test"
   },
   "repository": {
     "type": "git",

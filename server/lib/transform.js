@@ -33,7 +33,7 @@ const getAnnotations = apiRecord => (apiRecord.annotations || [])
 const getTitle = apiRecord => apiRecord.title;
 
 const getSubtitle = apiRecord =>
-	Array.isArray(apiRecord.summaries) ? apiRecord.summaries[0] : null;
+	(Array.isArray(apiRecord.summaries) ? apiRecord.summaries[0] : null);
 
 const getAuthors = apiRecord => {
 	const authors = apiRecord.metadata
