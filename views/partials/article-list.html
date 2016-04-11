@@ -20,11 +20,22 @@
 					<li>Instant Article last updated: <strong title="{{rfcDate date_record_updated}}">{{relativeDate date_record_updated}}</strong></li>
 					<li>Published on FT.com: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate date_editorially_published}}</strong></li>
 					{{#each fbRecords as |fbRecord mode|}}
+						<li>
+						{{#ifEqual mode "production"}}
+							{{#if published}}
+								Status: <span class="o-buttons o-buttons--small">PUBLISHED</span>
+							{{else if nullRecord}}
+								Status: <span class="o-buttons o-buttons--small">NOT PUBLISHED</span>
+							{{else}}
+								Status: <span class="o-buttons o-buttons--small">IN PREVIEW</span>
+							{{/if}}
+						{{/ifEqual}}
 						{{#if imports.0.status}}
-							<li>Last import: <span class="o-buttons o-buttons--small"><strong>{{fbRecord.imports.0.status}}</strong></span> (<span title="{{rfcDate fbRecord.imports.0.timestamp}}">{{relativeDate fbRecord.imports.0.timestamp}}</span>)</li>
+							Last import: <span class="o-buttons o-buttons--small"><strong>{{fbRecord.imports.0.status}}</strong></span> (<span title="{{rfcDate fbRecord.imports.0.timestamp}}">{{relativeDate fbRecord.imports.0.timestamp}}</span>)
 						{{else if fbRecord.most_recent_import_status}}
-							<li>Last import: <span class="o-buttons o-buttons--small"><strong>{{fbRecord.most_recent_import_status.status}}</strong></span></li>
+							Last import: <span class="o-buttons o-buttons--small"><strong>{{fbRecord.most_recent_import_status.status}}</strong></span>
 						{{/if}}
+						</li>
 					{{/each}}
 				</ul>
 			</li>
