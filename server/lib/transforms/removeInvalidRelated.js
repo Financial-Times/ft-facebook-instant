@@ -12,7 +12,7 @@ module.exports = ($, warnings) => Promise.resolve()
 		if(!href) {
 			return Promise.resolve();
 		}
-		return fbApi.get({id: href, type: 'related'}).then(({ogObject}) => {
+		return fbApi.get({id: href, type: 'related'}).then(({og_object: ogObject}) => {
 			if(!ogObject) {
 				return;
 			}
