@@ -48,9 +48,12 @@
     "signed-aws-es-fetch": "^1.1.0"
   },
   "devDependencies": {
+    "@quarterto/chai": "^1.1.0",
+    "babel-register": "^6.7.2",
     "eslint": "^2.3.0",
     "eslint-config-airbnb": "^6.1.0",
     "lintspaces-cli": "^0.1.1",
+    "mocha": "^2.4.5",
     "nodemon": "^1.9.1",
     "watch-make": "^1.0.0"
   }
