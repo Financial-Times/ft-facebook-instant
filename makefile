@@ -2,9 +2,11 @@ SHELL := /bin/bash
 
 SRC = server
 LIB = build
+TEST = test
 SRC_FILES = $(shell find $(SRC) -name '*.js')
 LIB_FILES = $(patsubst $(SRC)/%.js, $(LIB)/%.js, $(SRC_FILES))
 LIB_DIRS = $(dir $(LIB_FILES))
+TEST_FILES = $(shell find $(TEST) -name '*.js')
 
 NPM_BIN := $(shell npm bin)
 
@@ -16,6 +18,9 @@ ESLINT_OPTS = --fix
 
 LINTSPACE = $(NPM_BIN)/lintspaces
 LINTSPACE_OPTS = -n -d tabs -l 2
+
+MOCHA = $(NPM_BIN)/mocha
+MOCHA_OPTS = --compilers js:babel-register
 
 all: babel
 
@@ -45,7 +50,7 @@ lintspace: $(LINTSPACE_FILES)
 lint: $(SRC_FILES)
 	$(ESLINT) $(ESLINT_OPTS) $^
 
-test: lint lintspace babel
-	@echo "No actual tests yet"
+test: lint lintspace babel $(TEST_FILES)
+	$(MOCHA) $(MOCHA_OPTS)
 
 .PHONY: clean lint lintspace test
