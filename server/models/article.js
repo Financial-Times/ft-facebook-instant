@@ -60,17 +60,29 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	}
 	article.fbRecords = fbRecords;
 
-	const imports = [];
+	const importMeta = article.import_meta
+		.filter(item => item.mode === mode);
+	let imports = [];
 
 	fbImports.forEach(item => {
-		const dbImportIndex = article.import_meta.findIndex(record => record.id === item.id);
-		const merged = (dbImportIndex >= 0) ? Object.assign({}, article.import_meta[dbImportIndex], item) : item;
+		const dbImportIndex = importMeta.findIndex(record => record.id === item.id);
+
+		let merged;
+		if(dbImportIndex >= 0) {
+			merged = Object.assign({}, importMeta.splice(dbImportIndex, 1)[0], item);
+		} else {
+			merged = item;
+		}
 
 		merged.messages = flattenErrors(merged.errors);
 		delete merged.errors;
 
 		imports.push(merged);
 	});
+
+	// Add any remaining import meta which isn't reflected on the FB API
+	imports = imports.concat(importMeta)
+		.sort((a, b) => b.timestamp - a.timestamp);
 
 	imports.forEach(item => {
 		if(article.fbRecords[item.mode]) {
@@ -116,6 +128,7 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 .then(fbRecords => {
 	const promises = databaseRecord.import_meta
 		.filter(item => item.mode === mode)
+		.filter(item => !!item.id)
 		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']})
 			.catch(() => {
 				// Ignore db records which don't map to existing FB records
@@ -160,7 +173,7 @@ const update = article => Promise.all([
 .then(() => updateDb(article))
 .then(() => get(article.canonical));
 
-const setImportStatus = ({article, id, warnings, type = 'unknown'}) => {
+const setImportStatus = ({article, id = null, warnings = [], type = 'unknown'}) => {
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,

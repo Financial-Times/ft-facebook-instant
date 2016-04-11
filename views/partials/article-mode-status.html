@@ -9,32 +9,44 @@
 				{{#ifEqual mode "development"}}
 				Preview your Instant Article before it goes live. Once imported, it will be available to review in <a href="https://business.facebook.com/financialtimes/publishing_tools/?section=INSTANT_ARTICLES_DEVELOPMENT">Publishing Tools (Development)</a> and in the <em>Development</em> tab of the Pages mobile app.
 				{{else}}
-				Make an article available to Facebook users. Once imported, it will be available to review in <a href="https://business.facebook.com/financialtimes/publishing_tools/?section=INSTANT_ARTICLES">Publishing Tools (Production)</a>  and in the <em>Production</em> tab of the Pages mobile app.
+				Make an article available to Facebook users. In <strong>preview</strong> mode, it will be available to review in <a href="https://business.facebook.com/financialtimes/publishing_tools/?section=INSTANT_ARTICLES">Publishing Tools (Production)</a>  and in the <em>Production</em> tab of the Pages mobile app. In <strong>publish</strong> mode, it will be available to the public.
 				{{/ifEqual}}
 			</div>
 		</div>
 	</div>
 
 	<div class="o-techdocs-card__content">
-		{{#ifEqual mode "production"}}<span class="o-buttons o-buttons--small">{{#if published}}Published{{else}}Not published{{/if}}</span>{{/ifEqual}}
-		{{#if nullRecord}}
-			<span class="o-buttons o-buttons--small">Not imported</span>
-		{{else}}
-			{{#if imports.0.status}}
-				<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
-			{{else if most_recent_import_status}}
-				<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
+		{{#ifEqual mode "production"}}
+			{{#if published}}
+				<span class="o-buttons o-buttons--small">PUBLISHED</span>
+			{{else if nullRecord}}
+					<span class="o-buttons o-buttons--small">NOT PUBLISHED</span>
+			{{else}}
+				<span class="o-buttons o-buttons--small">IN PREVIEW</span>
 			{{/if}}
-		{{/if}}
+		{{else}}
+			{{#if nullRecord}}
+				<span class="o-buttons o-buttons--small">Not imported</span>
+			{{else}}
+				{{#if imports.0.status}}
+					<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
+				{{else if most_recent_import_status}}
+					<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
+				{{/if}}
+			{{/if}}
+		{{/ifEqual}}
 		{{#if imports}}
 			<p>{{#if nullRecord}} Old imports{{else}}Imports{{/if}}:</p>
 			<pre>
 			{{#each imports}}
 				<ul>
-					<li>ID: {{id}}</li>
+					{{#if id}}<li>ID: {{id}}</li>{{/if}}
 					<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
-					<li>Status: <strong>{{status}}</strong></li>
+					{{#if status}}<li>Status: <strong>{{status}}</strong></li>{{/if}}
 					<li>Type: <strong>{{type}}</strong></li>
+					{{#ifEqual mode "production"}}
+						<li>Published: <strong>{{#if ../published}}yes{{else}}no{{/if}}</strong></li>
+					{{/ifEqual}}
 					{{#if warnings}}
 					<li class="warning">Transform warnings:
 						<ul>
@@ -68,13 +80,19 @@
 		{{/if}}
 	</div>
 
-	<div class="o-techdocs-card__actions actions">
-		<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="runModeAction('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if nullRecord}}Post to Facebook{{else}}Re-post to Facebook{{/if}}</button>
-		{{#unless nullRecord}}<button class="o-techdocs-card__actionbutton {{mode}}-delete-status" onclick="runModeAction('{{mode}}', 'delete');"><i class="fa fa-arrow-circle-up"></i> Delete from Facebook</button>{{/unless}}
-		{{#ifEqual mode "production"}}
-			{{#ifEqual most_recent_import_status.status "SUCCESS"}}
-			<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> Publish</button>
+	<div class="o-techdocs-card__actions">
+		<div class="o-techdocs-card__title">
+			Facebook actions:
+		</div>
+		<div class="actions">
+			{{#ifEqual mode "production"}}
+				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
+				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> {{#if published}}Re-publish Instant Article{{else}}Publish Instant Article{{/if}}</button>
+				{{/ifEqual}}
 			{{/ifEqual}}
-		{{/ifEqual}}
-	</div>
+			{{#unless published}}
+			<button class="o-techdocs-card__actionbutton {{mode}}-import-status" onclick="runModeAction('{{mode}}', 'import');"><i class="fa fa-arrow-circle-up"></i> {{#if nullRecord}}Submit Preview{{else}}Re-submit Preview{{/if}}</button>
+			{{/unless}}
+			{{#unless nullRecord}}<button class="o-techdocs-card__actionbutton {{mode}}-delete-status" onclick="runModeAction('{{mode}}', 'delete');"><i class="fa fa-arrow-circle-up"></i> Delete</button>{{/unless}}</div>
+		</div>
 </div>

@@ -129,4 +129,4 @@ if(app.get('env') !== 'production') {
 	republishController();
 }
 
-app.listen(port, () => console.log('Up and running on port', port));
+app.listen(port, () => console.log(`Up and running on port ${port} in ${mode} mode.`));
