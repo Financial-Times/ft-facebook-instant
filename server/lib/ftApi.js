@@ -90,7 +90,8 @@ const updateEsRegion = (region, uuid) => nodeFetch(
 		},
 		body: JSON.stringify({id: uuid}),
 	}
-);
+)
+.then(fetchres.json);
 
 const updateEs = uuid => Promise.all(['eu', 'us'].map(region => updateEsRegion(region, uuid)));
 
