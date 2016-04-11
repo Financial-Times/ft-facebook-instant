@@ -55,7 +55,6 @@ module.exports = article => {
 		const analyticsUrl = getAnalyticsUrl(article);
 		const body = transformed$.html();
 		const params = {
-			mode,
 			body,
 			mainImageHtml,
 			analyticsUrl,
@@ -67,6 +66,7 @@ module.exports = article => {
 			title: getTitle(article.apiRecord, warnings),
 			subtitle: getSubtitle(article.apiRecord, warnings),
 			authors: getAuthors(article.apiRecord, warnings),
+			cookieChecker: false,
 		};
 
 		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
