@@ -6,7 +6,6 @@ const handlebarsTransform = require('./handlebars').render;
 const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
-const mode = require('./mode').get();
 
 const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
