@@ -7,7 +7,7 @@ LIB_FILES = $(patsubst $(SRC)/%.js, $(LIB)/%.js, $(SRC_FILES))
 LIB_DIRS = $(dir $(LIB_FILES))
 
 BABEL = node_modules/.bin/babel
-BABEL_OPTS = --presets es2015
+BABEL_OPTS =
 
 ESLINT = node_modules/.bin/eslint
 ESLINT_OPTS = --fix
