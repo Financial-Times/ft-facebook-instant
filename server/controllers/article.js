@@ -59,6 +59,8 @@ const runAction = ({url, action}, res) => {
 		case 'delete':
 			return fbApi.delete({canonical: url})
 				.then(() => articleModel.get(url))
+				.then(article => articleModel.setImportStatus({article, type: 'ui-delete'}))
+				.then(() => articleModel.get(url))
 				.then(article => res.json(article));
 
 		default:
