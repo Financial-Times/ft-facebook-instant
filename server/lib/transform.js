@@ -6,7 +6,6 @@ const handlebarsTransform = require('./handlebars').render;
 const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
-const mode = require('./mode').get();
 
 const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
@@ -55,7 +54,6 @@ module.exports = article => {
 		const analyticsUrl = getAnalyticsUrl(article);
 		const body = transformed$.html();
 		const params = {
-			mode,
 			body,
 			mainImageHtml,
 			analyticsUrl,
@@ -67,6 +65,7 @@ module.exports = article => {
 			title: getTitle(article.apiRecord, warnings),
 			subtitle: getSubtitle(article.apiRecord, warnings),
 			authors: getAuthors(article.apiRecord, warnings),
+			cookieChecker: false,
 		};
 
 		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
