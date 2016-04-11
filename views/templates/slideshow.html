@@ -1,0 +1,9 @@
+<figure class="op-slideshow">
+	{{#if title}}<figcaption>{{title}}</figcaption>{{/if}}
+	{{#each slides}}
+	<figure data-feedback="fb:likes,fb:comments">
+		<img src="{{url}}" />
+		<figcaption>{{caption}}</figcaption>
+	</figure>
+	{{/each}}
+</figure>
