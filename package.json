@@ -7,7 +7,8 @@
     "prestart": "wmake babel &",
     "start": "source scripts/env.sh && nodemon",
     "postinstall": "make",
-    "test": "make test"
+    "test": "make test",
+    "watch": "wmake"
   },
   "repository": {
     "type": "git",
