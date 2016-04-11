@@ -6,13 +6,15 @@ SRC_FILES = $(shell find $(SRC) -name '*.js')
 LIB_FILES = $(patsubst $(SRC)/%.js, $(LIB)/%.js, $(SRC_FILES))
 LIB_DIRS = $(dir $(LIB_FILES))
 
-BABEL = node_modules/.bin/babel
+NPM_BIN := $(shell npm bin)
+
+BABEL = $(NPM_BIN)/babel
 BABEL_OPTS =
 
-ESLINT = node_modules/.bin/eslint
+ESLINT = $(NPM_BIN)/eslint
 ESLINT_OPTS = --fix
 
-LINTSPACE = node_modules/.bin/lintspaces
+LINTSPACE = $(NPM_BIN)/lintspaces
 LINTSPACE_OPTS = -n -d tabs -l 2
 
 all: babel
