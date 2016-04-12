@@ -14,8 +14,9 @@ module.exports = ($, warnings) => Promise.resolve()
 			return Promise.resolve();
 		}
 		return articleModel.getCanonical(href)
-			.catch(() => href)
-			.then(canonical => fbApi.get({id: canonical, type: 'related'})
+			.catch(() => null)
+			.then(canonical => canonical || href)
+			.then(url => fbApi.get({id: url, type: 'related'})
 				.then(({og_object: ogObject}) => {
 					if(!ogObject) {
 						return;
