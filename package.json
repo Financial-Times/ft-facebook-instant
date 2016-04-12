@@ -52,6 +52,7 @@
     "@quarterto/chai-dom-equal": "^1.0.0",
     "babel-register": "^6.7.2",
     "chai": "^3.5.0",
+    "chai-as-promised": "^5.3.0",
     "dirty-chai": "^1.2.2",
     "eslint": "^2.3.0",
     "eslint-config-airbnb": "^6.1.0",
