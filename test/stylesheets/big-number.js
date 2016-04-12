@@ -6,7 +6,7 @@ const xslt = require('../../build/lib/xslt');
 describe('big number transform', () => {
 	const transform = input => xslt(input, `${process.cwd()}/server/stylesheets/main.xsl`);
 
-	it('should transform some markup', () =>
+	it('should transform n-content-big-number to aside with cite', () =>
 		expect(transform(`<div class="n-content-big-number">
 			<span class="n-content-big-number__title"><p>10.48m</p></span>
 			<span class="n-content-big-number__content">
