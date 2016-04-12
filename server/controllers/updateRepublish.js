@@ -29,9 +29,9 @@ const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
 module.exports = (options) => republish(options)
 	.then(updatedArticles => {
 		if(updatedArticles.length) {
-			console.log(`${Date()}: updated articles ${updatedArticles.map(({uuid}) => uuid)}`);
+			console.log(`${Date()}: UPDATE/REPUBLISH: updated articles ${updatedArticles.map(({uuid}) => uuid)}`);
 		} else {
-			console.log(`${Date()}: no articles to update`);
+			console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
 		}
 	}).catch(e => console.log(e.stack)); // TODO: error reporting
 
