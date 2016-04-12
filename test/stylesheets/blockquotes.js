@@ -19,4 +19,11 @@ describe('blockquote transform', () => {
 			<a href="https://twitter.com/status/username/123"></a>
 		</blockquote>`)).dom.to.eventually.equal('<twitter data-tweet-id="123" />')
 	);
+
+	it('should use the last twitter link if there are multiple', () =>
+		expect(transform(`<blockquote>
+			<a href="https://twitter.com/status/username/123"></a>
+			<a href="https://twitter.com/status/username/456"></a>
+		</blockquote>`)).dom.to.eventually.equal('<twitter data-tweet-id="456" />')
+	);
 });
