@@ -49,8 +49,10 @@
     "signed-aws-es-fetch": "^1.1.0"
   },
   "devDependencies": {
-    "@quarterto/chai": "^1.1.0",
+    "@quarterto/chai-dom-equal": "^1.0.0",
     "babel-register": "^6.7.2",
+    "chai": "^3.5.0",
+    "dirty-chai": "^1.2.2",
     "eslint": "^2.3.0",
     "eslint-config-airbnb": "^6.1.0",
     "lintspaces-cli": "^0.1.1",

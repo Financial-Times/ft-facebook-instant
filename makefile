@@ -8,6 +8,7 @@ LIB_FILES = $(patsubst $(SRC)/%.js, $(LIB)/%.js, $(SRC_FILES))
 LIB_DIRS = $(dir $(LIB_FILES))
 TEST_FILES = $(shell find $(TEST) -name '*.js')
 TEST_DIRS = $(dir $(TEST_FILES))
+TEST_UTILS = $(shell find test-utils -name '*.js')
 
 NPM_BIN := $(shell npm bin)
 
@@ -51,7 +52,7 @@ lintspace: $(LINTSPACE_FILES)
 lint: $(SRC_FILES)
 	$(ESLINT) $(ESLINT_OPTS) $^
 
-test: lint lintspace babel $(TEST_DIRS) $(TEST_FILES)
+test: lint lintspace babel $(TEST_DIRS) $(TEST_FILES) $(TEST_UTILS)
 	$(MOCHA) $(MOCHA_OPTS) test/**/*.js
 
 $(TEST)/stylesheets/%.js: $(SRC)/stylesheets/%.xsl

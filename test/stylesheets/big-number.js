@@ -1,6 +1,6 @@
 'use strict';
 
-const expect = require('@quarterto/chai');
+const expect = require('../../test-utils/expect');
 const xslt = require('../../build/lib/xslt');
 
 describe('big number transform', () => {
@@ -13,7 +13,7 @@ describe('big number transform', () => {
 				<p>Record number of barrels a day that oil refiners raised processing runs to last year</p>
 			</span>
 		</div>`)
-		.then(output => expect(output).to.equal(`<aside>
+		.then(output => expect(output).dom.to.equal(`<aside>
 			<p>10.48m</p>
 			<cite><p>Record number of barrels a day that oil refiners raised processing runs to last year</p></cite>
 		</aside>`)).then(() => done(), done);
