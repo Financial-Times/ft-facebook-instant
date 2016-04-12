@@ -18,7 +18,7 @@ const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
 								if(sentToFacebook && shouldRepublish) {
 									return transform(article)
 										.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
-											.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'update-redeploy'}))
+											.then(({id}) => articleModel.setImportStatus({article, id, warnings, username: 'daemon', type: 'update-redeploy'}))
 										);
 								}
 							})
