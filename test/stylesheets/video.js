@@ -7,7 +7,7 @@ describe('related box transform', () => {
 	const brightcoveAccountId = 'account';
 	const brightcovePlayerId = 'player';
 	const transform = input => xslt(input, `${process.cwd()}/server/stylesheets/main.xsl`, {
-		brightcoveAccountId, brightcovePlayerId
+		brightcoveAccountId, brightcovePlayerId,
 	});
 
 	it('should transform n-content-video--youtube to youtube custom element', () =>
