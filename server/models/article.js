@@ -173,14 +173,16 @@ const update = article => Promise.all([
 .then(() => updateDb(article))
 .then(() => get(article.canonical));
 
-const setImportStatus = ({article, id = null, warnings = [], type = 'unknown'}) => {
+const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown'}) => {
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,
 		id,
 		type,
 		appVersion: process.env.HEROKU_RELEASE_VERSION,
+		env: process.env.NODE_ENV,
 		warnings,
+		username,
 	});
 	return updateDb(article)
 		.then(() => get(article.canonical));

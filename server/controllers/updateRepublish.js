@@ -14,11 +14,11 @@ const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
 							.then(article => {
 								const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== process.env.HEROKU_RELEASE_VERSION;
 								const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
-								const sentToFacebook = article.fbRecords[mode];
+								const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 								if(sentToFacebook && shouldRepublish) {
 									return transform(article)
 										.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
-											.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'update-redeploy'}))
+											.then(({id}) => articleModel.setImportStatus({article, id, warnings, username: 'daemon', type: 'update-redeploy'}))
 										);
 								}
 							})
@@ -29,9 +29,9 @@ const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
 module.exports = (options) => republish(options)
 	.then(updatedArticles => {
 		if(updatedArticles.length) {
-			console.log(`${Date()}: updated articles ${updatedArticles.map(({uuid}) => uuid)}`);
+			console.log(`${Date()}: UPDATE/REPUBLISH: updated articles ${updatedArticles.map(({uuid}) => uuid)}`);
 		} else {
-			console.log(`${Date()}: no articles to update`);
+			console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
 		}
 	}).catch(e => console.log(e.stack)); // TODO: error reporting
 

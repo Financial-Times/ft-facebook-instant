@@ -48,19 +48,20 @@ const poller = () => Promise.all([
 .then(getKnownArticles)
 .then(knownArticles => Promise.all(knownArticles.map(knownArticle => articleModel.update(knownArticle)
 	.then(article => {
-		if(article.fbRecords[mode]) {
+		const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
+		if(sentToFacebook) {
 			return transform(article)
 				.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
-					.then(({id}) => articleModel.setImportStatus({article, id, warnings, type: 'notifications-api'}))
+					.then(({id}) => articleModel.setImportStatus({article, id, warnings, username: 'daemon', type: 'notifications-api'}))
 				);
 		}
 	})
 ))
 	.then(() => {
 		if(knownArticles.length) {
-			console.log(`${Date()}: updated articles ${knownArticles.map(article => article.uuid)}`);
+			console.log(`${Date()}: NOTIFICATIONS API: updated articles ${knownArticles.map(article => article.uuid)}`);
 		} else {
-			console.log(`${Date()}: no articles to update`);
+			console.log(`${Date()}: NOTIFICATIONS API: no articles to update`);
 		}
 
 		return database.setLastNotificationCheck(Date.now());

@@ -36,7 +36,7 @@ const defaultFields = {
 Facebook.options({
 	version: 'v2.5',
 	accessToken,
-	timeout: 2000,
+	timeout: (mode === 'production' ? 2000 : 10000),
 });
 
 const call = (...params) => api.apply(null, params)
