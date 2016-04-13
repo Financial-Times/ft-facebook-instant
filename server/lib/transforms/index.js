@@ -2,7 +2,6 @@
 
 const cheerio = require('cheerio');
 
-const stripBody = require('./stripBody');
 const addImageDimensions = require('./addImageDimensions');
 const convertBrightcove = require('./convertBrightcove');
 const convertYoutube = require('./convertYoutube');
@@ -17,7 +16,6 @@ module.exports = (body, warnings) => {
 	const $ = cheerio.load(body, {decodeEntities: false});
 
 	return Promise.all([
-		stripBody,
 		addImageDimensions,
 		convertBrightcove,
 		convertYoutube,
