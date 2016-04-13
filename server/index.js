@@ -17,6 +17,8 @@ const logger = require('morgan');
 const favicon = require('serve-favicon');
 const path = require('path');
 const bodyParser = require('body-parser');
+const raven = require('raven');
+const os = require('os');
 const noCache = require('./lib/nocache');
 const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
@@ -26,6 +28,19 @@ const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
 
 const port = process.env.PORT || 6247;
+
+let ravenClient;
+
+if(mode === 'production') {
+	assertEnv(['SENTRY_DSN']);
+	ravenClient = new raven.Client(process.env.SENTRY_DSN);
+	ravenClient.setExtraContext({env: process.env});
+	ravenClient.setTagsContext({
+		server_name: process.env.HEROKU_APP_NAME || os.hostname(),
+		release: process.env.HEROKU_SLUG_COMMIT,
+	});
+	ravenClient.patchGlobal(() => process.exit(1));
+}
 
 assertEnv([
 	'AWS_ACCESS_KEY',
@@ -42,6 +57,14 @@ assertEnv([
 	'SEGMENT_ID',
 ]);
 
+if(mode === 'production') {
+	app.use(raven.middleware.express.requestHandler(ravenClient));
+	app.use((req, res, next) => {
+		ravenClient.setExtraContext(raven.parsers.parseRequest(req));
+		req.raven = ravenClient;
+		next();
+	});
+}
 
 /* Middleware */
 
