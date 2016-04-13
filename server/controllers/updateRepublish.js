@@ -14,7 +14,7 @@ const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
 							.then(article => {
 								const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== process.env.HEROKU_RELEASE_VERSION;
 								const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
-								const sentToFacebook = article.fbRecords[mode];
+								const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 								if(sentToFacebook && shouldRepublish) {
 									return transform(article)
 										.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})

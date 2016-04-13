@@ -48,7 +48,8 @@ const poller = () => Promise.all([
 .then(getKnownArticles)
 .then(knownArticles => Promise.all(knownArticles.map(knownArticle => articleModel.update(knownArticle)
 	.then(article => {
-		if(article.fbRecords[mode] && !article.fbRecords[mode].nullRecord) {
+		const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
+		if(sentToFacebook) {
 			return transform(article)
 				.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
 					.then(({id}) => articleModel.setImportStatus({article, id, warnings, username: 'daemon', type: 'notifications-api'}))
