@@ -49,6 +49,7 @@ const poller = () => Promise.all([
 .then(knownArticles => Promise.all(knownArticles.map(knownArticle => articleModel.update(knownArticle)
 	.then(article => {
 		const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
+		console.log(`${Date()}: NOTIFICATIONS API: article [${article.uuid}], mode [${mode}], sentToFacebook [${sentToFacebook}]`);
 		if(sentToFacebook) {
 			return transform(article)
 				.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
