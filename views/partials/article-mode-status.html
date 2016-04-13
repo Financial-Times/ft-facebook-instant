@@ -36,13 +36,15 @@
 			{{/if}}
 		{{/ifEqual}}
 		{{#if imports}}
-			<p>{{#if nullRecord}} Old imports{{else}}Imports{{/if}}:</p>
+			<p>History:</p>
 			<pre>
 			{{#each imports}}
 				<ul>
 					{{#if id}}<li>ID: {{id}}</li>{{/if}}
 					<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
 					{{#if status}}<li>Status: <strong>{{status}}</strong></li>{{/if}}
+					{{#if env}}<li>Environment: <strong>{{env}}</strong></li>{{/if}}
+					{{#if username}}<li>Username: <strong>{{username}}</strong></li>{{/if}}
 					<li>Type: <strong>{{type}}</strong></li>
 					{{#ifEqual mode "production"}}
 						<li>Published: <strong>{{#if ../published}}yes{{else}}no{{/if}}</strong></li>
