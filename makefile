@@ -49,7 +49,7 @@ clean:
 lintspace: $(LINTSPACE_FILES)
 	$(LINTSPACE) $(LINTSPACE_OPTS) $^
 
-lint: $(SRC_FILES)
+lint: $(SRC_FILES) $(TEST_FILES) $(TEST_UTILS)
 	$(ESLINT) $(ESLINT_OPTS) $^
 
 test: lint lintspace babel $(TEST_DIRS) $(TEST_FILES) $(TEST_UTILS)
