@@ -9,6 +9,10 @@
 		</xsl:copy>
 	</xsl:template>
 
+	<xsl:template match="/html/body">
+		<xsl:apply-templates />
+	</xsl:template>
+
 	<xsl:include href="big-number.xsl" />
 	<xsl:include href="blockquotes.xsl" />
 	<xsl:include href="external-image.xsl" />

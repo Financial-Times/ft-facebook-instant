@@ -2,18 +2,27 @@ SHELL := /bin/bash
 
 SRC = server
 LIB = build
+TEST = test
 SRC_FILES = $(shell find $(SRC) -name '*.js')
 LIB_FILES = $(patsubst $(SRC)/%.js, $(LIB)/%.js, $(SRC_FILES))
 LIB_DIRS = $(dir $(LIB_FILES))
+TEST_FILES = $(shell find $(TEST) -name '*.js')
+TEST_DIRS = $(dir $(TEST_FILES))
+TEST_UTILS = $(shell find test-utils -name '*.js')
 
-BABEL = node_modules/.bin/babel
-BABEL_OPTS = --presets es2015
+NPM_BIN := $(shell npm bin)
 
-ESLINT = node_modules/.bin/eslint
+BABEL = $(NPM_BIN)/babel
+BABEL_OPTS =
+
+ESLINT = $(NPM_BIN)/eslint
 ESLINT_OPTS = --fix
 
-LINTSPACE = node_modules/.bin/lintspaces
+LINTSPACE = $(NPM_BIN)/lintspaces
 LINTSPACE_OPTS = -n -d tabs -l 2
+
+MOCHA = $(NPM_BIN)/mocha
+MOCHA_OPTS = --compilers js:babel-register
 
 all: babel
 
@@ -40,10 +49,13 @@ clean:
 lintspace: $(LINTSPACE_FILES)
 	$(LINTSPACE) $(LINTSPACE_OPTS) $^
 
-lint: $(SRC_FILES)
+lint: $(SRC_FILES) $(TEST_FILES) $(TEST_UTILS)
 	$(ESLINT) $(ESLINT_OPTS) $^
 
-test: lint lintspace babel
-	@echo "No actual tests yet"
+test: lint lintspace babel $(TEST_DIRS) $(TEST_FILES) $(TEST_UTILS)
+	$(MOCHA) $(MOCHA_OPTS) test/**/*.js
+
+$(TEST)/stylesheets/%.js: $(SRC)/stylesheets/%.xsl
+	@: # dummy target just to inform watch-make
 
 .PHONY: clean lint lintspace test
