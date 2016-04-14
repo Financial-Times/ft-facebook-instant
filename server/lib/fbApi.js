@@ -173,4 +173,5 @@ module.exports = {
 	delete: del,
 	find,
 	wipe,
+	call,
 };

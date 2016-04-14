@@ -3,6 +3,7 @@
 const database = require('../lib/database');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
+const accessTokens = require('../lib/accessTokens');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
 .filter(name => (name.indexOf('s3o') === -1)) // Don't clear S3O cookies!
@@ -87,6 +88,25 @@ module.exports = (req, res, next) => {
 			throw new Error('lol');
 		case 'nexterror':
 			return next(new Error('lol'));
+		case 'authfb':
+			return res.render('authfb', {fbAppId: process.env.FB_APP_ID});
+		case 'pagetoken':
+			return fbApi.call('oauth/access_token', {
+				grant_type: 'fb_exchange_token',
+				fb_exchange_token: req.query.accessToken,
+				client_id: process.env.FB_APP_ID,
+				client_secret: process.env.FB_APP_SECRET,
+			}).then(({access_token: bearerToken}) => fbApi.call('me/accounts', {access_token: bearerToken}))
+			.then(({data}) => {
+				const page = data.filter(({id}) => id === process.env.FB_PAGE_ID)[0];
+				if(!page) {
+					throw new Error('user does not have access to facebook page');
+				}
+				return page.access_token;
+			}).then(token => accessTokens.add(token))
+			.then(() => {
+				res.send('added access token');
+			}).catch(next);
 		default:
 			res.sendStatus(404);
 			break;
