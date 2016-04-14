@@ -66,7 +66,8 @@ module.exports = (req, res, next) => {
 					.then(article => res.json(article));
 
 			case 'reingest':
-				return ftApi.updateEs(url)
+				return articleModel.get(url)
+					.then(article => ftApi.updateEs(article.uuid))
 					.then(() => articleModel.get(url))
 					.then(articleModel.update)
 					.then(html => res.send(html));
