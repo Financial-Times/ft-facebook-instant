@@ -12,4 +12,6 @@ module.exports = [
 	{uuid: '60d88fa0-fb27-11e5-b3f6-11d5706b613b', description: 'Iceland PM ‘resigns’ over Panama Papers leak (Brightcove video)'},
 	{uuid: '735eb4c8-998f-11e5-9228-87e603d47bdc', description: 'UK’s first air strikes on Syria target Isis oilfields (Youtube video)'},
 	{uuid: '704d4c91-3486-3769-bc6b-a294bde6c330', description: 'CNH Hibor, nothing to see here (Twitter tweet)'},
+	{uuid: 'cffb6ef4-99b4-11e5-9228-87e603d47bdc', description: 'Boardroom trades at Moneysupermarket (Large data table)'},
+	{uuid: 'a9febe86-ba34-11e5-bf7e-8a339b6f2164', description: 'Recipe: simple pot-au-feu (Recipe)'},
 ];

@@ -1,6 +1,7 @@
 'use strict';
 
 const unsupportedSelectors = [
+	'table',
 ];
 
 module.exports = $ => {
