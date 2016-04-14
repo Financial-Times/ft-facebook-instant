@@ -72,7 +72,7 @@
   function getPageAccessToken(accessToken) {
     $.get('/dev/pagetoken', {accessToken: accessToken}).then(
       function(data) { docuent.getElementById(status).textContent = data },
-      function(xhr, status, error) { docuent.getElementById(status).textContent = error.stack || error.toString() },
+      function(xhr, status, error) { docuent.getElementById(status).textContent = error.stack || error.toString() }
     )
   }
 </script>
