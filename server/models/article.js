@@ -126,14 +126,17 @@ const getCanonical = key => diskCache.canonical.get(`canonical:${key}`)
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 .then(fbRecords => {
-	const promises = databaseRecord.import_meta
-		.filter(item => item.mode === mode)
-		.filter(item => !!item.id)
-		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']})
-			.catch(() => {
-				// Ignore db records which don't map to existing FB records
-			})
-		);
+	let promises = [];
+
+	// https://trello.com/c/LUIDQyFf/65-look-in-to-unnecessary-requests-and-rate-limiting
+	// Deleted FB records no longer have accessible imports, so don't try to enrich the history
+	if(!fbRecords[mode].nullRecord) {
+		promises = databaseRecord.import_meta
+			.filter(item => item.mode === mode)
+			.filter(item => !!item.id)
+			.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
+	}
+
 	return Promise.all(promises)
 		.then(fbImports => fbImports.filter(record => record !== undefined))
 		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
