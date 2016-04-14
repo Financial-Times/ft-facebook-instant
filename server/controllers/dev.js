@@ -85,6 +85,8 @@ module.exports = (req, res, next) => {
 			});
 		case 'throw':
 			throw new Error('lol');
+		case 'nexterror':
+			return next(new Error('lol'));
 		default:
 			res.sendStatus(404);
 			break;
