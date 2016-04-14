@@ -20,4 +20,5 @@
 	<xsl:include href="video.xsl" />
 	<xsl:include href="links.xsl" />
 	<xsl:include href="pullquotes.xsl" />
+	<xsl:include href="info-box.xsl" />
 </xsl:stylesheet>
