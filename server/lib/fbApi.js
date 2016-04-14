@@ -7,6 +7,7 @@ const api = denodeify(Facebook.napi);
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
+const accessTokens = require('./accessTokens');
 
 // See introspect()
 const defaultFields = {
@@ -39,7 +40,20 @@ Facebook.options({
 	timeout: (mode === 'production' ? 2000 : 10000),
 });
 
-const call = (...params) => api.apply(null, params)
+function addAccessToken(params) {
+	const options = params.pop();
+	if(options.access_token) {
+		return Promise.resolve([...params, options]);
+	} else {
+		return accessTokens.get().then(newAccessToken => {
+			options.access_token = newAccessToken;
+			return [...params, options];
+		});
+	}
+}
+
+const call = (...params) => addAccessToken(params)
+.then(newParams => api(...newParams))
 .catch(e => {
 	if(e.name === 'FacebookApiException' &&
 		e.response &&
