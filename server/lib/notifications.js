@@ -85,6 +85,7 @@ function getNotificationsUrl(options) {
 
 // Fetch a list of all notifications from a given date
 const createNotificationsList = (since, options) => new Promise((resolve, reject) => {
+	console.log(`${Date()}: NOTIFICATIONS API: fetching notifications since ${since}`);
 	const url = `${getNotificationsUrl(options)}?apiKey=${apiKey}&feature.blogposts=on&since=${since}`;
 	getNotifications(url, [], (err, notifications) => {
 		if(err) {

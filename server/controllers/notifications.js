@@ -10,10 +10,11 @@ const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
 const UPDATE_INTERVAL = 1 * 60 * 1000;
+const OVERLAP_INTERVAL = 5 * 60 * 1000;
 
 const update = apiVersion => database.getLastNotificationCheck()
 .then(lastCheck => {
-	lastCheck = new Date(lastCheck || (Date.now() - UPDATE_INTERVAL)).toISOString();
+	lastCheck = new Date((lastCheck || (Date.now() - UPDATE_INTERVAL)) - OVERLAP_INTERVAL).toISOString();
 	return notifications.createNotificationsList(lastCheck, {apiVersion});
 })
 .then(notificationsList => Array.isArray(notificationsList) && notificationsList ||
