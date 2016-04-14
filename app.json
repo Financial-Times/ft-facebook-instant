@@ -14,7 +14,8 @@
     "FB_PAGE_ACCESS_TOKEN": {"required": true},
     "BRIGHTCOVE_ACCOUNT_ID": {"required": true},
     "SPOOR_API_KEY": {"required": true},
-    "SEGMENT_ID": {"required": true}
+    "SEGMENT_ID": {"required": true},
+    "SENTRY_DSN": {"required": true}
   },
   "addons": [
 
