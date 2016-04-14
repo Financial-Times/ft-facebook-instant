@@ -17,6 +17,7 @@ const logger = require('morgan');
 const favicon = require('serve-favicon');
 const path = require('path');
 const bodyParser = require('body-parser');
+const raven = require('raven');
 const noCache = require('./lib/nocache');
 const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
@@ -26,6 +27,13 @@ const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
 
 const port = process.env.PORT || 6247;
+
+let ravenClient;
+
+if(app.get('env') !== 'development') {
+	assertEnv(['SENTRY_DSN']);
+	ravenClient = require('./lib/raven');
+}
 
 assertEnv([
 	'AWS_ACCESS_KEY',
@@ -42,6 +50,14 @@ assertEnv([
 	'SEGMENT_ID',
 ]);
 
+if(app.get('env') !== 'development') {
+	app.use(raven.middleware.express.requestHandler(ravenClient));
+	app.use((req, res, next) => {
+		ravenClient.setExtraContext(raven.parsers.parseRequest(req));
+		req.raven = ravenClient;
+		next();
+	});
+}
 
 /* Middleware */
 
@@ -83,6 +99,10 @@ app.route('^/republish$').post(republishController.route);
 
 
 /* Errors */
+
+if(app.get('env') !== 'development') {
+	app.use(raven.middleware.express.errorHandler(ravenClient));
+}
 
 const logErrors = (error, req, res, next) => {
 	console.error('LOGERRORS', error.stack || error);

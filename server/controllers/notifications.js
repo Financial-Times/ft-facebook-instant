@@ -6,6 +6,7 @@ const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
+const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
 const UPDATE_INTERVAL = 1 * 60 * 1000;
@@ -68,7 +69,12 @@ const poller = () => Promise.all([
 		return database.setLastNotificationCheck(Date.now());
 	})
 )
-.catch(e => console.log(e.stack || e)); // TODO: error reporting
+.catch(e => {
+	console.error(e.stack || e);
+	if(mode === 'production') {
+		ravenClient.captureException(e, {tags: {from: 'notifications'}});
+	}
+});
 
 module.exports.init = () => {
 	poller();

@@ -3,6 +3,7 @@
 const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
+const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
 
@@ -33,7 +34,12 @@ module.exports = (options) => republish(options)
 		} else {
 			console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
 		}
-	}).catch(e => console.log(e.stack)); // TODO: error reporting
+	}).catch(e => {
+		console.error(e.stack || e);
+		if(mode === 'production') {
+			ravenClient.captureException(e, {tags: {from: 'republish'}});
+		}
+	});
 
 module.exports.route = (req, res, next) => republish({onlyAfterRedeploy: false}).then(updatedArticles => {
 	res.status(200).json(updatedArticles.map(({uuid}) => uuid));
