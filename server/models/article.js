@@ -69,7 +69,8 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 		let merged;
 		if(dbImportIndex >= 0) {
-			merged = Object.assign({}, importMeta.splice(dbImportIndex, 1)[0], item);
+			// Add the FB data to the DB record, to be saved later
+			merged = Object.assign(importMeta.splice(dbImportIndex, 1)[0], item);
 		} else {
 			merged = item;
 		}
@@ -91,7 +92,8 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 		}
 	});
 
-	return article;
+	return updateDb(article)
+		.then(() => article);
 };
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
@@ -126,17 +128,10 @@ const getCanonical = key => diskCache.canonical.get(`canonical:${key}`)
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 .then(fbRecords => {
-	let promises = [];
-
-	// https://trello.com/c/LUIDQyFf/65-look-in-to-unnecessary-requests-and-rate-limiting
-	// Deleted FB records no longer have accessible imports, so don't try to enrich the history
-	if(!fbRecords[mode].nullRecord) {
-		promises = databaseRecord.import_meta
-			.filter(item => item.mode === mode)
-			.filter(item => !!item.id)
-			.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
-	}
-
+	const promises = databaseRecord.import_meta
+		.filter(item => item.mode === mode)
+		.filter(item => !!item.id)
+		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']}));
 	return Promise.all(promises)
 		.then(fbImports => fbImports.filter(record => record !== undefined))
 		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
@@ -177,6 +172,12 @@ const update = article => Promise.all([
 .then(() => get(article.canonical));
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
+	// Delete FB ids from all previous imports
+	article.import_meta = article.import_meta.map(item => {
+		delete item.id;
+		return item;
+	});
+
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,
