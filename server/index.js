@@ -30,7 +30,7 @@ const port = process.env.PORT || 6247;
 
 let ravenClient;
 
-if(mode === 'production') {
+if(app.get('env') !== 'development') {
 	assertEnv(['SENTRY_DSN']);
 	ravenClient = require('./lib/raven');
 }
@@ -50,7 +50,7 @@ assertEnv([
 	'SEGMENT_ID',
 ]);
 
-if(mode === 'production') {
+if(app.get('env') !== 'development') {
 	app.use(raven.middleware.express.requestHandler(ravenClient));
 	app.use((req, res, next) => {
 		ravenClient.setExtraContext(raven.parsers.parseRequest(req));
