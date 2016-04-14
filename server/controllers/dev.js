@@ -83,6 +83,8 @@ module.exports = (req, res, next) => {
 			return res.render('cookies', {
 				cookies: JSON.stringify({cookies: req.cookies}, undefined, '\t'),
 			});
+		case 'throw':
+			throw new Error('lol');
 		default:
 			res.sendStatus(404);
 			break;
