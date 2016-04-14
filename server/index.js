@@ -100,6 +100,10 @@ app.route('^/republish$').post(republishController.route);
 
 /* Errors */
 
+if(app.get('env') !== 'development') {
+	app.use(raven.middleware.express.errorHandler(ravenClient));
+}
+
 const logErrors = (error, req, res, next) => {
 	console.error('LOGERRORS', error.stack || error);
 	next(error);
