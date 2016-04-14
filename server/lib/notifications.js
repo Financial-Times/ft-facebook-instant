@@ -50,7 +50,7 @@ const getNotifications = (url, notifications, cb) => {
 			try{
 				const data = JSON.parse(body);
 
-				// Normalise the notication format
+				// Normalise the notification format
 				const newNotifications = normaliseNotifications(data.notifications);
 
 				// Append any new notifications
