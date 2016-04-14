@@ -60,7 +60,7 @@ module.exports = (req, res, next) => {
 				return articleModel.get(url)
 					.then(article => transform(article)
 						.then(({html, warnings}) => fbApi.post({html, published: true})
-							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui'}))
+							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui', published: true}))
 						)
 					)
 					.then(article => res.json(article));

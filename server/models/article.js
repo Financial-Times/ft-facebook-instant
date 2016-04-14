@@ -173,7 +173,7 @@ const update = article => Promise.all([
 .then(() => updateDb(article))
 .then(() => get(article.canonical));
 
-const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown'}) => {
+const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
 	article.import_meta.unshift({
 		timestamp: Date.now(),
 		mode,
@@ -183,6 +183,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		env: process.env.NODE_ENV,
 		warnings,
 		username,
+		published,
 	});
 	return updateDb(article)
 		.then(() => get(article.canonical));

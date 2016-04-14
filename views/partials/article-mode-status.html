@@ -46,9 +46,7 @@
 					{{#if env}}<li>Environment: <strong>{{env}}</strong></li>{{/if}}
 					{{#if username}}<li>Username: <strong>{{username}}</strong></li>{{/if}}
 					<li>Type: <strong>{{type}}</strong></li>
-					{{#ifEqual mode "production"}}
-						<li>Published: <strong>{{#if ../published}}yes{{else}}no{{/if}}</strong></li>
-					{{/ifEqual}}
+					<li>Published: <strong>{{#if published}}true{{else}}false{{/if}}</strong></li>
 					{{#if warnings}}
 					<li class="warning">Transform warnings:
 						<ul>
