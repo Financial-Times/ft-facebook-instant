@@ -71,8 +71,8 @@
   // successful.  See statusChangeCallback() for when this call is made.
   function getPageAccessToken(accessToken) {
     $.get('/dev/pagetoken', {accessToken: accessToken}).then(
-      function(data) { document.getElementById(status).textContent = data },
-      function(xhr, status, error) { document.getElementById(status).textContent = error.stack || error.toString() }
+      function(data) { document.getElementById('status').textContent = data },
+      function(xhr, status, error) { document.getElementById('status').textContent = error.stack || error.toString() }
     )
   }
 </script>
