@@ -8,7 +8,7 @@
     "start": "source scripts/env.sh && nodemon",
     "postinstall": "make",
     "test": "make test",
-    "heroku-config": "heroku-config-to-env -i HEROKU_ -i REDIS_URL -i NODE_ENV -l REDIS_URL=redis://localhost:6379/ ft-facebook-instant-staging scripts/env.sh",
+    "heroku-config": "heroku-config-to-env -i HEROKU_ -i REDIS_URL -i NODE_ENV -l REDIS_URL=redis://localhost:6379/ -l NODE_ENV=development ft-facebook-instant-staging scripts/env.sh",
     "watch": "wmake"
   },
   "repository": {

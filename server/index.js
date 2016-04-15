@@ -30,7 +30,13 @@ const port = process.env.PORT || 6247;
 
 let ravenClient;
 
-if(app.get('env') !== 'development') {
+if(app.get('env') === 'development') {
+	process.on('uncaughtException', error => {
+		console.error(`${Date()}: uncaughtException`);
+		console.error(error.stack);
+		process.exit(1);
+	});
+} else {
 	assertEnv(['SENTRY_DSN']);
 	ravenClient = require('./lib/raven');
 }
