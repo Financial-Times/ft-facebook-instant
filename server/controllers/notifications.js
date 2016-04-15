@@ -10,27 +10,63 @@ const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
 const UPDATE_INTERVAL = 1 * 60 * 1000;
+const OVERLAP_INTERVAL = 5 * 60 * 1000;
 
-const update = apiVersion => database.getLastNotificationCheck()
+const groupNotifications = (notificationsList = []) => {
+	const updates = [];
+	const deletes = [];
+
+	notificationsList.forEach(item => {
+		switch(item.type) {
+			case 'content-item-update':
+				updates.push(item.data['content-item'].id);
+				break;
+			case 'content-item-deletion':
+				deletes.push(item.data['content-item'].id);
+				break;
+			default:
+				throw Error(`Unrecognised notification type: ${item.type}`);
+		}
+	});
+
+	return {updates, deletes};
+};
+
+const getOnlyOld = (first, second) => first.filter(uuid => second.indexOf(uuid) === -1);
+
+const getHistoricNotifications = ([{updates: firstUpdates, deletes: firstDeletes}, {updates: secondUpdates, deletes: secondDeletes}]) => ({
+	updates: getOnlyOld(firstUpdates, secondUpdates),
+	deletes: getOnlyOld(firstDeletes, secondDeletes),
+});
+
+const fetch = apiVersion => database.getLastNotificationCheck()
 .then(lastCheck => {
-	lastCheck = new Date(lastCheck || (Date.now() - UPDATE_INTERVAL)).toISOString();
-	return notifications.createNotificationsList(lastCheck, {apiVersion});
-})
-.then(notificationsList => Array.isArray(notificationsList) && notificationsList ||
-	Promise.reject(`Invalid notificationsList: (${typeof notificationsList}) ${JSON.stringify(notificationsList)}`)
-)
-.then(notificationsList => notificationsList
-	.filter(item => item.type === 'content-item-update')
-	.map(item => item.data['content-item'].id)
-);
+	lastCheck = lastCheck || (Date.now() - UPDATE_INTERVAL);
 
-const union = lists => {
+	const startTime = new Date(lastCheck - OVERLAP_INTERVAL - UPDATE_INTERVAL).toISOString();
+	const endTime = new Date(lastCheck - OVERLAP_INTERVAL).toISOString();
+
+	return Promise.all([
+		notifications.createNotificationsList(startTime, {apiVersion})
+			.then(groupNotifications),
+		notifications.createNotificationsList(endTime, {apiVersion})
+			.then(groupNotifications),
+	]);
+})
+.then(getHistoricNotifications);
+
+const union = listofArrays => {
 	const uuids = {};
-	lists.forEach(list => list.forEach(uuid => {
+	listofArrays.forEach(arr => arr.forEach(uuid => {
 		uuids[uuid] = true;
 	}));
 	return Object.keys(uuids);
 };
+
+const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, deletes: v2Deletes}]) => ({
+	updates: union([v1Updates, v2Updates]),
+	deletes: union([v1Deletes, v2Deletes]),
+});
 
 const getKnownArticles = uuids => Promise.all(uuids.map(uuid => ftApi.getCanonicalFromUuid(uuid)))
 .then(canonicals => database.get(canonicals))
@@ -42,15 +78,15 @@ const getKnownArticles = uuids => Promise.all(uuids.map(uuid => ftApi.getCanonic
 }, []));
 
 const poller = () => Promise.all([
-	update(1),
-	update(2),
+	fetch(1),
+	fetch(2),
 ])
-.then(union)
-.then(getKnownArticles)
+.then(merge)
+.then(merged => getKnownArticles(merged.updates)) // TODO: also process deletes
 .then(knownArticles => Promise.all(knownArticles.map(knownArticle => articleModel.update(knownArticle)
 	.then(article => {
 		const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
-		console.log(`${Date()}: NOTIFICATIONS API: article [${article.uuid}], mode [${mode}], sentToFacebook [${sentToFacebook}]`);
+		console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], sentToFacebook [${sentToFacebook}]`);
 		if(sentToFacebook) {
 			return transform(article)
 				.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
@@ -74,9 +110,9 @@ const poller = () => Promise.all([
 	if(mode === 'production') {
 		ravenClient.captureException(e, {tags: {from: 'notifications'}});
 	}
-});
+})
+.then(() => setTimeout(poller, UPDATE_INTERVAL));
 
 module.exports.init = () => {
 	poller();
-	setInterval(poller, UPDATE_INTERVAL);
 };

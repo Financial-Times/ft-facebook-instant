@@ -50,11 +50,11 @@ const getNotifications = (url, notifications, cb) => {
 			try{
 				const data = JSON.parse(body);
 
-				// Normalise the notication format
-				const newNotifcations = normaliseNotifications(data.notifications);
+				// Normalise the notification format
+				const newNotifications = normaliseNotifications(data.notifications);
 
 				// Append any new notifications
-				notifications = notifications.concat(newNotifcations);
+				notifications = notifications.concat(newNotifications);
 
 				// Figure out if there are any more links to come
 				const nextLink = getNextNotificationsUrl(data);
@@ -85,6 +85,7 @@ function getNotificationsUrl(options) {
 
 // Fetch a list of all notifications from a given date
 const createNotificationsList = (since, options) => new Promise((resolve, reject) => {
+	console.log(`${Date()}: NOTIFICATIONS API: fetching notifications for API ${options.apiVersion} since ${since}`);
 	const url = `${getNotificationsUrl(options)}?apiKey=${apiKey}&feature.blogposts=on&since=${since}`;
 	getNotifications(url, [], (err, notifications) => {
 		if(err) {
