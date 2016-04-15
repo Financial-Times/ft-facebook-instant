@@ -99,7 +99,7 @@ const poller = () => Promise.all([
 		if(knownArticles.length) {
 			console.log(`${Date()}: NOTIFICATIONS API: updated articles ${knownArticles.map(article => article.uuid)}`);
 		} else {
-			console.log(`${Date()}: NOTIFICATIONS API: no articles to fetch`);
+			console.log(`${Date()}: NOTIFICATIONS API: no articles to update`);
 		}
 
 		return database.setLastNotificationCheck(Date.now());
@@ -110,9 +110,9 @@ const poller = () => Promise.all([
 	if(mode === 'production') {
 		ravenClient.captureException(e, {tags: {from: 'notifications'}});
 	}
-});
+})
+.then(() => setTimeout(poller, UPDATE_INTERVAL));
 
 module.exports.init = () => {
 	poller();
-	setInterval(poller, UPDATE_INTERVAL);
 };
