@@ -107,6 +107,9 @@ module.exports = (req, res, next) => {
 			.then(() => {
 				res.send('added access token');
 			}).catch(next);
+		case 'tokencount':
+			return accessTokens.count()
+				.then(count => res.json({count}));
 		default:
 			res.sendStatus(404);
 			break;
