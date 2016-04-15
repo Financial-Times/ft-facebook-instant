@@ -100,7 +100,7 @@ module.exports = (req, res, next) => {
 				fbApi.call('me/accounts', {access_token: bearerToken}),
 				fbApi.call('me', {access_token: bearerToken}),
 			]))
-			.then(([{data: pageData}], user) => {
+			.then(([{data: pageData}, user]) => {
 				const page = pageData.filter(({id}) => id === process.env.FB_PAGE_ID)[0];
 				if(!page) {
 					throw new Error('user does not have access to facebook page');
