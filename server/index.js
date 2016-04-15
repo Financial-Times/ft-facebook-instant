@@ -44,6 +44,7 @@ assertEnv([
 	'API_V1_KEY',
 	'FB_PAGE_ID',
 	'FB_APP_ID',
+	'FB_APP_SECRET',
 	'FB_PAGE_ACCESS_TOKEN',
 	'BRIGHTCOVE_ACCOUNT_ID',
 	'SPOOR_API_KEY',
@@ -91,6 +92,7 @@ app.route('^/article/:url/api$').get(apiController);
 
 // TODO: change these to post only, and remove debugging routes
 app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleController);
+
 
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);
