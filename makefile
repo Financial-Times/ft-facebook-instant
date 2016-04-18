@@ -1,5 +1,7 @@
 SHELL := /bin/bash
 
+-include scripts/env.mk
+
 SRC = server
 LIB = build
 TEST = test
@@ -25,6 +27,12 @@ MOCHA = $(NPM_BIN)/mocha
 MOCHA_OPTS = --compilers js:babel-register
 
 all: babel
+
+makefile: scripts/env.mk
+	$(eval include scripts/env.mk)
+
+%.mk: %.sh
+	cat $< | sed 's/=/:=/ ; s/"//g' > $@
 
 babel: $(LIB) $(LIB_DIRS) $(LIB_FILES)
 
