@@ -90,7 +90,14 @@ const poller = () => Promise.all([
 		if(sentToFacebook) {
 			return transform(article)
 				.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
-					.then(({id}) => articleModel.setImportStatus({article, id, warnings, username: 'daemon', type: 'notifications-api'}))
+					.then(({id}) => articleModel.setImportStatus({
+						article,
+						id,
+						warnings,
+						published: article.fbRecords[mode].published,
+						username: 'daemon',
+						type: 'notifications-api',
+					}))
 				);
 		}
 	})
