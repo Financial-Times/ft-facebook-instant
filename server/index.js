@@ -78,7 +78,7 @@ app.use(cookieParser());
 // Handlebars middleware
 handlebars(app);
 
-// S30 in prod only
+// S30, but not in dev
 if(app.get('env') !== 'development') {
 	app.use(authS3O);
 }
