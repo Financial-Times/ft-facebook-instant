@@ -35,7 +35,7 @@ const updateDb = article => database.set({
 	uuid: article.uuid,
 	title: article.apiRecord.title,
 	date_editorially_published: new Date(article.apiRecord.publishedDate).getTime(),
-	date_record_updated: Date.now(),
+	date_record_updated: article.date_record_updated,
 	import_meta: article.import_meta || [],
 });
 
@@ -177,7 +177,10 @@ const update = article => Promise.all([
 ])
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
-.then(() => updateDb(article))
+.then(() => {
+	article.date_record_updated = Date.now();
+	return updateDb(article);
+})
 .then(() => get(article.canonical));
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {

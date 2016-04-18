@@ -12,7 +12,7 @@
 			<li>UUID: {{uuid}}</li>
 			<li>Published on FT.com: <strong title="{{rfcDate date_editorially_published}}">{{relativeDate
 date_editorially_published}}</strong></li>
-			<li>Instant Article last updated: <strong title="{{rfcDate date_record_updated}}">{{relativeDate date_record_updated}}</strong></li>
+			<li>Content last updated: <strong title="{{rfcDate date_record_updated}}">{{relativeDate date_record_updated}}</strong></li>
 			<li><a href="/article/{{encodeURIComponent canonical}}/api">View raw API JSON</a></li>
 			<li><a href="/article/{{encodeURIComponent canonical}}/transform">View Instant Article markup</a></li>
 			{{#unless apiRecord.bodyHTML}}<li class="error">This article doesn't have <code>bodyHTML</code> set in the ES response, so can't be transformed. Consider <a href="/article/{{uuid}}/updateEs">re-ingesting</a>?</li>{{/unless}}
