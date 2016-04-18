@@ -32,7 +32,7 @@ MOCHA_OPTS = --compilers js:babel-register
 all: babel
 
 scripts/env.mk: $(ENV_SH)
-	$(if $<, cat $< | sed 's/=/:=/ ; s/"//g' > $@)
+	$(if $<, sed 's/=/:=/ ; s/"//g' < $< > $@)
 
 babel: $(LIB) $(LIB_DIRS) $(LIB_FILES)
 
