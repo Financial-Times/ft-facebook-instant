@@ -71,7 +71,12 @@
   // successful.  See statusChangeCallback() for when this call is made.
   function getPageAccessToken(accessToken) {
     $.get('/dev/pagetoken', {accessToken: accessToken}).then(
-      function(data) { document.getElementById('status').textContent = data },
+      function(data) {
+      	document.getElementById('status').textContent = data;
+      	if ('added access token' === data) {
+      		document.getElementById('button').style.display = 'none';
+      	}
+      },
       function(xhr, status, error) { document.getElementById('status').textContent = error.stack || error.toString() }
     )
   }
@@ -83,8 +88,8 @@
   the FB.login() function when clicked.
 -->
 
-<fb:login-button scope="pages_manage_instant_articles,pages_show_list,read_insights" onlogin="checkLoginState();">
-</fb:login-button>
-
-<div id="status">
+<div id="button">
+	<fb:login-button class="fb-login-button" scope="pages_manage_instant_articles,pages_show_list,read_insights" onlogin="checkLoginState();"></fb:login-button>
 </div>
+
+<div id="status"></div>
