@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+.SECONDEXPANSION:
 
 -include scripts/env.mk
 
@@ -11,6 +12,8 @@ LIB_DIRS = $(dir $(LIB_FILES))
 TEST_FILES = $(shell find $(TEST) -name '*.js')
 TEST_DIRS = $(dir $(TEST_FILES))
 TEST_UTILS = $(shell find test-utils -name '*.js')
+
+ENV_SH = $(wildcard scripts/env.sh)
 
 NPM_BIN := $(shell npm bin)
 
@@ -28,11 +31,8 @@ MOCHA_OPTS = --compilers js:babel-register
 
 all: babel
 
-makefile: scripts/env.mk
-	$(eval include scripts/env.mk)
-
-%.mk: %.sh
-	cat $< | sed 's/=/:=/ ; s/"//g' > $@
+scripts/env.mk: $(ENV_SH)
+	$(if $<, cat $< | sed 's/=/:=/ ; s/"//g' > $@)
 
 babel: $(LIB) $(LIB_DIRS) $(LIB_FILES)
 
