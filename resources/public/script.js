@@ -186,9 +186,10 @@ function republishAll() {
 	).then(
 		updateList,
 		function(jqXHR, status, error) {
+			var message = getError(jqXHR);
 			updateStatusIcon(iconSelector, 'fa-times');
 			setButtonState(buttonSelector, true);
-			$('.article-list').before(Handlebars.partials['error-card'](jqXHR.responseJSON));
+			$('.article-list').before(Handlebars.partials['error-card']({error: message}));
 		}
 	);
 
