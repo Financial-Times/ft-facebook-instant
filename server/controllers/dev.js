@@ -96,17 +96,23 @@ module.exports = (req, res, next) => {
 				fb_exchange_token: req.query.accessToken,
 				client_id: process.env.FB_APP_ID,
 				client_secret: process.env.FB_APP_SECRET,
-			}).then(({access_token: bearerToken}) => fbApi.call('me/accounts', {access_token: bearerToken}))
-			.then(({data}) => {
-				const page = data.filter(({id}) => id === process.env.FB_PAGE_ID)[0];
+			}).then(({access_token: bearerToken}) => Promise.all([
+				fbApi.call('me/accounts', {access_token: bearerToken}),
+				fbApi.call('me', {access_token: bearerToken}),
+			]))
+			.then(([{data: pageData}, user]) => {
+				const page = pageData.filter(({id}) => id === process.env.FB_PAGE_ID)[0];
 				if(!page) {
 					throw new Error('user does not have access to facebook page');
 				}
-				return page.access_token;
-			}).then(token => accessTokens.add(token))
+				return accessTokens.add(user.id, page.access_token);
+			})
 			.then(() => {
 				res.send('added access token');
 			}).catch(next);
+		case 'tokencount':
+			return accessTokens.count()
+				.then(count => res.json({count}));
 		default:
 			res.sendStatus(404);
 			break;
