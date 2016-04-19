@@ -9,6 +9,10 @@ const diskCache = require('../lib/diskCache');
 
 const mode = require('../lib/mode').get();
 
+// TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
+// contents as part of the article JSON?
+const clearCache = article => diskCache.articles.del(article.canonical);
+
 const getApi = canonical => diskCache.articles.get(canonical)
 .then(cached => {
 	if(cached) {
@@ -16,8 +20,21 @@ const getApi = canonical => diskCache.articles.get(canonical)
 	}
 
 	return ftApi.fetchByCanonical(canonical)
-		.then(article => article || Promise.reject(Error(`Canonical URL [${canonical}] is not in Elastic Search`)))
-		.then(article => diskCache.articles.set(canonical, article));
+
+		// Only set in cache if bodyHTML is set (otherwise no point, and prevents
+		// automatically fetching better content)
+		.then(article => (article.bodyHTML && diskCache.articles.set(canonical, article), article))
+
+		// Content is not available in ES, so ensure deleted from FB before rethrowing
+		.catch(e => {
+			if(e.type === 'FtApiContentMissingException') {
+				return fbApi.delete({canonical})
+					.then(() => {
+						throw e;
+					});
+			}
+			throw e;
+		});
 });
 
 const setDb = apiRecord => database.set({
@@ -112,7 +129,7 @@ const deriveCanonical = key => {
 			return ftApi.getCanonicalFromUuid(uuid);
 		}
 		return ftApi.verifyCanonical(key)
-			.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)));
+			.then(canonical => canonical || Promise.reject(Error(`URL [${key}] is not in Elastic Search`)));
 	});
 };
 
@@ -162,13 +179,6 @@ const get = key => getCanonical(key)
 })
 .then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
 
-const ensureInDb = key => getCanonical(key)
-.then(canonical => database.get(canonical)
-	.then(databaseRecord => databaseRecord || getApi(canonical)
-		.then(apiRecord => setDb(apiRecord))
-	)
-);
-
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
 const update = article => Promise.all([
@@ -209,7 +219,7 @@ module.exports = {
 	getApi,
 	get,
 	update,
+	clearCache,
 	setImportStatus,
-	ensureInDb,
 	getCanonical,
 };

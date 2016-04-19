@@ -4,6 +4,7 @@ const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
 const fetchres = require('fetchres');
 const uuidRegex = require('./uuid');
+const FtApiContentMissingException = require('./ftApi/contentMissingException');
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
@@ -15,7 +16,7 @@ const fetch = uuid => signedFetch(`https://${elasticSearchUrl}/${index}/item/${u
 
 const fetchByUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${index}/item/${uuid}`)
 .then(fetchres.json)
-.then(json => json._source);
+.then(json => json._source || Promise.reject(new FtApiContentMissingException(`UUID [${uuid}] is not in Elastic Search`)));
 
 const fetchByCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${index}/_search`, {
 	method: 'POST',
@@ -37,7 +38,7 @@ const fetchByCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/$
 			return fetchByUuid(uuid);
 		}
 
-		return null;
+		return Promise.reject(new FtApiContentMissingException(`Canonical URL [${canonical}] is not in Elastic Search`));
 	}
 });
 

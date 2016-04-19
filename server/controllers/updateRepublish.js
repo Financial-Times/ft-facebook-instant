@@ -7,11 +7,11 @@ const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
 
-const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
+const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list({fields: ['canonical_url']})
 			.then(
 				articles => Promise.all(
 					articles.map(
-						({canonical_url}) => articleModel.get(canonical_url)
+						({canonical_url: canonical}) => articleModel.get(canonical)
 							.then(article => {
 								const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== process.env.HEROKU_RELEASE_VERSION;
 								const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
@@ -29,6 +29,13 @@ const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list()
 											}))
 										);
 								}
+							})
+							.catch(e => {
+								if(e.type === 'FtApiContentMissingException') {
+									console.log(`Removing missing article from articles list: ${canonical}`);
+									return null;
+								}
+								throw e;
 							})
 					)
 				)
