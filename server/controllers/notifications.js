@@ -148,6 +148,6 @@ const poller = () => database.getLastNotificationCheck()
 
 const loop = promiseLoopInterval(poller, UPDATE_INTERVAL);
 
-module.exports.init = () => {
-	loop();
+module.exports = {
+	init: loop,
 };
