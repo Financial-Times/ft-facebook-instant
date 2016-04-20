@@ -69,7 +69,7 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 });
 
 const sanitiseUuidList = uuids => Promise.all(
-	uuids.map(uuid => ftApi.getCanonicalFromUuid(uuid)
+	uuids.map(uuid => articleModel.getCanonical(uuid)
 		.catch(() => null)
 	)
 )
