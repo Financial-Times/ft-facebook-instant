@@ -128,8 +128,7 @@ const deriveCanonical = key => {
 		if(uuid) {
 			return ftApi.getCanonicalFromUuid(uuid);
 		}
-		return ftApi.verifyCanonical(key)
-			.then(canonical => canonical || Promise.reject(Error(`URL [${key}] is not in Elastic Search`)));
+		return ftApi.verifyCanonical(key);
 	});
 };
 

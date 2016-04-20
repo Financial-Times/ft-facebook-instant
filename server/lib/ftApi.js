@@ -78,9 +78,10 @@ const verifyCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${
 	try{
 		return json.hits.hits[0]._source.webUrl;
 	} catch(e) {
-		return null;
+		throw Error('No result');
 	}
-});
+})
+.catch(() => Promise.reject(new FtApiContentMissingException(`Key [${canonical}] is not a valid canonical URL`)));
 
 const updateEsRegion = (region, uuid) => nodeFetch(
 	`https://ft-next-es-interface-${region}.herokuapp.com/api/item?apiKey=${process.env.ES_INTERFACE_API_KEY}`,
