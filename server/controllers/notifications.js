@@ -68,7 +68,14 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 	deletes: union([v1Deletes, v2Deletes]),
 });
 
-const getKnownArticles = uuids => Promise.all(uuids.map(uuid => ftApi.getCanonicalFromUuid(uuid)))
+const sanitiseUuidList = uuids => Promise.all(
+	uuids.map(uuid => ftApi.getCanonicalFromUuid(uuid)
+		.catch(() => null)
+	)
+)
+.then(canonicals => canonicals.filter(canonical => !!canonical));
+
+const getKnownArticles = uuids => sanitiseUuidList(uuids)
 .then(canonicals => database.get(canonicals))
 .then(articles => Object.keys(articles).reduce((valid, uuid) => {
 	if(articles[uuid]) {
