@@ -6,6 +6,7 @@ const handlebarsTransform = require('./handlebars').render;
 const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
+const getRelatedArticles = require('./related');
 
 const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
@@ -46,8 +47,11 @@ const getAuthors = apiRecord => {
 module.exports = article => {
 	const warnings = [];
 
-	return transformArticleBody(article.apiRecord, warnings)
-	.then(transformed$ => {
+	return Promise.all([
+		transformArticleBody(article.apiRecord, warnings),
+		getRelatedArticles(article.apiRecord),
+	])
+	.then(([transformed$, relatedArticles]) => {
 		validateArticleElements(transformed$, warnings);
 
 		const mainImageHtml = extractMainImage(transformed$, warnings);
@@ -66,6 +70,7 @@ module.exports = article => {
 			subtitle: getSubtitle(article.apiRecord, warnings),
 			authors: getAuthors(article.apiRecord, warnings),
 			cookieChecker: false,
+			relatedArticles,
 		};
 
 		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
