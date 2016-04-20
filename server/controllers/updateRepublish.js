@@ -7,39 +7,36 @@ const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
 
-const republish = ({onlyAfterRedeploy = true} = {}) => fbApi.list({fields: ['canonical_url']})
-			.then(
-				articles => Promise.all(
-					articles.map(
-						({canonical_url: canonical}) => articleModel.get(canonical)
-							.then(article => {
-								const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== process.env.HEROKU_RELEASE_VERSION;
-								const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
-								const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
-								if(sentToFacebook && shouldRepublish) {
-									return transform(article)
-										.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
-											.then(({id}) => articleModel.setImportStatus({
-												article,
-												id,
-												warnings,
-												published: article.fbRecords[mode].published,
-												username: 'daemon',
-												type: 'update-redeploy',
-											}))
-										);
-								}
-							})
-							.catch(e => {
-								if(e.type === 'FtApiContentMissingException') {
-									console.log(`Removing missing article from articles list: ${canonical}`);
-									return null;
-								}
-								throw e;
-							})
-					)
-				)
-					.then(updatedArticles => updatedArticles.filter(a => !!a)));
+const update = (canonical, {onlyAfterRedeploy = true} = {}) => articleModel.get(canonical)
+.then(article => {
+	const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== process.env.HEROKU_RELEASE_VERSION;
+	const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
+	const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
+	if(sentToFacebook && shouldRepublish) {
+		return transform(article)
+			.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
+				.then(({id}) => articleModel.setImportStatus({
+					article,
+					id,
+					warnings,
+					published: article.fbRecords[mode].published,
+					username: 'daemon',
+					type: 'update-redeploy',
+				}))
+			);
+	}
+})
+.catch(e => {
+	if(e.type === 'FtApiContentMissingException') {
+		console.log(`${Date()}: UPDATE/REPUBLISH: Removing missing article from articles list: ${canonical}`);
+		return null;
+	}
+	throw e;
+});
+
+const republish = options => fbApi.list({fields: ['canonical_url']})
+.then(articles => Promise.all(articles.map(({canonical_url: canonical}) => update(canonical, options)))
+.then(updatedArticles => updatedArticles.filter(a => !!a)));
 
 module.exports = (options) => republish(options)
 	.then(updatedArticles => {
