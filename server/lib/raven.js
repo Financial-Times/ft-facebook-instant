@@ -10,6 +10,4 @@ ravenClient.setTagsContext({
 	release: process.env.HEROKU_SLUG_COMMIT,
 });
 
-ravenClient.patchGlobal(() => process.exit(1));
-
 module.exports = ravenClient;

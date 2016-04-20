@@ -1,6 +1,8 @@
 'use strict';
 
-const notifications = require('../lib/notifications');
+const promiseLoopInterval = require('@quarterto/promise-loop-interval');
+
+const notificationsApi = require('../lib/notifications');
 const database = require('../lib/database');
 const articleModel = require('../models/article');
 const transform = require('../lib/transform');
@@ -47,9 +49,9 @@ const fetch = apiVersion => database.getLastNotificationCheck()
 	const endTime = new Date(lastCheck - OVERLAP_INTERVAL).toISOString();
 
 	return Promise.all([
-		notifications.createNotificationsList(startTime, {apiVersion})
+		notificationsApi.createNotificationsList(startTime, {apiVersion})
 			.then(groupNotifications),
-		notifications.createNotificationsList(endTime, {apiVersion})
+		notificationsApi.createNotificationsList(endTime, {apiVersion})
 			.then(groupNotifications),
 	]);
 })
@@ -77,49 +79,62 @@ const getKnownArticles = uuids => Promise.all(uuids.map(uuid => ftApi.getCanonic
 	return valid;
 }, []));
 
+const processNotifications = notifications => Promise.resolve(notifications)
+.then(({updates}) => getKnownArticles(updates)) // TODO: also process deletes
+.then(knownArticles => (console.log(knownArticles),
+	Promise.all(
+		knownArticles.map(
+			knownArticle => articleModel.update(knownArticle)
+				.then(article => {
+					console.log(article);
+					const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
+					console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], sentToFacebook [${sentToFacebook}]`);
+					if(sentToFacebook) {
+						return transform(article)
+							.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
+								.then(({id}) => articleModel.setImportStatus({
+									article,
+									id,
+									warnings,
+									published: article.fbRecords[mode].published,
+									username: 'daemon',
+									type: 'notifications-api',
+								}))
+							);
+					}
+				})
+		)
+	)
+))
+.then(updatedArticles => updatedArticles.filter(article => !!article));
+
 const poller = () => Promise.all([
 	fetch(1),
 	fetch(2),
 ])
 .then(merge)
-.then(merged => getKnownArticles(merged.updates)) // TODO: also process deletes
-.then(knownArticles => Promise.all(knownArticles.map(knownArticle => articleModel.update(knownArticle)
-	.then(article => {
-		const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
-		console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], sentToFacebook [${sentToFacebook}]`);
-		if(sentToFacebook) {
-			return transform(article)
-				.then(({html, warnings}) => fbApi.post({html, published: article.fbRecords[mode].published})
-					.then(({id}) => articleModel.setImportStatus({
-						article,
-						id,
-						warnings,
-						published: article.fbRecords[mode].published,
-						username: 'daemon',
-						type: 'notifications-api',
-					}))
-				);
-		}
-	})
-))
-	.then(() => {
-		if(knownArticles.length) {
-			console.log(`${Date()}: NOTIFICATIONS API: updated articles ${knownArticles.map(article => article.uuid)}`);
-		} else {
-			console.log(`${Date()}: NOTIFICATIONS API: no articles to update`);
-		}
+.then(processNotifications)
+.then(updatedArticles => {
+	if(updatedArticles.length) {
+		console.log(`${Date()}: NOTIFICATIONS API: updated articles ${updatedArticles.map(article => article.uuid)}`);
+	} else {
+		console.log(`${Date()}: NOTIFICATIONS API: no articles to update`);
+	}
 
-		return database.setLastNotificationCheck(Date.now());
-	})
-)
+	return database.setLastNotificationCheck(Date.now());
+})
 .catch(e => {
 	console.error(e.stack || e);
 	if(mode === 'production') {
 		ravenClient.captureException(e, {tags: {from: 'notifications'}});
 	}
-})
-.then(() => setTimeout(poller, UPDATE_INTERVAL));
+});
+
+const loop = promiseLoopInterval(poller, UPDATE_INTERVAL);
 
 module.exports.init = () => {
-	poller();
+	loop();
 };
+
+module.exports.processNotifications = processNotifications;
+module.exports.getKnownArticles = getKnownArticles;
