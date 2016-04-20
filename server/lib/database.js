@@ -2,7 +2,6 @@
 
 const client = require('./redisClient');
 const KEY_COUNT = 1; // See extractDetails()
-const LIST_AGE = 7 * 24 * 60 * 60 * 1000; // See list()
 
 const types = {
 	canonical: 'string',
@@ -97,7 +96,7 @@ const set = article => client.multi()
 
 const list = () => {
 	const now = Date.now();
-	const then = now - LIST_AGE;
+	const then = 0;
 
 	return client.zrevrangebyscoreAsync('articles', now, then)
 		.then(getMulti);
