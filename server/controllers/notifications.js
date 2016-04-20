@@ -39,20 +39,12 @@ const getHistoricNotifications = ([{updates: firstUpdates, deletes: firstDeletes
 	deletes: getOnlyOld(firstDeletes, secondDeletes),
 });
 
-const fetch = apiVersion => database.getLastNotificationCheck()
-.then(lastCheck => {
-	lastCheck = lastCheck || (Date.now() - UPDATE_INTERVAL);
-
-	const startTime = new Date(lastCheck - OVERLAP_INTERVAL - UPDATE_INTERVAL).toISOString();
-	const endTime = new Date(lastCheck - OVERLAP_INTERVAL).toISOString();
-
-	return Promise.all([
-		notificationsApi.createNotificationsList(startTime, {apiVersion})
-			.then(groupNotifications),
-		notificationsApi.createNotificationsList(endTime, {apiVersion})
-			.then(groupNotifications),
-	]);
-})
+const fetch = ({apiVersion, startTime, endTime}) => Promise.all([
+	notificationsApi.createNotificationsList(startTime, {apiVersion})
+		.then(groupNotifications),
+	notificationsApi.createNotificationsList(endTime, {apiVersion})
+		.then(groupNotifications),
+])
 .then(getHistoricNotifications);
 
 const union = listofArrays => {
@@ -111,10 +103,18 @@ const deleteArticles = uuids => Promise.all(
 	)
 );
 
-const poller = () => Promise.all([
-	fetch(1),
-	fetch(2),
-])
+const poller = () => database.getLastNotificationCheck()
+.then(lastCheck => {
+	lastCheck = lastCheck || (Date.now() - UPDATE_INTERVAL);
+
+	const startTime = new Date(lastCheck - OVERLAP_INTERVAL - UPDATE_INTERVAL).toISOString();
+	const endTime = new Date(lastCheck - OVERLAP_INTERVAL).toISOString();
+
+	return Promise.all([
+		fetch({apiVersion: 1, startTime, endTime}),
+		fetch({apiVersion: 2, startTime, endTime}),
+	]);
+})
 .then(merge)
 .then(merged => Promise.all([
 	getKnownUuids(merged.updates),
