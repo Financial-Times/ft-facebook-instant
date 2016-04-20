@@ -5,7 +5,6 @@ const database = require('../lib/database');
 const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
-const ftApi = require('../lib/ftApi');
 const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
@@ -68,24 +67,18 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 	deletes: union([v1Deletes, v2Deletes]),
 });
 
-const sanitiseUuidList = uuids => Promise.all(
-	uuids.map(uuid => articleModel.getCanonical(uuid)
-		.catch(() => null)
-	)
+const facebookLookup = uuid => articleModel.getCanonical(uuid)
+.then(canonical => fbApi.find({canonical})
+	.then(fbRecord => fbRecord && fbRecord[mode] && !fbRecord[mode].nullRecord && uuid)
 )
-.then(canonicals => canonicals.filter(canonical => !!canonical));
+.catch(() => null);
 
-const getKnownArticles = uuids => sanitiseUuidList(uuids)
-.then(canonicals => database.get(canonicals))
-.then(articles => Object.keys(articles).reduce((valid, uuid) => {
-	if(articles[uuid]) {
-		valid.push(articles[uuid]);
-	}
-	return valid;
-}, []));
+const getKnownUuids = uuids => Promise.all(uuids.map(facebookLookup))
+.then(known => known.filter(uuid => !!uuid));
 
-const updateArticles = articles => Promise.all(
-	articles.map(staleArticle => articleModel.update(staleArticle)
+const updateArticles = uuids => Promise.all(
+	uuids.map(uuid => articleModel.get(uuid)
+		.then(staleArticle => articleModel.update(staleArticle))
 		.then(article => {
 			const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 			console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], sentToFacebook [${sentToFacebook}]`);
@@ -103,14 +96,17 @@ const updateArticles = articles => Promise.all(
 					);
 			}
 		})
-		.then(() => staleArticle.uuid)
+		.then(() => uuid)
 	)
 );
 
-const deleteArticles = articles => Promise.all(
-	articles.map(staleArticle => fbApi.delete({canonical: staleArticle.canonical})
-		.then(() => articleModel.setImportStatus({article: staleArticle, username: 'daemon', type: 'notifications-delete'}))
-		.then(() => staleArticle.uuid)
+const deleteArticles = uuids => Promise.all(
+	uuids.map(uuid => articleModel.getCanonical(uuid)
+		.then(canonical => fbApi.delete({canonical})
+			.then(() => database.get(canonical))
+			.then(article => articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}))
+		)
+		.then(() => uuid)
 	)
 );
 
@@ -120,8 +116,8 @@ const poller = () => Promise.all([
 ])
 .then(merge)
 .then(merged => Promise.all([
-	getKnownArticles(merged.updates),
-	getKnownArticles(merged.deletes),
+	getKnownUuids(merged.updates),
+	getKnownUuids(merged.deletes),
 ]))
 .then(([updates, deletes]) => Promise.all([
 	updateArticles(updates),

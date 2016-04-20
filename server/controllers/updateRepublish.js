@@ -7,8 +7,7 @@ const ravenClient = require('../lib/raven');
 
 const mode = require('../lib/mode').get();
 
-const update = (canonical, {onlyAfterRedeploy = true} = {}) => articleModel.get(canonical)
-.then(article => {
+const update = (article, {onlyAfterRedeploy = true} = {}) => {
 	const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== process.env.HEROKU_RELEASE_VERSION;
 	const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
 	const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
@@ -25,18 +24,13 @@ const update = (canonical, {onlyAfterRedeploy = true} = {}) => articleModel.get(
 				}))
 			);
 	}
-})
-.catch(e => {
-	if(e.type === 'FtApiContentMissingException') {
-		console.log(`${Date()}: UPDATE/REPUBLISH: Removing missing article from articles list: ${canonical}`);
-		return null;
-	}
-	throw e;
-});
+};
 
 const republish = options => fbApi.list({fields: ['canonical_url']})
-.then(articles => Promise.all(articles.map(({canonical_url: canonical}) => update(canonical, options)))
-.then(updatedArticles => updatedArticles.filter(a => !!a)));
+.then(articles => articles.map(article => article.canonical_url))
+.then(canonicals => articleModel.getList(canonicals))
+.then(articles => Promise.all(articles.map(article => update(article, options))))
+.then(articles => articles.filter(article => !!article));
 
 module.exports = (options) => republish(options)
 	.then(updatedArticles => {
