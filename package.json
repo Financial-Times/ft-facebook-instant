@@ -33,7 +33,7 @@
     "cookie-parser": "^1.4.1",
     "denodeify": "^1.2.1",
     "express": "^4.13.4",
-    "express-ftwebservice": "^2.1.2",
+    "express-ftwebservice": "^2.2.0",
     "express-handlebars": "^3.0.0",
     "fb": "^1.0.2",
     "fetchres": "^1.5.1",
