@@ -6,6 +6,7 @@ const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
 const ravenClient = require('../lib/raven');
+const promiseLoopInterval = require('@quarterto/promise-loop-interval');
 
 const mode = require('../lib/mode').get();
 const UPDATE_INTERVAL = 1 * 60 * 1000;
@@ -143,9 +144,10 @@ const poller = () => Promise.all([
 	if(mode === 'production') {
 		ravenClient.captureException(e, {tags: {from: 'notifications'}});
 	}
-})
-.then(() => setTimeout(poller, UPDATE_INTERVAL));
+});
+
+const loop = promiseLoopInterval(poller, UPDATE_INTERVAL);
 
 module.exports.init = () => {
-	poller();
+	loop();
 };
