@@ -7,7 +7,7 @@ const articleModel = require('../models/article');
 const inflate = fbItem => articleModel.get(fbItem.canonical_url)
 .catch(e => {
 	if(e.type === 'FtApiContentMissingException') {
-		console.log(`Removing missing article from articles list: ${fbItem.canonical}`);
+		console.log(`${Date()}: INDEX: Removing missing article from articles list: ${fbItem.canonical}`);
 		return null;
 	}
 	throw e;
