@@ -158,7 +158,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		published,
 	});
 	return updateDb(article)
-		.then(() => article);
+		.then(() => addFbData({databaseRecord: article, apiRecord: article.apiRecord}));
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
