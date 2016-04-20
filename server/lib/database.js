@@ -2,7 +2,6 @@
 
 const client = require('./redisClient');
 const KEY_COUNT = 1; // See extractDetails()
-const CANONICAL_TTL = 60 * 60;
 
 const types = {
 	canonical: 'string',
@@ -110,7 +109,7 @@ const setLastNotificationCheck = timestamp => client.setAsync('notifications:las
 const getLastNotificationCheck = () => client.getAsync('notifications:last_poll')
 .then(timestamp => format(types.notifications_last_poll, timestamp));
 
-const setCanonical = (key, canonical) => client.setAsync(`canonical:${key}`, canonical, 'EX', CANONICAL_TTL);
+const setCanonical = (key, canonical) => client.setAsync(`canonical:${key}`, canonical);
 
 const getCanonical = key => client.getAsync(`canonical:${key}`);
 
