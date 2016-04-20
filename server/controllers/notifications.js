@@ -1,6 +1,6 @@
 'use strict';
 
-const notifications = require('../lib/notifications');
+const notificationsApi = require('../lib/notifications');
 const database = require('../lib/database');
 const articleModel = require('../models/article');
 const transform = require('../lib/transform');
@@ -46,9 +46,9 @@ const fetch = apiVersion => database.getLastNotificationCheck()
 	const endTime = new Date(lastCheck - OVERLAP_INTERVAL).toISOString();
 
 	return Promise.all([
-		notifications.createNotificationsList(startTime, {apiVersion})
+		notificationsApi.createNotificationsList(startTime, {apiVersion})
 			.then(groupNotifications),
-		notifications.createNotificationsList(endTime, {apiVersion})
+		notificationsApi.createNotificationsList(endTime, {apiVersion})
 			.then(groupNotifications),
 	]);
 })
