@@ -116,7 +116,6 @@ const poller = () => Promise.all([
 	getKnownArticles(merged.updates),
 	getKnownArticles(merged.deletes),
 ]))
-.then(([updates, deletes]) => (console.log({updates, deletes}), [updates, deletes]))// @nocommit
 .then(([updates, deletes]) => Promise.all([
 	updateArticles(updates),
 	deleteArticles(deletes),
