@@ -22,7 +22,7 @@ module.exports = (req, res, next) => fbApi.list({fields: ['canonical_url']})
 	.sort((a, b) => b.date_record_updated - a.date_record_updated)
 )
 .then(articles => (
-	true || req.accepts(['html', 'json']) === 'json' ?// @nocommit
+	req.accepts(['html', 'json']) === 'json' ?
 		data => res.json(data) :
 		data => res.render('index', data)
 	)({
