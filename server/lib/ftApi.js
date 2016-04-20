@@ -58,9 +58,10 @@ const getCanonicalFromUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${
 	try{
 		return json.hits.hits[0]._source.webUrl;
 	} catch(e) {
-		return null;
+		throw Error('No result');
 	}
-});
+})
+.catch(() => Promise.reject(new FtApiContentMissingException(`UUID [${uuid}] is not in Elastic Search`)));
 
 const verifyCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${index}/_search`, {
 	method: 'POST',
