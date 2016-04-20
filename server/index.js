@@ -39,6 +39,7 @@ if(app.get('env') === 'development') {
 } else {
 	assertEnv(['SENTRY_DSN']);
 	ravenClient = require('./lib/raven');
+	ravenClient.patchGlobal(() => process.exit(1));
 }
 
 assertEnv([
