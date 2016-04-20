@@ -133,14 +133,14 @@ const deriveCanonical = key => {
 	});
 };
 
-const getCanonical = key => diskCache.canonical.get(`canonical:${key}`)
+const getCanonical = key => database.getCanonical(key)
 .then(cached => {
 	if(cached) {
 		return cached;
 	}
 
 	return deriveCanonical(key)
-		.then(canonical => diskCache.canonical.set(`canonical:${key}`, canonical));
+		.then(canonical => database.setCanonical(key, canonical));
 });
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
