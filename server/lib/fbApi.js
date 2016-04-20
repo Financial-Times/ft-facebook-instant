@@ -169,7 +169,7 @@ const del = ({canonical = null} = {}) => {
 
 	return find({canonical})
 		.then(results => results[mode])
-		.then(result => result && call(
+		.then(result => result && result.id && call(
 			`/${result.id}`,
 			'DELETE',
 			{}

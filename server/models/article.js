@@ -9,16 +9,9 @@ const diskCache = require('../lib/diskCache');
 
 const mode = require('../lib/mode').get();
 
-const getApi = canonical => diskCache.articles.get(canonical)
-.then(cached => {
-	if(cached) {
-		return cached;
-	}
-
-	return ftApi.fetchByCanonical(canonical)
-		.then(article => article || Promise.reject(Error(`Canonical URL [${canonical}] is not in Elastic Search`)))
-		.then(article => diskCache.articles.set(canonical, article));
-});
+// TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
+// contents as part of the article JSON?
+const clearCache = article => diskCache.articles.del(article.canonical);
 
 const setDb = apiRecord => database.set({
 	canonical: apiRecord.webUrl,
@@ -33,8 +26,8 @@ const setDb = apiRecord => database.set({
 const updateDb = article => database.set({
 	canonical: article.canonical,
 	uuid: article.uuid,
-	title: article.apiRecord.title,
-	date_editorially_published: new Date(article.apiRecord.publishedDate).getTime(),
+	title: article.apiRecord ? article.apiRecord.title : article.title,
+	date_editorially_published: article.apiRecord ? new Date(article.apiRecord.publishedDate).getTime() : article.date_editorially_published,
 	date_record_updated: article.date_record_updated,
 	import_meta: article.import_meta || [],
 });
@@ -111,19 +104,18 @@ const deriveCanonical = key => {
 		if(uuid) {
 			return ftApi.getCanonicalFromUuid(uuid);
 		}
-		return ftApi.verifyCanonical(key)
-			.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)));
+		return ftApi.verifyCanonical(key);
 	});
 };
 
-const getCanonical = key => diskCache.canonical.get(`canonical:${key}`)
+const getCanonical = key => database.getCanonical(key)
 .then(cached => {
 	if(cached) {
 		return cached;
 	}
 
 	return deriveCanonical(key)
-		.then(canonical => diskCache.canonical.set(`canonical:${key}`, canonical));
+		.then(canonical => database.setCanonical(key, canonical));
 });
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
@@ -147,42 +139,6 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 })
 .then(mergeRecords);
 
-const get = key => getCanonical(key)
-.then(canonical => Promise.all([
-	database.get(canonical),
-	getApi(canonical),
-]))
-.then(([databaseRecord, apiRecord]) => {
-	if(databaseRecord) {
-		return {databaseRecord, apiRecord};
-	}
-
-	return setDb(apiRecord)
-		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
-})
-.then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
-
-const ensureInDb = key => getCanonical(key)
-.then(canonical => database.get(canonical)
-	.then(databaseRecord => databaseRecord || getApi(canonical)
-		.then(apiRecord => setDb(apiRecord))
-	)
-);
-
-// TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
-// contents as part of the article JSON?
-const update = article => Promise.all([
-	diskCache.articles.del(article.canonical),
-	ftApi.updateEs(article.uuid),
-])
-.then(() => getApi(article.canonical))
-.then(apiRecord => (article.apiRecord = apiRecord))
-.then(() => {
-	article.date_record_updated = Date.now();
-	return updateDb(article);
-})
-.then(() => get(article.canonical));
-
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
 	// Delete FB ids from all previous imports
 	article.import_meta = article.import_meta.map(item => {
@@ -202,14 +158,85 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		published,
 	});
 	return updateDb(article)
-		.then(() => get(article.canonical));
+		.then(() => addFbData({databaseRecord: article, apiRecord: article.apiRecord}));
 };
+
+const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
+.then(() => database.get(canonical))
+.then(article => setImportStatus({article, type, username: 'system'}))
+.then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
+
+const getApi = canonical => diskCache.articles.get(canonical)
+.then(cached => {
+	if(cached) {
+		return cached;
+	}
+
+	return ftApi.fetchByCanonical(canonical)
+
+		// Only set in cache if bodyHTML is set (otherwise no point, and prevents
+		// automatically fetching better content)
+		.then(article => (article.bodyHTML && diskCache.articles.set(canonical, article), article))
+
+		// Content is not available in ES, so ensure deleted from FB before rethrowing
+		.catch(e => {
+			if(e.type === 'FtApiContentMissingException') {
+				return removeFromFacebook(canonical, 'article-model-get-api')
+				.then(() => {
+					throw e;
+				});
+			}
+			throw e;
+		});
+});
+
+const get = key => getCanonical(key)
+.then(canonical => Promise.all([
+	database.get(canonical),
+	getApi(canonical),
+]))
+.then(([databaseRecord, apiRecord]) => {
+	if(databaseRecord) {
+		return {databaseRecord, apiRecord};
+	}
+
+	return setDb(apiRecord)
+		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
+})
+.then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
+
+// TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
+// contents as part of the article JSON?
+const update = article => Promise.all([
+	diskCache.articles.del(article.canonical),
+	ftApi.updateEs(article.uuid),
+])
+.then(() => getApi(article.canonical))
+.then(apiRecord => (article.apiRecord = apiRecord))
+.then(() => {
+	article.date_record_updated = Date.now();
+	return updateDb(article);
+})
+.then(() => get(article.canonical));
+
+const getList = canonicals => Promise.all(canonicals.map(
+	canonical => get(canonical)
+		.catch(e => {
+			if(e.type === 'FtApiContentMissingException') {
+				return removeFromFacebook(canonical, 'article-model-get-list');
+			}
+			throw e;
+		})
+))
+.then(articles => articles.filter(article => !!article));
 
 module.exports = {
 	getApi,
 	get,
+	getList,
 	update,
+	clearCache,
 	setImportStatus,
-	ensureInDb,
 	getCanonical,
+	removeFromFacebook,
 };

@@ -17,18 +17,6 @@ const articleCache = cacheManager.caching({
 	},
 });
 
-const canonicalCache = cacheManager.caching({
-	store: fsStore,
-	options: {
-		ttl: 6 * 60 * 60, // time to live in seconds
-		maxsize: 20 * 1024 * 1024, // max on-disk cache size in bytes
-		path: path.resolve(process.cwd(), 'cache/canonical'), // path for on-disk cache
-		preventfill: false, // prevent automatically populating the memory cache with existing files
-		fillcallback: undefined, // callback fired after the initial cache filling is completed
-		zip: false, // zip cache files on disk to save space
-	},
-});
-
 const assetCache = cacheManager.caching({
 	store: fsStore,
 	options: {
@@ -46,11 +34,6 @@ module.exports = {
 		get: denodeify(articleCache.get),
 		set: denodeify(articleCache.set),
 		del: denodeify(articleCache.del),
-	},
-	canonical: {
-		get: denodeify(canonicalCache.get),
-		set: denodeify(canonicalCache.set),
-		del: denodeify(canonicalCache.del),
 	},
 	assets: {
 		get: denodeify(assetCache.get),
