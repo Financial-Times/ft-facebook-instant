@@ -181,6 +181,7 @@ const getApi = canonical => diskCache.articles.get(canonical)
 		// Content is not available in ES, so ensure deleted from FB before rethrowing
 		.catch(e => {
 			if(e.type === 'FtApiContentMissingException') {
+				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
 				return removeFromFacebook(canonical, 'article-model-get-api')
 				.then(() => {
 					throw e;
@@ -223,6 +224,7 @@ const getList = canonicals => Promise.all(canonicals.map(
 	canonical => get(canonical)
 		.catch(e => {
 			if(e.type === 'FtApiContentMissingException') {
+				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
 				return removeFromFacebook(canonical, 'article-model-get-list');
 			}
 			throw e;
