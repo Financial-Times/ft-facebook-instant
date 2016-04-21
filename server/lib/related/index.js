@@ -5,7 +5,7 @@ const fns = [
 	require('./getMoreOns'),
 ];
 
-module.exports = async article => {
+const getRelatedArticles = async article => {
 	const articles = new Set();
 	for(const fn of fns) {
 		(await fn(article)).forEach(moreArticle => articles.add(moreArticle));
@@ -15,3 +15,5 @@ module.exports = async article => {
 
 	return Array.from(articles).slice(0, 3);
 };
+
+module.exports = getRelatedArticles;

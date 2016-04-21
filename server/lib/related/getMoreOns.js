@@ -16,7 +16,7 @@ const getStreamArticles = metadatum => api.search({
 }).then(res => res.filter(article => article.title));
 
 
-module.exports = async function getMoreOns(article) {
+const getMoreOns = async (article) => {
 	const moreOns = article.metadata.filter(({primary}) => primary);
 	let allLinks = [];
 	const streams = await Promise.all(moreOns.map(getStreamArticles));
@@ -25,3 +25,5 @@ module.exports = async function getMoreOns(article) {
 	}
 	return allLinks;
 };
+
+module.exports = getMoreOns;

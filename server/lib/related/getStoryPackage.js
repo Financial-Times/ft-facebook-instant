@@ -2,4 +2,6 @@
 
 const articlesToLinks = require('./articlesToLinks');
 
-module.exports = article => articlesToLinks(article.storyPackage);
+const getStoryPackage = article => articlesToLinks(article.storyPackage);
+
+module.exports = getStoryPackage;
