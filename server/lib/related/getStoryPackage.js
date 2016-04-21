@@ -7,5 +7,5 @@ module.exports = function getRelatedArticles(article) {
 		article.storyPackage
 		.map(({id}) => checkLink(`http://www.ft.com/content/${id}`))
 	)
-	.then(validatedLinks => validatedLinks.filter(validatedLink => validatedLink).slice(0, 3));
+	.then(validatedLinks => validatedLinks.filter(validatedLink => validatedLink));
 };
