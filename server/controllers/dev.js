@@ -73,7 +73,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'apiFetch':
-			return ftApi.fetch('3ee29f96-88e0-11e3-bb5f-00144feab7de')
+			return ftApi.fetchByUuid('3ee29f96-88e0-11e3-bb5f-00144feab7de')
 				.then(result => res.json(result))
 				.catch(next);
 		case 'clearCookies':
