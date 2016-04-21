@@ -1,11 +1,16 @@
 'use strict';
 
-const checkLink = require('./checkLink');
+const fns = [
+	require('./getStoryPackage'),
+];
 
-module.exports = function getRelatedArticles(article) {
-	return Promise.all(
-		article.storyPackage
-		.map(({id}) => checkLink(`http://www.ft.com/content/${id}`))
-	)
-	.then(validatedLinks => validatedLinks.filter(validatedLink => validatedLink).slice(0, 3));
+module.exports = async article => {
+	const articles = new Set();
+	for(let fn of fns) {
+		(await fn(article)).forEach(moreArticle => articles.add(moreArticle));
+
+		if(articles.size >= 3) break;
+	}
+
+	return Array.from(articles).slice(0, 3);
 };
