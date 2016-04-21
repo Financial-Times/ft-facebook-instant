@@ -94,6 +94,11 @@ const set = article => client.multi()
 	.execAsync()
 	.then(replies => article);
 
+const del = canonical => client.multi()
+	.del(`article:${canonical}`)
+	.zrem('articles', canonical)
+	.execAsync();
+
 const list = () => {
 	const now = Date.now();
 	const then = 0;
@@ -137,6 +142,7 @@ module.exports = {
 		return get(canonicals);
 	},
 	set,
+	delete: del,
 	list,
 	wipe,
 	setLastNotificationCheck,
