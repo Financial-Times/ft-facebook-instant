@@ -5,6 +5,7 @@ const database = require('../lib/database');
 const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
+const ftApi = require('../lib/ftApi');
 const ravenClient = require('../lib/raven');
 const promiseLoopInterval = require('@quarterto/promise-loop-interval');
 
@@ -60,13 +61,95 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 	deletes: union([v1Deletes, v2Deletes]),
 });
 
-const facebookLookup = uuid => articleModel.getCanonical(uuid)
-.then(canonical => fbApi.find({canonical})
-	.then(fbRecord => fbRecord && fbRecord[mode] && !fbRecord[mode].nullRecord && uuid)
-)
-.catch(() => null);
+const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}) => database.get(cachedCanonical)
+.then(databaseRecord => {
+	const sentToFacebook = (fbRecord && fbRecord[mode] && !fbRecord[mode].nullRecord);
+	const wasPublished = sentToFacebook && fbRecord[mode].published;
 
-const getKnownUuids = uuids => Promise.all(uuids.map(facebookLookup))
+	const freshDatabaseRecord = Object.assign({}, databaseRecord, {
+		canonical: freshCanonical,
+	});
+
+	// Purge the old canonical store
+	return database.purgeCanonical(cachedCanonical)
+
+		// update the canonical URL cache
+		.then(() => database.setCanonical(uuid, freshCanonical))
+
+		// Replace the database record with a fresh copy
+		.then(() => Promise.all([
+			database.delete(cachedCanonical),
+			database.set(freshDatabaseRecord),
+		]))
+
+		// Remove any old Facebook IA
+		.then(() => {
+			if(!sentToFacebook) return Promise.resolve();
+			return fbApi.delete({canonical: cachedCanonical});
+		})
+
+		// Fetch the article record fresh and republish to FB if required
+		.then(() => articleModel.get(freshCanonical))
+		.then(article => Promise.resolve()
+			.then(() => {
+				if(!sentToFacebook) {
+					// Article wasn't yet published, so just tag the canonical change event
+					return articleModel.setImportStatus({
+						article,
+						type: 'notifications-api-canonical-change',
+					});
+				}
+
+				return transform(article)
+					.then(({html, warnings}) =>
+						fbApi.post({
+							html,
+							uuid: article.uuid,
+							published: wasPublished,
+						})
+						.then(({id}) => articleModel.setImportStatus({
+							article,
+							id,
+							warnings,
+							type: 'notifications-api-canonical-change',
+							published: wasPublished,
+						}))
+					);
+			})
+		);
+});
+
+const checkUuid = uuid => articleModel.getCanonical(uuid)
+.then(cachedCanonical =>
+	Promise.all([
+		ftApi.getCanonicalFromUuid(uuid),
+		fbApi.find({canonical: cachedCanonical}),
+	])
+	.then(([freshCanonical, fbRecord]) => {
+		const sentToFacebook = (fbRecord && fbRecord[mode] && !fbRecord[mode].nullRecord);
+
+		return Promise.resolve()
+		.then(() => {
+			if(cachedCanonical === freshCanonical) {
+				// Canonical URL has not changed, so no further work to do.
+				return;
+			}
+
+			console.log(`${Date()}: NOTIFICATIONS API: Canonical URL for UUID ${uuid} has changed from ${cachedCanonical} to ${freshCanonical}`);
+			return handleCanonicalChange({
+				uuid,
+				cachedCanonical,
+				freshCanonical,
+				fbRecord,
+			});
+		})
+
+		// If previously sent to Facebook, return this as a 'known UUID'.
+		.then(() => (sentToFacebook ? uuid : null));
+	})
+);
+
+const getKnownUuids = uuids => Promise.all(uuids.map(checkUuid))
 .then(known => known.filter(uuid => !!uuid));
 
 const updateArticles = uuids => Promise.all(
