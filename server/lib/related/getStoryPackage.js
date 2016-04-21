@@ -1,11 +1,5 @@
 'use strict';
 
-const checkLink = require('./checkLink');
+const articlesToLinks = require('./articlesToLinks');
 
-module.exports = function getRelatedArticles(article) {
-	return Promise.all(
-		article.storyPackage
-		.map(({id}) => checkLink(`http://www.ft.com/content/${id}`))
-	)
-	.then(validatedLinks => validatedLinks.filter(validatedLink => validatedLink));
-};
+module.exports = article => articlesToLinks(article.storyPackage);

@@ -2,6 +2,7 @@
 
 const fns = [
 	require('./getStoryPackage'),
+	require('./getMoreOns'),
 ];
 
 module.exports = async article => {
