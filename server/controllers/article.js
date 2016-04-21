@@ -50,7 +50,7 @@ module.exports = (req, res, next) => {
 			case 'import':
 				return articleModel.get(url)
 					.then(article => transform(article)
-						.then(({html, warnings}) => fbApi.post({html})
+						.then(({html, warnings}) => fbApi.post({uuid: article.uuid, html})
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui'}))
 						)
 					)
@@ -59,7 +59,7 @@ module.exports = (req, res, next) => {
 			case 'publish':
 				return articleModel.get(url)
 					.then(article => transform(article)
-						.then(({html, warnings}) => fbApi.post({html, published: true})
+						.then(({html, warnings}) => fbApi.post({uuid: article.uuid, html, published: true})
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui', published: true}))
 						)
 					)

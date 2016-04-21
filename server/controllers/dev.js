@@ -49,7 +49,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'postfb':
-			return fbApi.post({html: 'blah'})
+			return fbApi.post({uuid: 'uuid - blah', html: 'blah'})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'importstatus':
