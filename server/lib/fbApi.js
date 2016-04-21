@@ -117,20 +117,29 @@ const introspect = ({id = null} = {}) => {
 	.then(results => results.metadata);
 };
 
-const post = ({published = false, html = ''} = {}) => {
+const post = ({uuid, html, published = false} = {}) => {
+	if(!uuid) {
+		throw Error('Missing required parameter [uuid]');
+	}
+
 	if(!html) {
 		throw Error('Missing required parameter [html]');
 	}
 
+	published = !!published;
+	const devMode = (mode === 'development');
+
+	console.log(`Facebook API post request: ${JSON.stringify({uuid, development_mode: devMode, published})}`)
 	return call(
 		`/${pageId}/instant_articles`,
 		'POST',
 		{
-			development_mode: (mode === 'development'),
-			published: !!published,
+			published,
+			development_mode: devMode,
 			html_source: html,
 		}
-	);
+	)
+	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result));
 };
 
 const find = ({canonical = null} = {}) => {
