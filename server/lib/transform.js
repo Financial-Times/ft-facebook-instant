@@ -9,7 +9,7 @@ const validateArticleElements = require('./validator');
 
 const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
-		throw Error('Missing required [bodyHTML] field');
+		return Promise.reject(Error('Missing required [bodyHTML] field'));
 	}
 
 	const xsltParams = {

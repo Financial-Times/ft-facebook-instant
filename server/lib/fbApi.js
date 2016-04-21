@@ -84,11 +84,11 @@ const list = ({fields = []} = {}) => {
 
 const get = ({type = 'article', id = null, fields = []} = {}) => {
 	if(!id) {
-		throw Error('Missing required parameter [id]');
+		return Promise.reject(Error('Missing required parameter [id]'));
 	}
 
 	if(!type || !defaultFields[type]) {
-		throw Error(`Missing or invalid type parameter: [${type}]`);
+		return Promise.reject(Error(`Missing or invalid type parameter: [${type}]`));
 	}
 
 	fields = fields.length ? fields : defaultFields[type];
@@ -104,7 +104,7 @@ const get = ({type = 'article', id = null, fields = []} = {}) => {
 
 const introspect = ({id = null} = {}) => {
 	if(!id) {
-		throw Error('Missing required parameter [id]');
+		return Promise.reject(Error('Missing required parameter [id]'));
 	}
 
 	return call(
@@ -119,17 +119,17 @@ const introspect = ({id = null} = {}) => {
 
 const post = ({uuid, html, published = false} = {}) => {
 	if(!uuid) {
-		throw Error('Missing required parameter [uuid]');
+		return Promise.reject(Error('Missing required parameter [uuid]'));
 	}
 
 	if(!html) {
-		throw Error('Missing required parameter [html]');
+		return Promise.reject(Error('Missing required parameter [html]'));
 	}
 
 	published = !!published;
 	const devMode = (mode === 'development');
 
-	console.log(`Facebook API post request: ${JSON.stringify({uuid, development_mode: devMode, published})}`)
+	console.log(`Facebook API post request: ${JSON.stringify({uuid, development_mode: devMode, published})}`);
 	return call(
 		`/${pageId}/instant_articles`,
 		'POST',
@@ -144,7 +144,7 @@ const post = ({uuid, html, published = false} = {}) => {
 
 const find = ({canonical = null} = {}) => {
 	if(!canonical) {
-		throw Error('Missing required parameter [canonical]');
+		return Promise.reject(Error('Missing required parameter [canonical]'));
 	}
 
 	const fields = (mode === 'production') ? 'instant_article' : 'development_instant_article{id}';
@@ -173,7 +173,7 @@ const find = ({canonical = null} = {}) => {
 
 const del = ({canonical = null} = {}) => {
 	if(!canonical) {
-		throw Error('Missing required parameter [id]');
+		return Promise.reject(Error('Missing required parameter [id]'));
 	}
 
 	return find({canonical})
