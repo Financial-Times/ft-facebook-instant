@@ -113,6 +113,9 @@ module.exports = (req, res, next) => {
 		case 'tokencount':
 			return accessTokens.count()
 				.then(count => res.json({count}));
+		case 'purgeCanonical':
+			return database.purgeCanonical('http://www.ft.com/cms/s/2/440824a6-bd30-11e5-9fdb-87b8d15baec2.html')
+				.then(result => res.json({result}));
 		default:
 			res.sendStatus(404);
 			break;

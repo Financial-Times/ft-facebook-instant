@@ -109,9 +109,25 @@ const setLastNotificationCheck = timestamp => client.setAsync('notifications:las
 const getLastNotificationCheck = () => client.getAsync('notifications:last_poll')
 .then(timestamp => format(types.notifications_last_poll, timestamp));
 
-const setCanonical = (key, canonical) => client.setAsync(`canonical:${key}`, canonical);
+const setCanonical = (key, canonical) => client.multi()
+.set(`canonical_map:${key}`, canonical)
+.sadd(`canonical_keys:${canonical}`, key)
+.execAsync()
+.then(() => canonical);
 
-const getCanonical = key => client.getAsync(`canonical:${key}`);
+const getCanonical = key => client.getAsync(`canonical_map:${key}`);
+
+const purgeCanonical = canonical => client.smembersAsync(`canonical_keys:${canonical}`)
+.then(keys => {
+	const multi = client.multi();
+
+	keys.forEach(key => {
+		multi.del(`canonical_map:${key}`);
+	});
+
+	multi.del(`canonical_keys:${canonical}`);
+	return multi.execAsync();
+});
 
 module.exports = {
 	get(canonicals) {
@@ -127,4 +143,5 @@ module.exports = {
 	getLastNotificationCheck,
 	getCanonical,
 	setCanonical,
+	purgeCanonical,
 };
