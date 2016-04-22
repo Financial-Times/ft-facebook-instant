@@ -157,10 +157,10 @@ app.use(notFoundHandler);
 
 /* Start */
 
-// notificationsController.init();
+notificationsController.init();
 
 if(app.get('env') !== 'production') {
-	// republishController();
+	republishController();
 }
 
 app.listen(port, () => console.log(`Up and running on port ${port} in ${mode} mode.`));
