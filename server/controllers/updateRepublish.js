@@ -40,7 +40,7 @@ module.exports = (options) => republish(options)
 			console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
 		}
 	}).catch(e => {
-		console.error(e.stack || e);
+		console.error(`${Date()}: UPDATE/REPUBLISH error: ${e.stack || e}`);
 		if(mode === 'production') {
 			ravenClient.captureException(e, {tags: {from: 'republish'}});
 		}
