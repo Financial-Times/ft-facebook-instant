@@ -84,11 +84,11 @@ const list = ({fields = []} = {}) => {
 
 const get = ({type = 'article', id = null, fields = []} = {}) => {
 	if(!id) {
-		throw Error('Missing required parameter [id]');
+		return Promise.reject(Error('Missing required parameter [id]'));
 	}
 
 	if(!type || !defaultFields[type]) {
-		throw Error(`Missing or invalid type parameter: [${type}]`);
+		return Promise.reject(Error(`Missing or invalid type parameter: [${type}]`));
 	}
 
 	fields = fields.length ? fields : defaultFields[type];
@@ -104,7 +104,7 @@ const get = ({type = 'article', id = null, fields = []} = {}) => {
 
 const introspect = ({id = null} = {}) => {
 	if(!id) {
-		throw Error('Missing required parameter [id]');
+		return Promise.reject(Error('Missing required parameter [id]'));
 	}
 
 	return call(
@@ -117,25 +117,34 @@ const introspect = ({id = null} = {}) => {
 	.then(results => results.metadata);
 };
 
-const post = ({published = false, html = ''} = {}) => {
-	if(!html) {
-		throw Error('Missing required parameter [html]');
+const post = ({uuid, html, published = false} = {}) => {
+	if(!uuid) {
+		return Promise.reject(Error('Missing required parameter [uuid]'));
 	}
 
+	if(!html) {
+		return Promise.reject(Error('Missing required parameter [html]'));
+	}
+
+	published = !!published;
+	const devMode = (mode === 'development');
+
+	console.log(`Facebook API post request: ${JSON.stringify({uuid, development_mode: devMode, published})}`);
 	return call(
 		`/${pageId}/instant_articles`,
 		'POST',
 		{
-			development_mode: (mode === 'development'),
-			published: !!published,
+			published,
+			development_mode: devMode,
 			html_source: html,
 		}
-	);
+	)
+	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result));
 };
 
 const find = ({canonical = null} = {}) => {
 	if(!canonical) {
-		throw Error('Missing required parameter [canonical]');
+		return Promise.reject(Error('Missing required parameter [canonical]'));
 	}
 
 	const fields = (mode === 'production') ? 'instant_article' : 'development_instant_article{id}';
@@ -164,12 +173,12 @@ const find = ({canonical = null} = {}) => {
 
 const del = ({canonical = null} = {}) => {
 	if(!canonical) {
-		throw Error('Missing required parameter [id]');
+		return Promise.reject(Error('Missing required parameter [id]'));
 	}
 
 	return find({canonical})
 		.then(results => results[mode])
-		.then(result => result && call(
+		.then(result => result && result.id && call(
 			`/${result.id}`,
 			'DELETE',
 			{}

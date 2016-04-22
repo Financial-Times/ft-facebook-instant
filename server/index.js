@@ -39,6 +39,7 @@ if(app.get('env') === 'development') {
 } else {
 	assertEnv(['SENTRY_DSN']);
 	ravenClient = require('./lib/raven');
+	ravenClient.patchGlobal(() => process.exit(1));
 }
 
 assertEnv([
@@ -79,7 +80,7 @@ app.use(cookieParser());
 // Handlebars middleware
 handlebars(app);
 
-// S30 in prod only
+// S30, but not in dev
 if(app.get('env') !== 'development') {
 	app.use(authS3O);
 }
@@ -100,11 +101,15 @@ app.route('^/article/:url/api$').get(apiController);
 // TODO: change these to post only, and remove debugging routes
 app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleController);
 
+app.route('^/republish$').post(republishController.route);
+
+app.route('^/reload-s3o$').get((req, res, next) => {
+	res.render('reload-s30');
+});
+
 
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);
-
-app.route('^/republish$').post(republishController.route);
 
 
 /* Errors */

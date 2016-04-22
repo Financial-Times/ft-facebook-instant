@@ -25,12 +25,12 @@
 				<span class="o-buttons o-buttons--small">IN PREVIEW</span>
 			{{/if}}
 		{{else}}
-			{{#if imports.0.status}}
+			{{#if nullRecord}}
+				<span class="o-buttons o-buttons--small">Not imported</span>
+			{{else if imports.0.status}}
 				<span class="o-buttons o-buttons--small">{{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
 			{{else if most_recent_import_status}}
 				<span class="o-buttons o-buttons--small">{{most_recent_import_status.status}}</span>
-			{{else}}
-				<span class="o-buttons o-buttons--small">Not imported</span>
 			{{/if}}
 		{{/ifEqual}}
 		{{#if imports}}

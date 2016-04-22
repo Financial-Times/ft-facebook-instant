@@ -41,7 +41,7 @@ clean-$(LIB)/%:
 	$(eval LIB_THINGS := $(patsubst $(LIB)/%, %, $(wildcard $(LIB)/$*/*)))
 	$(eval SRC_THINGS := $(patsubst $(SRC)/%, %, $(wildcard $(SRC)/$*/*)))
 	$(eval TO_DELETE := $(addprefix $(LIB)/, $(shell comm -23 <(echo $(LIB_THINGS) | tr ' ' '\n' | sort) <(echo $(SRC_THINGS) | tr ' ' '\n' | sort))))
-	$(if $(TO_DELETE), rm $(TO_DELETE))
+	$(if $(TO_DELETE), rm -rf $(TO_DELETE))
 
 clean:
 	rm -rf $(LIB)

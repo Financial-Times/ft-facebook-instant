@@ -49,7 +49,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'postfb':
-			return fbApi.post({html: 'blah'})
+			return fbApi.post({uuid: 'uuid - blah', html: 'blah'})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'importstatus':
@@ -73,7 +73,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'apiFetch':
-			return ftApi.fetch('3ee29f96-88e0-11e3-bb5f-00144feab7de')
+			return ftApi.fetchByUuid('3ee29f96-88e0-11e3-bb5f-00144feab7de')
 				.then(result => res.json(result))
 				.catch(next);
 		case 'clearCookies':
@@ -113,6 +113,9 @@ module.exports = (req, res, next) => {
 		case 'tokencount':
 			return accessTokens.count()
 				.then(count => res.json({count}));
+		case 'purgeCanonical':
+			return database.purgeCanonical('http://www.ft.com/cms/s/2/440824a6-bd30-11e5-9fdb-87b8d15baec2.html')
+				.then(result => res.json({result}));
 		default:
 			res.sendStatus(404);
 			break;

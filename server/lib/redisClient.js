@@ -2,9 +2,13 @@
 
 const url = require('url');
 const redis = require('redis');
-const bluebird = require('bluebird');
+const denodeify = require('denodeify');
 
-bluebird.promisifyAll(redis);
+const denodeifyAll = proto => Object.keys(proto)
+.forEach(key => (proto[`${key}Async`] = denodeify(proto[key])));
+
+denodeifyAll(redis.RedisClient.prototype);
+denodeifyAll(redis.Multi.prototype);
 
 const redisParams = url.parse(process.env.REDIS_URL);
 const redisClient = redis.createClient({
