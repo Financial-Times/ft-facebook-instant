@@ -120,8 +120,9 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}
 });
 
 const checkUuid = uuid => articleModel.getCanonical(uuid)
+.catch(() => null)
 .then(cachedCanonical =>
-	Promise.all([
+	cachedCanonical && Promise.all([
 		ftApi.getCanonicalFromUuid(uuid),
 		fbApi.find({canonical: cachedCanonical}),
 	])
@@ -223,7 +224,7 @@ const poller = () => database.getLastNotificationCheck()
 	return database.setLastNotificationCheck(Date.now());
 })
 .catch(e => {
-	console.error(e.stack || e);
+	console.error(`${Date()}: NOTIFICATIONS API error: ${e.stack || e}`);
 	if(mode === 'production') {
 		ravenClient.captureException(e, {tags: {from: 'notifications'}});
 	}
