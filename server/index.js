@@ -119,7 +119,7 @@ if(app.get('env') !== 'development') {
 }
 
 const logErrors = (error, req, res, next) => {
-	console.error('LOGERRORS', error.stack || error);
+	console.error(`${Date()}: LOGERRORS: ${error.stack || error}`);
 	next(error);
 };
 

@@ -95,19 +95,15 @@ const extractUuid = string => (uuidRegex.exec(string) || [])[0];
 const deriveCanonical = key => {
 	let uuid = extractUuid(key);
 	if(uuid) {
-		console.log(`deriveCanonical for key ${key}. Will try UUID ${uuid}`);// @nocommit
 		return ftApi.getCanonicalFromUuid(uuid);
 	}
 
 	return fetch(key)
 	.then(res => {
-		console.log(`deriveCanonical for key ${key}. Resolved URL with fetch: ${res.url}`);// @nocommit
 		uuid = extractUuid(res.url);
 		if(uuid) {
-			console.log(`deriveCanonical for key ${key}. Will try UUID ${uuid}`);// @nocommit
 			return ftApi.getCanonicalFromUuid(uuid);
 		}
-		console.log(`deriveCanonical for key ${key}. Falling back to verifying canonical using key.`);// @nocommit
 		return ftApi.verifyCanonical(key);
 	});
 };
