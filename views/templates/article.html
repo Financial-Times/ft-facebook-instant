@@ -49,9 +49,18 @@
 						}
 					</script>
 
+					<div id="cookies"></div>
 					<div data-o-ads-name="leaderboard" data-o-ads-formats="MediumRectangle"></div>
 
 					<script src="//origami-build.ft.com/bundles/js?modules=o-ads%403.2.2%3A%2Fdemos%2Fsrc%2Fdemo.js"></script>
+
+					<script>
+						var el = document.getElementById('cookies');
+						var cookies = document.cookie.split(';');
+						cookies.forEach(function(cookie) {
+							el.innerHTML += '<' + 'p>' + cookie + '<' + '/p>';
+						});
+					</script>
 				</iframe>
 			</figure>
 
