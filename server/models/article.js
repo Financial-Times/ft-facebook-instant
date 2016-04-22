@@ -65,7 +65,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 			// Add the FB data to the DB record, to be saved later
 			merged = Object.assign(importMeta.splice(dbImportIndex, 1)[0], item);
 		} else {
-			merged = item;
+			merged = Object.assign({mode, timestamp: 0}, item);
 		}
 
 		merged.messages = flattenErrors(merged.errors);
@@ -120,9 +120,15 @@ const getCanonical = key => database.getCanonical(key)
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 .then(fbRecords => {
-	const promises = databaseRecord.import_meta
+	const imports = databaseRecord.import_meta
 		.filter(item => item.mode === mode)
-		.filter(item => !!item.id)
+		.filter(item => !!item.id);
+
+	if(fbRecords[mode].most_recent_import_status && !imports.find(item => item.id === fbRecords[mode].most_recent_import_status.id)) {
+		imports.unshift(fbRecords[mode].most_recent_import_status);
+	}
+
+	const promises = imports
 		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']})
 			.catch(e => {
 				if(e.name === 'FacebookApiException' && e.response && e.response.error.type === 'GraphMethodException') {
