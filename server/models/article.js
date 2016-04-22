@@ -5,13 +5,12 @@ const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
-const diskCache = require('../lib/diskCache');
 
 const mode = require('../lib/mode').get();
 
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
-const clearCache = article => diskCache.articles.del(article.canonical);
+const clearCache = article => database.purgeCapi(article.canonical);
 
 const setDb = apiRecord => database.set({
 	canonical: apiRecord.webUrl,
@@ -175,7 +174,7 @@ const removeFromFacebook = (canonical, type = 'article-model') => console.log('1
 .then(article => console.log('1.9') || setImportStatus({article, type, username: 'system'}))
 .then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
 
-const getApi = canonical => diskCache.articles.get(canonical)
+const getApi = canonical => database.getCapi(canonical)
 .then(cached => {
 	if(cached) {
 		console.log('1.1', canonical);
@@ -187,7 +186,7 @@ const getApi = canonical => diskCache.articles.get(canonical)
 
 		// Only set in cache if bodyHTML is set (otherwise no point, and prevents
 		// automatically fetching better content)
-		.then(article => (console.log('1.3'), article.bodyHTML && diskCache.articles.set(canonical, article) && console.log('1.4'), article))
+		.then(article => (console.log('1.3'), article.bodyHTML && database.setCapi(canonical, article) && console.log('1.4'), article))
 
 		// Content is not available in ES, so ensure deleted from FB before rethrowing
 		.catch(e => {
@@ -224,7 +223,7 @@ const get = key => getCanonical(key)
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
 const update = article => Promise.all([
-	diskCache.articles.del(article.canonical),
+	clearCache(article.canonical),
 	ftApi.updateEs(article.uuid),
 ])
 .then(() => getApi(article.canonical))
