@@ -1,10 +1,10 @@
 'use strict';
 
 const handlebarsTransform = require('../handlebars').render;
-const diskCache = require('../diskCache');
 const ftApi = require('../ftApi');
+const database = require('../database');
 
-const fetchSlideshow = uuid => diskCache.assets.get(uuid)
+const fetchSlideshow = uuid => database.getCapi(uuid)
 .then(cached => {
 	if(cached) {
 		return cached;
@@ -26,7 +26,7 @@ const fetchSlideshow = uuid => diskCache.assets.get(uuid)
 
 			throw Error(`No slideshow asset found for UUID ${uuid}`);
 		})
-		.then(asset => diskCache.assets.set(uuid, asset))
+		.then(asset => database.setCapi(uuid, asset))
 		.catch(e => Promise.reject(new Error(`Failed to fetch slideshow for UUID ${uuid}. Error: [${e.toString()}]`)));
 });
 

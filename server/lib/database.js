@@ -2,6 +2,7 @@
 
 const client = require('./redisClient');
 const KEY_COUNT = 1; // See extractDetails()
+const CAPI_TTL = 60 * 60 * 24;
 
 const types = {
 	canonical: 'string',
@@ -63,7 +64,7 @@ const extractAllDetails = (replies) => {
 const addGetToMulti = (multi, canonical) => multi
 	.hgetall(`article:${canonical}`);
 
-const get = canonical => console.log('database.get', canonical) || addGetToMulti(client.multi(), canonical)
+const get = canonical => addGetToMulti(client.multi(), canonical)
 .execAsync()
 .then(extractDetails);
 
@@ -134,6 +135,19 @@ const purgeCanonical = canonical => client.smembersAsync(`canonical_keys:${canon
 	return multi.execAsync();
 });
 
+const setCapi = (id, capi) => client.setAsync(`capi:${id}`, JSON.stringify(capi), 'EX', CAPI_TTL);
+
+const getCapi = id => client.getAsync(`capi:${id}`)
+.then(capi => {
+	try{
+		return JSON.parse(capi);
+	} catch(e) {
+		throw Error(`Failed to parse JSON from CAPI blob: [${capi}]`);
+	}
+});
+
+const purgeCapi = id => client.delAsync(`capi:${id}`);
+
 module.exports = {
 	get(canonicals) {
 		if(Array.isArray(canonicals)) {
@@ -150,4 +164,7 @@ module.exports = {
 	getCanonical,
 	setCanonical,
 	purgeCanonical,
+	getCapi,
+	setCapi,
+	purgeCapi,
 };

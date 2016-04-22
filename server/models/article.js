@@ -5,13 +5,12 @@ const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
-const diskCache = require('../lib/diskCache');
 
 const mode = require('../lib/mode').get();
 
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
-const clearCache = article => diskCache.articles.del(article.canonical);
+const clearCache = article => database.purgeCapi(article.canonical);
 
 const setDb = apiRecord => database.set({
 	canonical: apiRecord.webUrl,
@@ -47,7 +46,6 @@ const flattenErrors = (items = []) => {
 
 const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) => {
 	const article = Object.assign({}, databaseRecord);
-	console.log(`8 ${article.uuid}`);
 
 	if(apiRecord) {
 		article.apiRecord = apiRecord;
@@ -86,9 +84,8 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 		}
 	});
 
-	console.log(`9 ${article.uuid}`);
 	return updateDb(article)
-		.then(() => (console.log(`10 ${article.uuid}`), article));
+		.then(() => article);
 };
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
@@ -141,10 +138,9 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 				throw e;
 			})
 		);
-	console.log('6');
 	return Promise.all(promises)
 		.then(fbImports => fbImports.filter(record => record !== undefined))
-		.then(fbImports => console.log('7') || ({databaseRecord, apiRecord, fbRecords, fbImports}));
+		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })
 .then(mergeRecords);
 
@@ -170,30 +166,26 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		.then(() => addFbData({databaseRecord: article, apiRecord: article.apiRecord}));
 };
 
-const removeFromFacebook = (canonical, type = 'article-model') => console.log('1.7', canonical) || fbApi.delete({canonical})
-.then(() => console.log('1.8') || database.get(canonical))
-.then(article => console.log('1.9') || setImportStatus({article, type, username: 'system'}))
+const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
+.then(() => database.get(canonical))
+.then(article => setImportStatus({article, type, username: 'system'}))
 .then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
 
-const getApi = canonical => console.log('getApi', canonical) || diskCache.articles.get(canonical)
+const getApi = canonical => database.getCapi(canonical)
 .then(cached => {
 	if(cached) {
-		console.log('1.1', canonical);
 		return cached;
 	}
 
-	console.log('1.2', canonical);
 	return ftApi.fetchByCanonical(canonical)
 
 		// Only set in cache if bodyHTML is set (otherwise no point, and prevents
 		// automatically fetching better content)
-		.then(article => (console.log('1.3'), article.bodyHTML && diskCache.articles.set(canonical, article) && console.log('1.4'), article))
+		.then(article => (article.bodyHTML && database.setCapi(canonical, article), article))
 
 		// Content is not available in ES, so ensure deleted from FB before rethrowing
 		.catch(e => {
-			console.log('1.5');
 			if(e.type === 'FtApiContentMissingException') {
-				console.log('1.6');
 				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
 				return removeFromFacebook(canonical, 'article-model-get-api')
 				.then(() => {
@@ -205,26 +197,24 @@ const getApi = canonical => console.log('getApi', canonical) || diskCache.articl
 });
 
 const get = key => getCanonical(key)
-.then(canonical => console.log(`1 ${key} ${canonical}`) || Promise.all([
+.then(canonical => Promise.all([
 	database.get(canonical),
 	getApi(canonical),
 ]))
 .then(([databaseRecord, apiRecord]) => {
 	if(databaseRecord) {
-		console.log(`2 ${key}`);
 		return {databaseRecord, apiRecord};
 	}
 
-	console.log(`3 ${key}`);
 	return setDb(apiRecord)
-		.then(newDatabaseRecord => console.log(`4 ${key}`) || ({databaseRecord: newDatabaseRecord, apiRecord}));
+		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
 })
-.then(({databaseRecord, apiRecord}) => console.log(`5 ${key}`) || addFbData({databaseRecord, apiRecord}));
+.then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
 
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
 const update = article => Promise.all([
-	diskCache.articles.del(article.canonical),
+	clearCache(article.canonical),
 	ftApi.updateEs(article.uuid),
 ])
 .then(() => getApi(article.canonical))
