@@ -178,11 +178,11 @@ const removeFromFacebook = (canonical, type = 'article-model') => console.log('1
 const getApi = canonical => diskCache.articles.get(canonical)
 .then(cached => {
 	if(cached) {
-		console.log('1.1');
+		console.log('1.1', canonical);
 		return cached;
 	}
 
-	console.log('1.2');
+	console.log('1.2', canonical);
 	return ftApi.fetchByCanonical(canonical)
 
 		// Only set in cache if bodyHTML is set (otherwise no point, and prevents
