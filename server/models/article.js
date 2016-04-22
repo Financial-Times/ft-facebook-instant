@@ -47,6 +47,7 @@ const flattenErrors = (items = []) => {
 
 const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) => {
 	const article = Object.assign({}, databaseRecord);
+	console.log(`8 ${article.uuid}`);
 
 	if(apiRecord) {
 		article.apiRecord = apiRecord;
@@ -85,8 +86,9 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 		}
 	});
 
+	console.log(`9 ${article.uuid}`);
 	return updateDb(article)
-		.then(() => article);
+		.then(() => (console.log(`10 ${article.uuid}`), article));
 };
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
@@ -139,9 +141,10 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 				throw e;
 			})
 		);
+	console.log('6');
 	return Promise.all(promises)
 		.then(fbImports => fbImports.filter(record => record !== undefined))
-		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
+		.then(fbImports => console.log('7') || ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })
 .then(mergeRecords);
 
@@ -198,19 +201,21 @@ const getApi = canonical => diskCache.articles.get(canonical)
 });
 
 const get = key => getCanonical(key)
-.then(canonical => Promise.all([
+.then(canonical => console.log(`1 ${key}`) || Promise.all([
 	database.get(canonical),
 	getApi(canonical),
 ]))
 .then(([databaseRecord, apiRecord]) => {
 	if(databaseRecord) {
+		console.log(`2 ${key}`);
 		return {databaseRecord, apiRecord};
 	}
 
+	console.log(`3 ${key}`);
 	return setDb(apiRecord)
-		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
+		.then(newDatabaseRecord => console.log(`4 ${key}`) || ({databaseRecord: newDatabaseRecord, apiRecord}));
 })
-.then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
+.then(({databaseRecord, apiRecord}) => console.log(`5 ${key}`) || addFbData({databaseRecord, apiRecord}));
 
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
