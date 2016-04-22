@@ -170,26 +170,30 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		.then(() => addFbData({databaseRecord: article, apiRecord: article.apiRecord}));
 };
 
-const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
-.then(() => database.get(canonical))
-.then(article => setImportStatus({article, type, username: 'system'}))
+const removeFromFacebook = (canonical, type = 'article-model') => console.log('1.7', canonical) || fbApi.delete({canonical})
+.then(() => console.log('1.8') || database.get(canonical))
+.then(article => console.log('1.9') || setImportStatus({article, type, username: 'system'}))
 .then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
 
 const getApi = canonical => diskCache.articles.get(canonical)
 .then(cached => {
 	if(cached) {
+		console.log('1.1', canonical);
 		return cached;
 	}
 
+	console.log('1.2', canonical);
 	return ftApi.fetchByCanonical(canonical)
 
 		// Only set in cache if bodyHTML is set (otherwise no point, and prevents
 		// automatically fetching better content)
-		.then(article => (article.bodyHTML && diskCache.articles.set(canonical, article), article))
+		.then(article => (console.log('1.3'), article.bodyHTML && diskCache.articles.set(canonical, article) && console.log('1.4'), article))
 
 		// Content is not available in ES, so ensure deleted from FB before rethrowing
 		.catch(e => {
+			console.log('1.5');
 			if(e.type === 'FtApiContentMissingException') {
+				console.log('1.6');
 				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
 				return removeFromFacebook(canonical, 'article-model-get-api')
 				.then(() => {
