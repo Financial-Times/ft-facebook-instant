@@ -63,7 +63,7 @@ const extractAllDetails = (replies) => {
 const addGetToMulti = (multi, canonical) => multi
 	.hgetall(`article:${canonical}`);
 
-const get = canonical => addGetToMulti(client.multi(), canonical)
+const get = canonical => console.log('database.get', canonical) || addGetToMulti(client.multi(), canonical)
 .execAsync()
 .then(extractDetails);
 

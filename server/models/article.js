@@ -175,7 +175,7 @@ const removeFromFacebook = (canonical, type = 'article-model') => console.log('1
 .then(article => console.log('1.9') || setImportStatus({article, type, username: 'system'}))
 .then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
 
-const getApi = canonical => diskCache.articles.get(canonical)
+const getApi = canonical => console.log('getApi', canonical) || diskCache.articles.get(canonical)
 .then(cached => {
 	if(cached) {
 		console.log('1.1', canonical);
@@ -205,7 +205,7 @@ const getApi = canonical => diskCache.articles.get(canonical)
 });
 
 const get = key => getCanonical(key)
-.then(canonical => console.log(`1 ${key}`) || Promise.all([
+.then(canonical => console.log(`1 ${key} ${canonical}`) || Promise.all([
 	database.get(canonical),
 	getApi(canonical),
 ]))
