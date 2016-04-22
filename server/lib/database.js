@@ -138,7 +138,13 @@ const purgeCanonical = canonical => client.smembersAsync(`canonical_keys:${canon
 const setCapi = (id, capi) => client.setAsync(`capi:${id}`, JSON.stringify(capi), 'EX', CAPI_TTL);
 
 const getCapi = id => client.getAsync(`capi:${id}`)
-.then(capi => (capi ? JSON.parse(capi) : capi));
+.then(capi => {
+	try{
+		return JSON.parse(capi);
+	} catch(e) {
+		throw Error(`Failed to parse JSON from CAPI blob: [${capi}]`);
+	}
+});
 
 const purgeCapi = id => client.delAsync(`capi:${id}`);
 
