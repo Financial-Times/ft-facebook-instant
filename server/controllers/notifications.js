@@ -119,11 +119,15 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}
 		);
 });
 
+// Article might have been deleted, so catch any ES errors
+const refreshCanonical = uuid => ftApi.getCanonicalFromUuid(uuid)
+.catch(() => null);
+
 const checkUuid = uuid => articleModel.getCanonical(uuid)
 .catch(() => null)
 .then(cachedCanonical =>
 	cachedCanonical && Promise.all([
-		ftApi.getCanonicalFromUuid(uuid),
+		refreshCanonical(uuid),
 		fbApi.find({canonical: cachedCanonical}),
 	])
 	.then(([freshCanonical, fbRecord]) => {
@@ -131,6 +135,12 @@ const checkUuid = uuid => articleModel.getCanonical(uuid)
 
 		return Promise.resolve()
 		.then(() => {
+			if(!freshCanonical) {
+				// No canonical URL, so no further work to do.
+				console.log(`${Date()}: NOTIFICATIONS API: Canonical URL for UUID ${uuid} is now null`);
+				return;
+			}
+
 			if(cachedCanonical === freshCanonical) {
 				// Canonical URL has not changed, so no further work to do.
 				return;
