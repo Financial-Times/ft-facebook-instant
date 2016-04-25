@@ -10,7 +10,7 @@ const mode = require('../lib/mode').get();
 
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
-const clearCache = article => database.purgeCapi(article.canonical);
+const clearCache = canonical => database.purgeCapi(canonical);
 
 const setDb = apiRecord => database.set({
 	canonical: apiRecord.webUrl,
