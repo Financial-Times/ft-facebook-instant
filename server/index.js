@@ -23,6 +23,7 @@ const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
+const insightsController = require('./controllers/insights');
 const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
 
@@ -106,6 +107,8 @@ app.route('^/republish$').post(republishController.route);
 app.route('^/reload-s3o$').get((req, res, next) => {
 	res.render('reload-s30');
 });
+
+app.route('^/insights$').all(noCache).get(insightsController);
 
 
 // Dev-only routes
