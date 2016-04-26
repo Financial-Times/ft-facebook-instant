@@ -8,6 +8,14 @@ const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
 const getRelatedArticles = require('./related');
 
+const requiredParams = [
+	'apiRecord',
+	'canonical',
+	'uuid',
+	'date_editorially_published',
+	'date_record_updated',
+];
+
 const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
 		return Promise.reject(Error('Missing required [bodyHTML] field'));
@@ -44,13 +52,22 @@ const getAuthors = apiRecord => {
 	return authors.length ? authors : [(apiRecord.byline || '').replace(/^by\s+/i, '')];
 };
 
+const basicValidate = article => Promise.resolve()
+.then(() => {
+	const missing = requiredParams.filter(key => !article[key]);
+	if(missing.length) {
+		throw Error(`Article [${article.canonical}] is missing required keys: [${missing.join(', ')}]`);
+	}
+});
+
 module.exports = article => {
 	const warnings = [];
 
-	return Promise.all([
+	return basicValidate(article)
+	.then(() => Promise.all([
 		transformArticleBody(article.apiRecord, warnings),
 		getRelatedArticles(article.apiRecord),
-	])
+	]))
 	.then(([transformed$, relatedArticles]) => {
 		validateArticleElements(transformed$, warnings);
 
