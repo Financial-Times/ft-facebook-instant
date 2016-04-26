@@ -26,7 +26,7 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 	}
 };
 
-const republish = options => fbApi.list({fields: ['canonical_url']})
+const republish = options => fbApi.list({fields: ['canonical_url'], __limit: 0})
 .then(articles => articles.map(article => article.canonical_url))
 .then(canonicals => articleModel.getList(canonicals))
 .then(articles => Promise.all(articles.map(article => update(article, options))))

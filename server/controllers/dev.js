@@ -33,7 +33,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'listfb':
-			return fbApi.list()
+			return fbApi.list({fields: ['canonical_url'], __limit: 0})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'findfb':
@@ -62,6 +62,10 @@ module.exports = (req, res, next) => {
 				.catch(next);
 		case 'deletefb':
 			return fbApi.delete({canonical: 'http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377.html'})
+				.then(result => res.json(result))
+				.catch(next);
+		case 'fbposts':
+			return fbApi.call('/8860325749/posts', {__limit: 500})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'fetchByCanonical':
