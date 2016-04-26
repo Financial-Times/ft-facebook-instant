@@ -59,19 +59,18 @@ function addAccessToken(params) {
 }
 
 const handlePagedResult = (result, limit) => {
-	if(!limit || !result.paging || !result.paging.next) return Promise.resolve(result);
+	if(limit && result.data && result.data.length >= limit) {
+		result.data = result.data.slice(0, limit);
+		return result;
+	}
+
+	if(!result.paging || !result.paging.next) return result;
 
 	return nodeFetch(result.paging.next)
 		.then(fetchres.json)
 		.then(nextResult => {
-			result.data = result.data.concat(nextResult.data);
-
-			if(result.data.length >= limit) {
-				result.data = result.data.slice(0, limit);
-				return result;
-			}
-
-			return handlePagedResult(result, limit);
+			nextResult.data = result.data.concat(nextResult.data);
+			return handlePagedResult(nextResult, limit);
 		})
 		.then(finalResult => {
 			delete finalResult.paging;
@@ -82,7 +81,7 @@ const handlePagedResult = (result, limit) => {
 const call = (...params) => addAccessToken(params)
 .then(newParams => {
 	const options = newParams[newParams.length - 1];
-	const limit = options.__limit;
+	const limit = options.__limit || 25;
 	delete options.__limit;
 
 	return api(...newParams)
@@ -98,7 +97,7 @@ const call = (...params) => addAccessToken(params)
 		});
 });
 
-const list = ({fields = []} = {}) => {
+const list = ({fields = [], __limit} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
 
 	return call(
@@ -111,6 +110,8 @@ const list = ({fields = []} = {}) => {
 			summary: 'total_count',
 
 			fields: fields.join(','),
+
+			__limit,
 		}
 	)
 	.then(results => results.data || []);

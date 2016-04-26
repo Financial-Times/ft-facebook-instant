@@ -33,7 +33,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'listfb':
-			return fbApi.list()
+			return fbApi.list({fields: ['canonical_url'], __limit: 300})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'findfb':
