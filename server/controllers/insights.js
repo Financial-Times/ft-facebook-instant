@@ -42,8 +42,8 @@ const addInstantArticleInsights = post => {
 		'GET',
 		{}
 	)
-	.then(insights => {
-		post.ia = Object.assign(post.ia, {insights});
+	.then(views => {
+		post.ia = Object.assign(post.ia, {views});
 		return post;
 	});
 };
@@ -61,8 +61,7 @@ module.exports = (req, res, next) => fbApi.call(
 	`/${pageId}/posts`,
 	'GET',
 	{
-		// TODO: pagination
-		limit: 5,
+		__limit: 20,
 	}
 )
 .then(response => response.data)
