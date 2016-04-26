@@ -81,7 +81,10 @@ const handlePagedResult = (result, limit) => {
 const call = (...params) => addAccessToken(params)
 .then(newParams => {
 	const options = newParams[newParams.length - 1];
-	const limit = options.__limit || 25;
+
+	let limit = parseInt(options.__limit, 10);
+	limit = isNaN(limit) ? 25 : limit;
+
 	delete options.__limit;
 
 	return api(...newParams)
