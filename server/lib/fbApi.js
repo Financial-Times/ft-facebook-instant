@@ -3,6 +3,8 @@
 const denodeify = require('denodeify');
 const Facebook = require('fb');
 const api = denodeify(Facebook.napi);
+const nodeFetch = require('node-fetch');
+const fetchres = require('fetchres');
 
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
@@ -41,7 +43,11 @@ Facebook.options({
 });
 
 function addAccessToken(params) {
-	const options = params.pop();
+	let options = {};
+	if(typeof params[params.length - 1] === 'object') {
+		options = params.pop();
+	}
+
 	if(options.access_token) {
 		return Promise.resolve([...params, options]);
 	} else {
@@ -52,16 +58,44 @@ function addAccessToken(params) {
 	}
 }
 
+const handlePagedResult = (result, limit) => {
+	if(!limit || !result.paging || !result.paging.next) return Promise.resolve(result);
+
+	return nodeFetch(result.paging.next)
+		.then(fetchres.json)
+		.then(nextResult => {
+			result.data = result.data.concat(nextResult.data);
+
+			if(result.data.length >= limit) {
+				result.data = result.data.slice(0, limit);
+				return result;
+			}
+
+			return handlePagedResult(result, limit);
+		})
+		.then(finalResult => {
+			delete finalResult.paging;
+			return finalResult;
+		});
+};
+
 const call = (...params) => addAccessToken(params)
-.then(newParams => api(...newParams))
-.catch(e => {
-	if(e.name === 'FacebookApiException' &&
-		e.response &&
-		e.response.error &&
-		e.response.error.code === 'ETIMEDOUT') {
-		throw Error('Facebook API call timed-out');
-	}
-	throw e;
+.then(newParams => {
+	const options = newParams[newParams.length - 1];
+	const limit = options.__limit;
+	delete options.__limit;
+
+	return api(...newParams)
+		.then(result => handlePagedResult(result, limit))
+		.catch(e => {
+			if(e.name === 'FacebookApiException' &&
+				e.response &&
+				e.response.error &&
+				e.response.error.code === 'ETIMEDOUT') {
+				throw Error('Facebook API call timed-out');
+			}
+			throw e;
+		});
 });
 
 const list = ({fields = []} = {}) => {
