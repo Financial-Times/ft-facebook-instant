@@ -65,7 +65,7 @@ const extractAllDetails = (replies) => {
 		try{
 			articles.push(extractDetails(replies.splice(0, KEY_COUNT)));
 		} catch(e) {
-			if(e.type === 'dbParseException') {
+			if(e.type === 'DbParseException') {
 				// Ignore and remove results from list
 			}
 			throw e;
@@ -113,7 +113,7 @@ const get = canonical => addGetToMulti(client.multi(), canonical)
 .execAsync()
 .then(extractDetails)
 .catch(e => {
-	if(e.type === 'dbParseException') {
+	if(e.type === 'DbParseException') {
 		return del(canonical)
 			.then(() => null);
 	}
