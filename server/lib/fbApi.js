@@ -189,25 +189,22 @@ const find = ({canonical = null, fields = []} = {}) => {
 		return Promise.reject(Error('Missing required parameter [canonical]'));
 	}
 
+	fields = fields.length ? fields : defaultFields.article;
+	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
+
 	return call(
-		'/',
+		`/${canonical}`,
 		'GET',
 		{
-			id: canonical,
-			fields: (mode === 'production') ? 'instant_article' : 'development_instant_article{id}',
+			fields: `${key}{${fields.join(',')}}`,
 		}
 	)
-	.then(results => {
-		const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
-		if(!results[key]) {
-			return {nullRecord: true};
+	.then(result => {
+		const ret = {};
+		if(result[key]) {
+			ret[mode] = result[key] || {nullRecord: true};
 		}
-		return get({id: results[key].id, fields});
-	})
-	.then(item => {
-		const results = {};
-		results[mode] = item;
-		return results;
+		return ret;
 	});
 };
 

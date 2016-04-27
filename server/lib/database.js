@@ -1,6 +1,8 @@
 'use strict';
 
 const client = require('./redisClient');
+const DbParseException = require('./database/parseException');
+
 const KEY_COUNT = 1; // See extractDetails()
 const CAPI_TTL = 60 * 60 * 24;
 
@@ -21,7 +23,11 @@ const format = (type, val) => {
 		case 'integer':
 			return val ? parseInt(val, 10) : 0;
 		case 'json':
-			return JSON.parse(val);
+			try{
+				return JSON.parse(val);
+			} catch(e) {
+				throw new DbParseException(e.message);
+			}
 		default:
 			throw Error(`Can't format unrecognised type [${type}]`);
 	}
@@ -56,17 +62,20 @@ const extractDetails = replies => {
 const extractAllDetails = (replies) => {
 	const articles = [];
 	while(replies.length) {
-		articles.push(extractDetails(replies.splice(0, KEY_COUNT)));
+		try{
+			articles.push(extractDetails(replies.splice(0, KEY_COUNT)));
+		} catch(e) {
+			if(e.type === 'DbParseException') {
+				// Ignore and remove results from list
+			}
+			throw e;
+		}
 	}
 	return articles;
 };
 
 const addGetToMulti = (multi, canonical) => multi
 	.hgetall(`article:${canonical}`);
-
-const get = canonical => addGetToMulti(client.multi(), canonical)
-.execAsync()
-.then(extractDetails);
 
 const getMulti = canonicals => {
 	if(!canonicals) return Promise.resolve([]);
@@ -99,6 +108,17 @@ const del = canonical => client.multi()
 	.del(`article:${canonical}`)
 	.zrem('articles', canonical)
 	.execAsync();
+
+const get = canonical => addGetToMulti(client.multi(), canonical)
+.execAsync()
+.then(extractDetails)
+.catch(e => {
+	if(e.type === 'DbParseException') {
+		return del(canonical)
+			.then(() => null);
+	}
+	throw e;
+});
 
 const list = () => {
 	const now = Date.now();
