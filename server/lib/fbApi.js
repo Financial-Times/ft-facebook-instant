@@ -58,7 +58,8 @@ function addAccessToken(params) {
 	}
 }
 
-const handlePagedResult = (result, limit) => {
+const handlePagedResult = (result, limit) => Promise.resolve()
+.then(() => {
 	if(limit && result.data && result.data.length >= limit) {
 		result.data = result.data.slice(0, limit);
 		return result;
@@ -66,17 +67,20 @@ const handlePagedResult = (result, limit) => {
 
 	if(!result.paging || !result.paging.next) return result;
 
+	// TODO: Why do these 'lifetime' results contain useless paging links? Is this a Graph API bug?
+	if(Array.isArray(result.data) && result.data[0].period === 'lifetime') return result;
+
 	return nodeFetch(result.paging.next)
 		.then(fetchres.json)
 		.then(nextResult => {
 			nextResult.data = result.data.concat(nextResult.data);
 			return handlePagedResult(nextResult, limit);
-		})
-		.then(finalResult => {
-			delete finalResult.paging;
-			return finalResult;
 		});
-};
+})
+.then(finalResult => {
+	delete finalResult.paging;
+	return finalResult;
+});
 
 const call = (...params) => addAccessToken(params)
 .then(newParams => {
