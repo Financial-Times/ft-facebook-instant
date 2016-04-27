@@ -201,9 +201,7 @@ const find = ({canonical = null, fields = []} = {}) => {
 	)
 	.then(result => {
 		const ret = {};
-		if(result[key]) {
-			ret[mode] = result[key] || {nullRecord: true};
-		}
+		ret[mode] = result[key] || {nullRecord: true};
 		return ret;
 	});
 };
