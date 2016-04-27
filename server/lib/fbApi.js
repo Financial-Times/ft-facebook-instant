@@ -180,32 +180,27 @@ const post = ({uuid, html, published = false} = {}) => {
 	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result));
 };
 
-const find = ({canonical = null} = {}) => {
+const find = ({canonical = null, fields = []} = {}) => {
 	if(!canonical) {
 		return Promise.reject(Error('Missing required parameter [canonical]'));
 	}
 
-	const fields = (mode === 'production') ? 'instant_article' : 'development_instant_article{id}';
+	fields = fields.length ? fields : defaultFields.article;
+	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
 
 	return call(
-		'/',
+		`/${canonical}`,
 		'GET',
 		{
-			id: canonical,
-			fields,
+			fields: `${key}{${fields.join(',')}}`,
 		}
 	)
-	.then(results => {
-		const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
-		if(!results[key]) {
-			return {nullRecord: true};
+	.then(result => {
+		const ret = {};
+		if(result[key]) {
+			ret[mode] = result[key] || {nullRecord: true};
 		}
-		return get({id: results[key].id});
-	})
-	.then(item => {
-		const results = {};
-		results[mode] = item;
-		return results;
+		return ret;
 	});
 };
 
