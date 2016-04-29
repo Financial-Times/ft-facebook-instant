@@ -40,7 +40,6 @@
     "fetchres": "^1.5.1",
     "forever": "^0.15.1",
     "handlebars": "^4.0.5",
-    "lodash.merge": "^4.3.5",
     "moment": "^2.12.0",
     "morgan": "^1.7.0",
     "next-ft-api-client": "^3.25.0",

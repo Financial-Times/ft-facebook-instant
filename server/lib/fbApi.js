@@ -82,6 +82,40 @@ const handlePagedResult = (result, limit) => Promise.resolve()
 	return finalResult;
 });
 
+const parseBatchResult = result => {
+	if(result === null) return result;
+
+	try{
+		return JSON.parse(result.body);
+	} catch(e) {
+		throw Error(`Failed to parse JSON from result: ${result}`);
+	}
+};
+
+const handleBatchedResults = (results, params, dependent) => Promise.resolve()
+.then(() => results.map(parseBatchResult))
+.then(parsed => {
+	const errors = parsed.filter((result, index) => (!results[index] || results[index].code !== 200));
+
+	if(!errors.length) return parsed;
+
+	if(dependent && results[0].code === 200 && parsed[0].data === []) {
+		// First batch member is empty, and other members depend on the first one
+		return null;
+	}
+
+	// TODO: throw exception if any result is null, as it's likely to be a timeout
+
+	throw Error(`Batch failed with ${errors.length} error(s). Errors: ${JSON.stringify(errors)}. Params: ${JSON.stringify(params)}`);
+})
+.catch(e => {
+	console.log('Batch error', {results});
+	if(dependent && results[0].code === 200 && results[0].body === '{"data":[]}') {
+		return null;
+	}
+	throw e;
+});
+
 const call = (...params) => addAccessToken(params)
 .then(newParams => {
 	const options = newParams[newParams.length - 1];
@@ -89,10 +123,13 @@ const call = (...params) => addAccessToken(params)
 	let limit = parseInt(options.__limit, 10);
 	limit = isNaN(limit) ? 25 : limit;
 
+	const dependent = options.__dependent;
+
 	delete options.__limit;
+	delete options.__dependent;
 
 	return api(...newParams)
-		.then(result => handlePagedResult(result, limit))
+		.then(result => (options.batch ? handleBatchedResults(result, newParams, dependent) : handlePagedResult(result, limit)))
 		.catch(e => {
 			if(e.name === 'FacebookApiException' &&
 				e.response &&

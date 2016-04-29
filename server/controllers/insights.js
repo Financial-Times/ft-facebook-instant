@@ -1,156 +1,8 @@
 'use strict';
 
-// const merge = require('lodash.merge');
 const fbApi = require('../lib/fbApi');
-// const articleModel = require('../models/article');
-// const mode = require('../lib/mode').get();
-
+const url = require('url');
 const pageId = process.env.FB_PAGE_ID;
-
-// const addCanonical = post => articleModel.getCanonical(post.link)
-// // Some links don't resolve to canonical URLs in Elastic Search, so just resolve them
-// .catch(e => articleModel.resolveUrl(post.link))
-// .then(canonical => Object.assign(post, {canonical}));
-
-// const getPostDetails = id => fbApi.call(
-// 	`/${id}`,
-// 	'GET', {
-// 		fields: 'name,link,created_time,message,id,description,is_published,updated_time,is_popular',
-// 	}
-// )
-// .then(details => addCanonical(details));
-
-// const getPostShares = id => fbApi.call(
-// 	`/${id}`,
-// 	'GET', {
-// 		fields: 'shares',
-// 	}
-// )
-// .then(result => result.shares.count);
-
-// const getObjectShares = id => fbApi.call(
-// 	`/${id}`,
-// 	'GET', {
-// 		fields: 'share',
-// 	}
-// )
-// .then(result => ({
-// 	shares: result.share.share_count,
-// 	comments: result.share.comment_count,
-// }));
-
-// const getObjectLikes = id => fbApi.call(
-// 	`/${id}/likes`,
-// 	'GET',
-// 	{
-// 		summary: 1,
-// 		fields: 'summary',
-// 	}
-// )
-// .then(result => result.summary.total_count);
-
-// const getObjectComments = id => fbApi.call(
-// 	`/${id}/comments`,
-// 	'GET',
-// 	{
-// 		summary: 1,
-// 		fields: 'summary',
-// 	}
-// )
-// .then(result => result.summary.total_count);
-
-// const getPostInsights = id => fbApi.call(
-// 	`/${id}/insights/post_consumptions_by_type`,
-// 	'GET', {
-// 		fields: 'period,values',
-// 		period: 'lifetime',
-// 	}
-// )
-// .then(result => ({
-// 	insights: {
-// 		post: result.data[0].values[0].value,
-// 	},
-// }));
-
-// const addInstantArticleInsights = ({post, metric, period}) => fbApi.call(
-// 	`/${post.canonical}`,
-// 	'GET',
-// 	{
-// 		fields: `instant_article{insights.metric(${metric}).period(${period})}`,
-// 	}
-// )
-// .then(results => {
-// 	post.ia[mode].insights[metric] = results.instant_article.insights.data;
-// 	return post;
-// });
-
-// const addInstantArticle = post => fbApi.find({
-// 	canonical: post.canonical,
-// 	fields: ['id', 'development_mode', 'published', 'most_recent_import_status{status}'],
-// })
-// .then(ia => Object.assign(post, {ia}))
-// .then(enrichedPost => {
-// 	if(enrichedPost.ia[mode].nullRecord) return Promise.resolve(enrichedPost);
-// 	enrichedPost.ia[mode].insights = {};
-
-// 	return Promise.all([
-// 		addInstantArticleInsights({post: enrichedPost, metric: 'all_views', period: 'day'}),
-// 		addInstantArticleInsights({post: enrichedPost, metric: 'all_view_durations', period: 'week'}),
-// 		addInstantArticleInsights({post: enrichedPost, metric: 'all_scrolls', period: 'week'}),
-// 	])
-// 	.then(() => enrichedPost);
-// });
-
-// const getPostSocial = id => Promise.all([
-// 	getPostShares(id),
-// 	getObjectLikes(id),
-// 	getObjectComments(id),
-// ])
-// .then(([shares, likes, comments]) => ({
-// 	social: {
-// 		post: {shares, likes, comments},
-// 	},
-// }));
-
-// const getCanonicalSocial = id => Promise.all([
-// 	getObjectShares(id),
-// ])
-// .then(([shares]) => ({
-// 	social: {
-// 		canonical: {shares},
-// 	},
-// }));
-
-// const enrich = post => Promise.all([
-// 	getPostDetails(post.id),
-// 	getPostSocial(post.id),
-// 	getPostInsights(post.id),
-// ])
-// .then(([...args]) => merge({}, ...args));
-
-// const enrichCanonical = post => Promise.all([
-// 	addInstantArticle(post),
-// 	getCanonicalSocial(post.canonical),
-// ])
-// .then(([...args]) => merge({}, ...args));
-
-// module.exports = (req, res, next) => fbApi.call(
-// 	`/${pageId}/posts`,
-// 	'GET',
-// 	{
-// 		fields: 'type',
-// 		since: '2016-04-26',
-// 		__limit: 0,
-// 	}
-// )
-// .then(response => response.data)
-// .then(posts => posts.filter(post => post.type === 'link'))
-// .then(posts => Promise.all(posts.map(enrich)))
-// .then(posts => Promise.all(
-// 	posts.map(post => (post.canonical ? enrichCanonical(post) : Promise.resolve(post))) ))
-// .then(posts => posts.filter(post => !!post))
-// .then(posts => res.json(posts))
-// .catch(next);
 
 const postAttributeKeys = [
 	'type',
@@ -219,33 +71,36 @@ const iaMetricTypes = {
 };
 
 
-const linkResultPath = 'links:$.posts.data.*.link';
-const canonicalResultPath = 'canonicals:$.*.og_object.url';
+const postsResultPath = 'posts:$.data.*.link';
+const linksResultPath = 'links:$.*.og_object.url';
 
-const createLinksQuery = ({since}) => {
+const createPostsQuery = params => {
 	const postEdgesQuery = postEdgeKeys.map(key => `${key}.limit(0).summary(true)`);
 	const insightsQuery = `insights.metric(${insightsMetricsKeys.join(',')}){${insightsKeys.join(',')}}`;
 	const postAttributesQuery = postAttributeKeys.concat(postEdgesQuery).concat(insightsQuery).join(',');
 
-	return `/${pageId}?fields=posts.since(${since}){${postAttributesQuery}}`;
+	params.fields = postAttributesQuery;
+	const paramsQuery = Object.keys(params).map(key => `${key}=${params[key]}`).join('&');
+
+	return `/${pageId}/posts?${paramsQuery}&fields=${postAttributesQuery}`;
 };
 
-const createCanonicalsQuery = () => `?ids={result=${linkResultPath}}&fields=og_object{type,url}`;
+const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_object{type,url}`;
 
-const createIaQuery = () => {
+const createCanonicalsQuery = () => {
 	const iaMetricQueries = Object.keys(iaMetricTypes).map(key => `insights.metric(${key}).period(${iaMetricTypes[key]}).as(metrics_${key})`);
 	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
 	const canonicalAttributesQuery = canonicalKeys.concat(iaQuery).join(',');
 
-	return `?ids={result=${canonicalResultPath}}&fields=${canonicalAttributesQuery}`;
+	return `?ids={result=${linksResultPath}}&fields=${canonicalAttributesQuery}`;
 };
 
-const createQuery = options => {
+const createQuery = params => {
 	const queries = {
-		links: createLinksQuery(options),
-		canonicals: createCanonicalsQuery(options),
-		ias: createIaQuery(options),
+		posts: createPostsQuery(params),
+		links: createLinksQuery(params),
+		canonicals: createCanonicalsQuery(params),
 	};
 
 	return Object.keys(queries).map(key => ({
@@ -256,17 +111,45 @@ const createQuery = options => {
 	}));
 };
 
-const executeQuery = () => {
-	const batch = createQuery({since: '2016-04-26'});
+const processResults = ([postsBatch, links, canonicals]) => {
+	const posts = postsBatch.data;
 
-	return fbApi.call('', 'POST', {
-		batch,
-		include_headers: false,
-	})
-	.then(result => result.map())
+	posts.forEach(post => {
+		if(post.link && links[post.link]) {
+			post.link = links[post.link];
+			if(post.link.og_object && post.link.og_object.url) {
+				post.canonical = canonicals[post.link.og_object.url];
+			}
+		}
+	});
+
+	return posts;
 };
 
-module.exports = (req, res, next) => {
-	return executeQuery()
-	.then(result => res.json(result));
-};
+const executeQuery = params => fbApi.call('', 'POST', {
+	batch: createQuery(params),
+	include_headers: false,
+	__dependent: true,
+})
+.then(batchResult => {
+	// End of data reached
+	if(batchResult === null) return null;
+
+	const result = processResults(batchResult);
+
+	if(batchResult[0].paging && batchResult[0].paging.next) {
+		const nextParams = url.parse(batchResult[0].paging.next, true).query;
+
+		delete nextParams.access_token;
+		delete nextParams.fields;
+
+		return executeQuery(nextParams)
+			.then(nextResult => (nextResult ? result.concat(nextResult) : result));
+	}
+
+	return result;
+});
+
+module.exports = (req, res, next) => executeQuery({since: '2016-04-26', limit: 50})
+.then(result => res.json(result))
+.catch(next);
