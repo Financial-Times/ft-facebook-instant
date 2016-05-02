@@ -1,8 +1,8 @@
 'use strict';
 
 const fbApi = require('../lib/fbApi');
-const url = require('url');
 const pageId = process.env.FB_PAGE_ID;
+const batchSize = 50;
 
 const postAttributeKeys = [
 	'type',
@@ -71,18 +71,30 @@ const iaMetricTypes = {
 };
 
 
-const postsResultPath = 'posts:$.data.*.link';
+const postsResultPath = 'posts:$.*.link';
 const linksResultPath = 'links:$.*.og_object.url';
 
-const createPostsQuery = params => {
+const getPostsLists = params => {
+	params.fields = 'id';
+	const paramsQuery = Object.keys(params).map(key => `${key}=${params[key]}`).join('&');
+
+	return fbApi.call(`/${pageId}/posts?${paramsQuery}`, 'GET', {
+		__limit: 0,
+	});
+};
+
+const createPostsQuery = ids => {
 	const postEdgesQuery = postEdgeKeys.map(key => `${key}.limit(0).summary(true)`);
 	const insightsQuery = `insights.metric(${insightsMetricsKeys.join(',')}){${insightsKeys.join(',')}}`;
 	const postAttributesQuery = postAttributeKeys.concat(postEdgesQuery).concat(insightsQuery).join(',');
 
-	params.fields = postAttributesQuery;
+	const params = {
+		ids,
+		fields: postAttributesQuery,
+	};
 	const paramsQuery = Object.keys(params).map(key => `${key}=${params[key]}`).join('&');
 
-	return `/${pageId}/posts?${paramsQuery}&fields=${postAttributesQuery}`;
+	return `?${paramsQuery}`;
 };
 
 const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_object{type,url}`;
@@ -96,11 +108,11 @@ const createCanonicalsQuery = () => {
 	return `?ids={result=${linksResultPath}}&fields=${canonicalAttributesQuery}`;
 };
 
-const createQuery = params => {
+const createQuery = ids => {
 	const queries = {
-		posts: createPostsQuery(params),
-		links: createLinksQuery(params),
-		canonicals: createCanonicalsQuery(params),
+		posts: createPostsQuery(ids),
+		links: createLinksQuery(),
+		canonicals: createCanonicalsQuery(),
 	};
 
 	return Object.keys(queries).map(key => ({
@@ -111,10 +123,10 @@ const createQuery = params => {
 	}));
 };
 
-const processResults = ([postsBatch, links, canonicals]) => {
-	const posts = postsBatch.data;
-
-	posts.forEach(post => {
+const processResults = ([posts, links, canonicals]) => {
+	let post;
+	Object.keys(posts).forEach(id => {
+		post = posts[id];
 		if(post.link && links[post.link]) {
 			post.link = links[post.link];
 			if(post.link.og_object && post.link.og_object.url) {
@@ -126,30 +138,28 @@ const processResults = ([postsBatch, links, canonicals]) => {
 	return posts;
 };
 
-const executeQuery = params => fbApi.call('', 'POST', {
-	batch: createQuery(params),
+const executeQuery = ids => fbApi.call('', 'POST', {
+	batch: createQuery(ids),
 	include_headers: false,
 	__dependent: true,
 })
-.then(batchResult => {
-	// End of data reached
-	if(batchResult === null) return null;
+.then(processResults);
 
-	const result = processResults(batchResult);
-
-	if(batchResult[0].paging && batchResult[0].paging.next) {
-		const nextParams = url.parse(batchResult[0].paging.next, true).query;
-
-		delete nextParams.access_token;
-		delete nextParams.fields;
-
-		return executeQuery(nextParams)
-			.then(nextResult => (nextResult ? result.concat(nextResult) : result));
+const batchIdList = idList => {
+	const batch = [];
+	for(let i = 0; i < idList.length; i += batchSize) {
+		batch.push(
+			idList
+				.slice(i, i + batchSize)
+				.map(item => item.id)
+		);
 	}
+	return batch;
+};
 
-	return result;
-});
-
-module.exports = (req, res, next) => executeQuery({since: '2016-04-26', limit: 50})
+module.exports = (req, res, next) => getPostsLists({since: '2016-04-26'})
+.then(result => (batchIdList(result.data)))
+.then(idBatch => Promise.all(idBatch.map(executeQuery)))
+.then(batchedResults => [].concat(...batchedResults))
 .then(result => res.json(result))
 .catch(next);
