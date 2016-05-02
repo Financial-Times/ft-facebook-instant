@@ -1,8 +1,11 @@
 'use strict';
 
 const fbApi = require('../lib/fbApi');
+const stats = require('stats-lite');
 const pageId = process.env.FB_PAGE_ID;
-const batchSize = 50;
+
+const BATCH_SIZE = 50;
+const VERBOSE_AGGREGATIONS = false;
 
 const postAttributeKeys = [
 	'type',
@@ -45,7 +48,6 @@ const insightsMetricsKeys = [
 
 const insightsKeys = [
 	'name',
-	'description',
 	'period',
 	'values',
 ];
@@ -123,20 +125,114 @@ const createQuery = ids => {
 	}));
 };
 
-const processResults = ([posts, links, canonicals]) => {
-	let post;
-	Object.keys(posts).forEach(id => {
-		post = posts[id];
-		if(post.link && links[post.link]) {
-			post.link = links[post.link];
-			if(post.link.og_object && post.link.og_object.url) {
-				post.canonical = canonicals[post.link.og_object.url];
+const aggregateMetricBreakdowns = (data) => {
+	const aggregations = {};
+	let values = [];
+
+	data.sort((a, b) => a.breakdowns.bucket - b.breakdowns.bucket);
+	data.forEach(item => {
+		const bucket = parseInt(item.breakdowns.bucket, 10);
+		const value = parseInt(item.value, 10);
+		if(VERBOSE_AGGREGATIONS) aggregations[bucket] = value;
+		values = values.concat(Array(value).fill(bucket));
+	});
+
+	return Object.assign(aggregations, {
+		min: values[0],
+		max: values[values.length - 1],
+		mean: stats.mean(values),
+		median: stats.median(values),
+		mode: stats.mode(values),
+		stdev: stats.stdev(values),
+		p25: stats.percentile(values, 0.25),
+		p50: stats.percentile(values, 0.50),
+		p75: stats.percentile(values, 0.75),
+		p95: stats.percentile(values, 0.95),
+	});
+};
+
+const flattenIaMetrics = (post, flat) => {
+	Object.keys(iaMetricTypes).forEach(key => {
+		const metric = post.canonical.instant_article[`metrics_${key}`];
+		if(metric) {
+			switch(iaMetricTypes[key]) {
+				case 'day':
+					flat[`ia_${key}`] = metric.data.reduce((total, item) => (total + parseInt(item.value, 0)), 0);
+					break;
+				case 'week':
+					const aggregations = aggregateMetricBreakdowns(metric.data);
+					Object.keys(aggregations).forEach(aggregation => {
+						flat[`ia_${key}_${aggregation}`] = aggregations[aggregation];
+					})
+					break;
+				default:
+					throw Error(`Unexpected Instant Article metric key [${key}]`);
 			}
 		}
 	});
-
-	return posts;
 };
+
+const flattenPost = post => {
+	const flat = {
+		id: post.id,
+		type: post.type,
+		name: post.name,
+		link: post.link,
+		created_time: post.created_time,
+		message: post.message,
+		description: post.description,
+		is_published: post.is_published,
+		updated_time: post.updated_time,
+	};
+
+	flat.shares = post.shares.count;
+	flat.likes = post.likes.total_count;
+	flat.comments = post.comments.total_count;
+
+	Object.keys(post.insights).forEach(insightKey => {
+		const insight = post.insights[insightKey];
+		if(typeof insight.values[0].value === 'object') {
+			Object.keys(insight.values[0].value).forEach(valueKey => {
+				flat[`insight_${insightKey}_${valueKey.replace(/\s/g, '_')}`] = insight.values[0].value[valueKey];
+			});
+		} else {
+			flat[`insight_${insightKey}`] = insight.values[0].value;
+		}
+	});
+
+	if(post.canonical) {
+		flat.canonical = post.canonical.id;
+		flat.canonical_share = post.canonical.share.share_count;
+		flat.canonical_comment = post.canonical.share.comment_count;
+
+		if(post.canonical.instant_article) {
+			flat.ia_published = post.canonical.instant_article.published;
+			flat.ia_import_status = post.canonical.instant_article.most_recent_import_status &&
+				post.canonical.instant_article.most_recent_import_status.status;
+
+			flattenIaMetrics(post, flat);
+		}
+	}
+
+	return flat;
+};
+
+const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id => {
+	const post = posts[id];
+
+	if(post.link && links[post.link] && links[post.link].og_object && links[post.link].og_object.url) {
+		post.canonical = canonicals[links[post.link].og_object.url];
+	}
+
+	if(post.insights) {
+		const insights = post.insights.data;
+		post.insights = {};
+		insights.forEach(item => (post.insights[item.name] = item));
+	}
+
+	return post;
+})
+.map(flattenPost);
 
 const executeQuery = ids => fbApi.call('', 'POST', {
 	batch: createQuery(ids),
@@ -147,10 +243,10 @@ const executeQuery = ids => fbApi.call('', 'POST', {
 
 const batchIdList = idList => {
 	const batch = [];
-	for(let i = 0; i < idList.length; i += batchSize) {
+	for(let i = 0; i < idList.length; i += BATCH_SIZE) {
 		batch.push(
 			idList
-				.slice(i, i + batchSize)
+				.slice(i, i + BATCH_SIZE)
 				.map(item => item.id)
 		);
 	}
