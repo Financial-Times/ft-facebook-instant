@@ -2,8 +2,10 @@
 
 const fbApi = require('../lib/fbApi');
 const stats = require('stats-lite');
-const pageId = process.env.FB_PAGE_ID;
+const denodeify = require('denodeify');
+const csvStringify = denodeify(require('csv-stringify'));
 
+const pageId = process.env.FB_PAGE_ID;
 const BATCH_SIZE = 50;
 const VERBOSE_AGGREGATIONS = false;
 
@@ -154,16 +156,17 @@ const aggregateMetricBreakdowns = (data) => {
 const flattenIaMetrics = (post, flat) => {
 	Object.keys(iaMetricTypes).forEach(key => {
 		const metric = post.canonical.instant_article[`metrics_${key}`];
+		let aggregations;
 		if(metric) {
 			switch(iaMetricTypes[key]) {
 				case 'day':
 					flat[`ia_${key}`] = metric.data.reduce((total, item) => (total + parseInt(item.value, 0)), 0);
 					break;
 				case 'week':
-					const aggregations = aggregateMetricBreakdowns(metric.data);
+					aggregations = aggregateMetricBreakdowns(metric.data);
 					Object.keys(aggregations).forEach(aggregation => {
 						flat[`ia_${key}_${aggregation}`] = aggregations[aggregation];
-					})
+					});
 					break;
 				default:
 					throw Error(`Unexpected Instant Article metric key [${key}]`);
@@ -186,8 +189,8 @@ const flattenPost = post => {
 	};
 
 	flat.shares = post.shares.count;
-	flat.likes = post.likes.total_count;
-	flat.comments = post.comments.total_count;
+	flat.likes = post.likes.summary.total_count;
+	flat.comments = post.comments.summary.total_count;
 
 	Object.keys(post.insights).forEach(insightKey => {
 		const insight = post.insights[insightKey];
@@ -253,9 +256,78 @@ const batchIdList = idList => {
 	return batch;
 };
 
+const generateCsv = data => csvStringify(data, {
+	header: true,
+	columns: {
+		id: 'id',
+		type: 'type',
+		name: 'name',
+		link: 'link',
+		created_time: 'created_time',
+		message: 'message',
+		description: 'description',
+		is_published: 'is_published',
+		updated_time: 'updated_time',
+		shares: 'shares',
+		likes: 'likes',
+		comments: 'comments',
+		insight_post_impressions: 'insight_post_impressions',
+		insight_post_impressions_unique: 'insight_post_impressions_unique',
+		insight_post_impressions_fan_unique: 'insight_post_impressions_fan_unique',
+		insight_post_impressions_organic_unique: 'insight_post_impressions_organic_unique',
+		insight_post_impressions_viral: 'insight_post_impressions_viral',
+		insight_post_impressions_viral_unique: 'insight_post_impressions_viral_unique',
+		insight_post_impressions_by_story_type_other: 'insight_post_impressions_by_story_type_other',
+		insight_post_impressions_by_story_type_unique_other: 'insight_post_impressions_by_story_type_unique_other',
+		insight_post_consumptions: 'insight_post_consumptions',
+		insight_post_consumptions_unique: 'insight_post_consumptions_unique',
+		insight_post_consumptions_by_type_other_clicks: 'insight_post_consumptions_by_type_other_clicks',
+		insight_post_consumptions_by_type_link_clicks: 'insight_post_consumptions_by_type_link_clicks',
+		insight_post_consumptions_by_type_unique_other_clicks: 'insight_post_consumptions_by_type_unique_other_clicks',
+		insight_post_consumptions_by_type_unique_link_clicks: 'insight_post_consumptions_by_type_unique_link_clicks',
+		insight_post_engaged_users: 'insight_post_engaged_users',
+		insight_post_negative_feedback: 'insight_post_negative_feedback',
+		insight_post_engaged_fan: 'insight_post_engaged_fan',
+		insight_post_fan_reach: 'insight_post_fan_reach',
+		insight_post_stories_by_action_type_share: 'insight_post_stories_by_action_type_share',
+		insight_post_stories_by_action_type_like: 'insight_post_stories_by_action_type_like',
+		insight_post_stories_by_action_type_comment: 'insight_post_stories_by_action_type_comment',
+		canonical: 'canonical',
+		canonical_share: 'canonical_share',
+		canonical_comment: 'canonical_comment',
+		ia_published: 'ia_published',
+		ia_import_status: 'ia_import_status',
+		ia_all_views: 'ia_all_views',
+		ia_all_view_durations_min: 'ia_all_view_durations_min',
+		ia_all_view_durations_max: 'ia_all_view_durations_max',
+		ia_all_view_durations_mean: 'ia_all_view_durations_mean',
+		ia_all_view_durations_median: 'ia_all_view_durations_median',
+		ia_all_view_durations_mode: 'ia_all_view_durations_mode',
+		ia_all_view_durations_stdev: 'ia_all_view_durations_stdev',
+		ia_all_view_durations_p25: 'ia_all_view_durations_p25',
+		ia_all_view_durations_p50: 'ia_all_view_durations_p50',
+		ia_all_view_durations_p75: 'ia_all_view_durations_p75',
+		ia_all_view_durations_p95: 'ia_all_view_durations_p95',
+		ia_all_scrolls_min: 'ia_all_scrolls_min',
+		ia_all_scrolls_max: 'ia_all_scrolls_max',
+		ia_all_scrolls_mean: 'ia_all_scrolls_mean',
+		ia_all_scrolls_median: 'ia_all_scrolls_median',
+		ia_all_scrolls_mode: 'ia_all_scrolls_mode',
+		ia_all_scrolls_stdev: 'ia_all_scrolls_stdev',
+		ia_all_scrolls_p25: 'ia_all_scrolls_p25',
+		ia_all_scrolls_p50: 'ia_all_scrolls_p50',
+		ia_all_scrolls_p75: 'ia_all_scrolls_p75',
+		ia_all_scrolls_p95: 'ia_all_scrolls_p95',
+	},
+});
+
 module.exports = (req, res, next) => getPostsLists({since: '2016-04-26'})
 .then(result => (batchIdList(result.data)))
 .then(idBatch => Promise.all(idBatch.map(executeQuery)))
 .then(batchedResults => [].concat(...batchedResults))
-.then(result => res.json(result))
+.then(generateCsv)
+.then(csv => {
+	res.header('Content-Type', 'text/csv');
+	res.send(csv);
+})
 .catch(next);
