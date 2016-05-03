@@ -127,6 +127,19 @@ const createQuery = ids => {
 	}));
 };
 
+const getAggregationStatistics = values => ({
+	min: values[0],
+	max: values[values.length - 1],
+	mean: Math.round(numbers.statistic.mean(values) * 100) / 100,
+	median: numbers.statistic.median(values),
+	mode: numbers.statistic.mode(values),
+	stdev: Math.round(numbers.statistic.standardDev(values) * 100) / 100,
+	p25: numbers.statistic.quantile(values, 25, 100),
+	p50: numbers.statistic.quantile(values, 50, 100),
+	p75: numbers.statistic.quantile(values, 75, 100),
+	p95: numbers.statistic.quantile(values, 95, 100),
+});
+
 const aggregateMetricBreakdowns = (data) => {
 	const aggregations = {};
 	let values = [];
@@ -139,38 +152,25 @@ const aggregateMetricBreakdowns = (data) => {
 		values = values.concat(Array(value).fill(bucket));
 	});
 
-	return Object.assign(aggregations, {
-		min: values[0],
-		max: values[values.length - 1],
-		mean: numbers.statistic.mean(values),
-		median: numbers.statistic.median(values),
-		mode: numbers.statistic.mode(values),
-		stdev: numbers.statistic.standardDev(values),
-		p25: numbers.statistic.quantile(values, 25, 100),
-		p50: numbers.statistic.quantile(values, 50, 100),
-		p75: numbers.statistic.quantile(values, 75, 100),
-		p95: numbers.statistic.quantile(values, 95, 100),
-	});
+	return Object.assign(aggregations, getAggregationStatistics(values));
 };
 
 const flattenIaMetrics = (post, flat) => {
 	Object.keys(iaMetricTypes).forEach(key => {
-		const metric = post.canonical.instant_article[`metrics_${key}`];
+		const metric = post.canonical && post.canonical.instant_article && post.canonical.instant_article[`metrics_${key}`];
 		let aggregations;
-		if(metric) {
-			switch(iaMetricTypes[key]) {
-				case 'day':
-					flat[`ia_${key}`] = metric.data.reduce((total, item) => (total + parseInt(item.value, 10)), 0);
-					break;
-				case 'week':
-					aggregations = aggregateMetricBreakdowns(metric.data);
-					Object.keys(aggregations).forEach(aggregation => {
-						flat[`ia_${key}_${aggregation}`] = aggregations[aggregation];
-					});
-					break;
-				default:
-					throw Error(`Unexpected Instant Article metric key [${key}]`);
-			}
+		switch(iaMetricTypes[key]) {
+			case 'day':
+				flat[`ia_${key}`] = metric ? metric.data.reduce((total, item) => (total + parseInt(item.value, 10)), 0) : 0;
+				break;
+			case 'week':
+				aggregations = metric ? aggregateMetricBreakdowns(metric.data) : getAggregationStatistics([0]);
+				Object.keys(aggregations).forEach(aggregation => {
+					flat[`ia_${key}_${aggregation}`] = aggregations[aggregation];
+				});
+				break;
+			default:
+				throw Error(`Unexpected Instant Article metric key [${key}]`);
 		}
 	});
 };
@@ -186,6 +186,13 @@ const flattenPost = post => {
 		description: post.description,
 		is_published: post.is_published,
 		updated_time: post.updated_time,
+
+		// Default values
+		canonical: null,
+		canonical_share: 0,
+		canonical_comment: 0,
+		ia_published: 0,
+		ia_import_status: null,
 	};
 
 	flat.shares = post.shares && post.shares.count;
@@ -212,11 +219,10 @@ const flattenPost = post => {
 			flat.ia_published = post.canonical.instant_article.published;
 			flat.ia_import_status = post.canonical.instant_article.most_recent_import_status &&
 				post.canonical.instant_article.most_recent_import_status.status;
-
-			flattenIaMetrics(post, flat);
 		}
 	}
 
+	flattenIaMetrics(post, flat);
 	return flat;
 };
 
@@ -227,11 +233,9 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 		post.canonical = canonicals[links[post.link].og_object.url];
 	}
 
-	if(post.insights) {
-		const insights = post.insights.data;
-		post.insights = {};
-		insights.forEach(item => (post.insights[item.name] = item));
-	}
+	const insights = post.insights.data;
+	post.insights = {};
+	insights.forEach(item => (post.insights[item.name] = item));
 
 	return post;
 });
