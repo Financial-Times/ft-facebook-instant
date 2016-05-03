@@ -2,6 +2,7 @@
 
 const fbApi = require('../lib/fbApi');
 const numbers = require('numbers');
+const moment = require('moment');
 const denodeify = require('denodeify');
 const csvStringify = denodeify(require('csv-stringify'));
 
@@ -175,6 +176,18 @@ const flattenIaMetrics = (post, flat) => {
 	});
 };
 
+const getEarliestIaView = post => {
+	if(!post.canonical.instant_article.metrics_all_views) return null;
+
+	const earliest = post.canonical.instant_article.metrics_all_views.data
+		.map(item => new Date(item.time).getTime())
+		.sort((a, b) => a - b)
+		[0];
+
+	return moment.utc(earliest)
+		.format();
+};
+
 const flattenPost = post => {
 	const flat = {
 		id: post.id,
@@ -192,6 +205,7 @@ const flattenPost = post => {
 		canonical_share: 0,
 		canonical_comment: 0,
 		ia_published: 0,
+		ia_earliest_views: null,
 		ia_import_status: null,
 	};
 
@@ -217,6 +231,7 @@ const flattenPost = post => {
 
 		if(post.canonical.instant_article) {
 			flat.ia_published = post.canonical.instant_article.published;
+			flat.ia_earliest_views = getEarliestIaView(post);
 			flat.ia_import_status = post.canonical.instant_article.most_recent_import_status &&
 				post.canonical.instant_article.most_recent_import_status.status;
 		}
