@@ -1,7 +1,8 @@
 'use strict';
 
 const fbApi = require('../lib/fbApi');
-const articleModel = require('../models/article');
+const ftApi = require('../lib/ftApi');
+const database = require('../lib/database');
 const numbers = require('numbers');
 const moment = require('moment');
 const denodeify = require('denodeify');
@@ -189,8 +190,9 @@ const getEarliestIaView = post => {
 		.format();
 };
 
-const getUuid = canonical => articleModel.getApi(canonical)
-.then(article => article.id)
+const getUuid = canonical => database.getCapi(canonical)
+.then(cached => cached || ftApi.fetchByCanonical(canonical))
+.then(article => article && article.id || null)
 .catch(() => null);
 
 const flattenPost = post => Promise.resolve()
