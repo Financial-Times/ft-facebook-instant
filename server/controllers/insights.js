@@ -1,6 +1,7 @@
 'use strict';
 
 const fbApi = require('../lib/fbApi');
+const articleModel = require('../models/article');
 const numbers = require('numbers');
 const moment = require('moment');
 const denodeify = require('denodeify');
@@ -188,7 +189,12 @@ const getEarliestIaView = post => {
 		.format();
 };
 
-const flattenPost = post => {
+const getUuid = canonical => articleModel.getApi(canonical)
+.then(article => article.id)
+.catch(() => null);
+
+const flattenPost = post => Promise.resolve()
+.then(() => {
 	const flat = {
 		id: post.id,
 		type: post.type,
@@ -202,6 +208,7 @@ const flattenPost = post => {
 
 		// Default values
 		canonical: null,
+		uuid: null,
 		canonical_share: 0,
 		canonical_comment: 0,
 		ia_published: 0,
@@ -239,7 +246,13 @@ const flattenPost = post => {
 
 	flattenIaMetrics(post, flat);
 	return flat;
-};
+})
+.then(flat => {
+	if(!flat.canonical) return flat;
+
+	return getUuid(flat.canonical)
+		.then(uuid => Object.assign(flat, {uuid}));
+});
 
 const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id => {
 	const post = posts[id];
@@ -283,7 +296,7 @@ module.exports = (req, res, next) => getPostsLists({since: '2016-04-26'})
 .then(idBatch => Promise.all(idBatch.map(executeQuery)))
 .then(batchedResults => [].concat(...batchedResults))
 
-.then(posts => posts.map(flattenPost))
+.then(posts => Promise.all(posts.map(flattenPost)))
 .then(generateCsv)
 .then(csv => {
 	res.header('Content-Type', 'text/csv');
