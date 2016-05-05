@@ -340,49 +340,49 @@ const batchIdList = idList => {
 };
 
 const getColumns = () => {
-	let columns = {
-		id: 'id',
-		type: 'type',
-		name: 'name',
-		message: 'message',
-		description: 'description',
-		created_time: 'created_time',
-		updated_time: 'updated_time',
-		is_published: 'is_published',
-		link: 'link',
-		canonical: 'canonical',
-		uuid: 'uuid',
-		post_shares: 'post_shares',
-		post_likes: 'post_likes',
-		post_comments: 'post_comments',
-		canonical_share: 'canonical_share',
-	};
+	let columns = [
+		'id',
+		'type',
+		'name',
+		'message',
+		'description',
+		'created_time',
+		'updated_time',
+		'is_published',
+		'link',
+		'canonical',
+		'uuid',
+		'post_shares',
+		'post_likes',
+		'post_comments',
+		'canonical_share',
+	];
 
 	Object.keys(insightsMetricsKeys).forEach(key => {
 		if(insightsMetricsKeyTypes[key]) {
 			Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
 				const escapedType = type.replace(/\s/g, '_');
-				columns[`insight_${key}_${type}`] = `insight_${key}_${escapedType}`;
+				columns.push(`insight_${key}_${escapedType}`);
 			});
 		} else {
-			columns[`insight_${key}`] = `insight_${key}`;
+			columns.push(`insight_${key}`);
 		}
 	});
 
-	columns = Object.assign(columns, {
-		ia_published: 'ia_published',
-		ia_earliest_views: 'ia_earliest_views',
-		ia_import_status: 'ia_import_status',
-	});
+	columns = columns.concat([
+		'ia_published',
+		'ia_earliest_views',
+		'ia_import_status',
+	]);
 
 	Object.keys(iaMetricTypes).forEach(key => {
 		switch(iaMetricTypes[key]) {
 			case 'day':
-				columns[`ia_${key}`] = key;
+				columns.push(`ia_${key}`);
 				break;
 			case 'week':
 				['min', 'max', 'mean', 'median', 'mode', 'stdev', 'p25', 'p50', 'p75', 'p95'].forEach(type => {
-					columns[`ia_${key}_${type}`] = `${key}_${type}`;
+					columns.push(`ia_${key}_${type}`);
 				});
 				break;
 			default:
@@ -390,7 +390,9 @@ const getColumns = () => {
 		}
 	});
 
-	return columns;
+	const obj = {};
+	columns.forEach(key => (obj[key] = key));
+	return obj;
 };
 
 const addExplainerRow = data => {
