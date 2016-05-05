@@ -11,6 +11,7 @@ const csvStringify = denodeify(require('csv-stringify'));
 const pageId = process.env.FB_PAGE_ID;
 const BATCH_SIZE = 50;
 const VERBOSE_AGGREGATIONS = false;
+const EXPLAINER_ROW = true;
 
 const postAttributeKeys = [
 	'type',
@@ -361,10 +362,10 @@ const getColumns = () => {
 		if(insightsMetricsKeyTypes[key]) {
 			Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
 				const escapedType = type.replace(/\s/g, '_');
-				columns[`insight_${key}_${type}`] = VERBOSE_LABELS ? `${key} (${type})\n${insightsMetricsKeys[key]}` : `insight_${key}_${escapedType}`;
+				columns[`insight_${key}_${type}`] = `insight_${key}_${escapedType}`;
 			});
 		} else {
-			columns[`insight_${key}`] = VERBOSE_LABELS ? `${key}\n${insightsMetricsKeys[key]}` : `insight_${key}`;
+			columns[`insight_${key}`] = `insight_${key}`;
 		}
 	});
 
@@ -392,10 +393,33 @@ const getColumns = () => {
 	return columns;
 };
 
-const generateCsv = data => csvStringify(data, {
-	header: true,
-	columns: getColumns(),
-});
+const addExplainerRow = data => {
+	const explainer = {
+		id: 'key',
+	};
+
+	Object.keys(insightsMetricsKeys).forEach(key => {
+		if(insightsMetricsKeyTypes[key]) {
+			Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
+				explainer[`insight_${key}_${type}`] = `${insightsMetricsKeys[key]}`;
+			});
+		} else {
+			explainer[`insight_${key}`] = `${insightsMetricsKeys[key]}`;
+		}
+	});
+	data.unshift(explainer);
+};
+
+const generateCsv = data => {
+	if(EXPLAINER_ROW) {
+		addExplainerRow(data);
+	}
+
+	return csvStringify(data, {
+		header: true,
+		columns: getColumns(),
+	});
+};
 
 module.exports = (req, res, next) => getPostsLists({since: '2016-04-26'})
 .then(result => (batchIdList(result.data)))
