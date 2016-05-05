@@ -361,8 +361,7 @@ const getColumns = () => {
 	Object.keys(insightsMetricsKeys).forEach(key => {
 		if(insightsMetricsKeyTypes[key]) {
 			Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
-				const escapedType = type.replace(/\s/g, '_');
-				columns.push(`insight_${key}_${escapedType}`);
+				columns.push(`insight_${key}_${type}`);
 			});
 		} else {
 			columns.push(`insight_${key}`);
@@ -391,7 +390,7 @@ const getColumns = () => {
 	});
 
 	const obj = {};
-	columns.forEach(key => (obj[key] = key));
+	columns.forEach(key => (obj[key] = key.replace(/\s/g, '_')));
 	return obj;
 };
 
