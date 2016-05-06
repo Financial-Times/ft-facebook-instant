@@ -340,7 +340,7 @@ const batchIdList = idList => {
 };
 
 const getColumns = () => {
-	let columns = [
+	const columns = [
 		'id',
 		'type',
 		'name',
@@ -352,6 +352,9 @@ const getColumns = () => {
 		'link',
 		'canonical',
 		'uuid',
+		'ia_published',
+		'ia_earliest_views',
+		'ia_import_status',
 		'post_shares',
 		'post_likes',
 		'post_comments',
@@ -367,12 +370,6 @@ const getColumns = () => {
 			columns.push(`insight_${key}`);
 		}
 	});
-
-	columns = columns.concat([
-		'ia_published',
-		'ia_earliest_views',
-		'ia_import_status',
-	]);
 
 	Object.keys(iaMetricTypes).forEach(key => {
 		switch(iaMetricTypes[key]) {
