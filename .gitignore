@@ -4,4 +4,5 @@ env.sh
 build
 *.log
 cache/*
+insights/*
 redis.conf

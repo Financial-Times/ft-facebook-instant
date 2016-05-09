@@ -1,7 +1,7 @@
 'use strict';
 
-const insights = require('../lib/insights');
 const moment = require('moment');
+const insights = require('../lib/insights');
 
 module.exports = (req, res, next) => {
 	const timestamp = moment.utc()
@@ -17,9 +17,8 @@ module.exports = (req, res, next) => {
 		timestamp,
 		firstRun: true,
 	})
-		.then(csv => {
-			res.header('Content-Type', 'text/csv');
-			res.send(csv);
-		})
-		.catch(next);
+	.then(() => {
+		res.send('done');
+	})
+	.catch(next);
 };

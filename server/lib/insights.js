@@ -7,6 +7,9 @@ const numbers = require('numbers');
 const moment = require('moment');
 const denodeify = require('denodeify');
 const csvStringify = denodeify(require('csv-stringify'));
+const path = require('path');
+const cuid = require('cuid');
+const fs = require('fs');
 
 const pageId = process.env.FB_PAGE_ID;
 const BATCH_SIZE = 50;
@@ -423,6 +426,13 @@ const generateCsv = data => {
 	});
 };
 
+const saveCsv = (timestamp, data) => {
+	const filename = path.resolve(process.cwd(), `insights/${moment.utc(timestamp).toISOString()}.${cuid()}.csv`);
+	return generateCsv(data)
+		.then(csv => fs.writeFile(filename, csv))
+		.then(() => console.log(`Wrote CSV to ${filename}`));
+};
+
 const repeatWithAverages = (timestamp, post) => {
 	const created = moment.utc(post.created_time);
 	const now = moment.utc(timestamp);
@@ -476,4 +486,4 @@ module.exports.fetch = ({since, timestamp, firstRun}) => getPostsLists({since, u
 	const repeated = posts.map(post => repeatWithAverages(timestamp, post));
 	return [].concat(...repeated);
 })
-.then(generateCsv);
+.then(posts => saveCsv(timestamp, posts));
