@@ -6,3 +6,4 @@ build
 cache/*
 insights/*
 redis.conf
+.eslintcache
