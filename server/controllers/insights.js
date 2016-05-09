@@ -15,7 +15,6 @@ module.exports = (req, res, next) => {
 	return insights.fetch({
 		since,
 		timestamp,
-		firstRun: true,
 	})
 	.then(() => {
 		res.send('done');

@@ -140,7 +140,7 @@ const otherColumns = [
 	'ia_import_status',
 ];
 
-const numericColumns = [
+const integerColumns = [
 	'post_shares',
 	'post_likes',
 	'post_comments',
@@ -150,21 +150,21 @@ const numericColumns = [
 Object.keys(insightsMetricsKeys).forEach(key => {
 	if(insightsMetricsKeyTypes[key]) {
 		Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
-			numericColumns.push(`insight_${key}_${type}`);
+			integerColumns.push(`insight_${key}_${type}`);
 		});
 	} else {
-		numericColumns.push(`insight_${key}`);
+		integerColumns.push(`insight_${key}`);
 	}
 });
 
 Object.keys(iaMetricTypes).forEach(key => {
 	switch(iaMetricTypes[key]) {
 		case 'day':
-			numericColumns.push(`ia_${key}`);
+			integerColumns.push(`ia_${key}`);
 			break;
 		case 'week':
 			['min', 'max', 'mean', 'median', 'mode', 'stdev', 'p25', 'p50', 'p75', 'p95'].forEach(type => {
-				numericColumns.push(`ia_${key}_${type}`);
+				integerColumns.push(`ia_${key}_${type}`);
 			});
 			break;
 		default:
@@ -392,7 +392,7 @@ const batchIdList = idList => {
 };
 
 const getColumns = () => {
-	const columns = otherColumns.concat(numericColumns);
+	const columns = otherColumns.concat(integerColumns);
 	const obj = {};
 	columns.forEach(key => (obj[key] = key.replace(/\s/g, '_')));
 	return obj;
@@ -426,27 +426,34 @@ const generateCsv = data => {
 	});
 };
 
-const saveCsv = (timestamp, data) => {
-	const filename = path.resolve(process.cwd(), `insights/${moment.utc(timestamp).toISOString()}.${cuid()}.csv`);
-	return generateCsv(data)
-		.then(csv => fs.writeFile(filename, csv))
-		.then(() => console.log(`Wrote CSV to ${filename}`));
+const diffIntegerValues = (newValues, oldValues) => {
+	const values = {};
+	integerColumns.forEach(column => {
+		const oldValue = oldValues && oldValues[column] || 0;
+		values[column] = newValues[column] - oldValue;
+	});
+
+	return values;
 };
 
-const repeatWithAverages = (timestamp, post) => {
+const repeatWithAverages = ({timestamp, post, lastTimestamp, lastValues}) => {
 	const created = moment.utc(post.created_time);
+	const then = moment.max(created, lastTimestamp);
 	const now = moment.utc(timestamp);
-	const hoursDifference = now.diff(created, 'hours');
+	const hoursDifference = now.diff(then, 'hours');
 
-	if(!hoursDifference) return post;
+	const diff = diffIntegerValues(post, lastValues);
+	const postWithDiffValues = Object.assign({}, post, diff);
 
-	const overflowPost = Object.assign({}, post);
-	const averagePost = Object.assign({}, post);
+	if(!hoursDifference) return postWithDiffValues;
 
-	numericColumns.forEach(column => {
+	const overflowPost = Object.assign({}, postWithDiffValues);
+	const averagePost = Object.assign({}, postWithDiffValues);
+
+	integerColumns.forEach(column => {
 		const divisor = hoursDifference + 1;
-		const average = Math.floor(post[column] / divisor);
-		overflowPost[column] = average + (post[column] % divisor);
+		const average = Math.floor(postWithDiffValues[column] / divisor);
+		overflowPost[column] = average + (postWithDiffValues[column] % divisor);
 		averagePost[column] = average;
 	});
 
@@ -464,13 +471,32 @@ const repeatWithAverages = (timestamp, post) => {
 };
 
 const zeroFill = post => {
-	numericColumns.forEach(column => {
+	integerColumns.forEach(column => {
 		post[column] = post[column] || 0;
 	});
 	return post;
 };
 
-module.exports.fetch = ({since, timestamp, firstRun}) => getPostsLists({since, until: timestamp / 1000})
+const saveCsv = (timestamp, posts) => database.getLastInsight()
+.then(lastRun => {
+	const lastTimestamp = moment.utc(lastRun ? lastRun.timestamp : 0);
+	const repeated = posts.map(post => repeatWithAverages({
+		timestamp,
+		post,
+		lastTimestamp,
+		lastValues: lastRun ? lastRun.data[post.id] : {},
+	}));
+	const data = [].concat(...repeated);
+
+	const filename = path.resolve(process.cwd(), `insights/${moment.utc(timestamp).toISOString()}.${cuid()}.csv`);
+	return generateCsv(data)
+		.then(csv => fs.writeFile(filename, csv))
+		.then(() => console.log(`Wrote CSV to ${filename}`));
+});
+
+const saveLastRun = posts => {};
+
+module.exports.fetch = ({since, timestamp}) => getPostsLists({since, until: timestamp / 1000})
 .then(result => (batchIdList(result.data)))
 .then(idBatch => Promise.all(idBatch.map(executeQuery)))
 .then(batchedResults => [].concat(...batchedResults))
@@ -480,10 +506,7 @@ module.exports.fetch = ({since, timestamp, firstRun}) => getPostsLists({since, u
 	const formattedTimestamp = moment.utc(timestamp).format();
 	return posts.map(post => Object.assign(post, {timestamp: formattedTimestamp}));
 })
-.then(posts => {
-	if(!firstRun) return posts;
-
-	const repeated = posts.map(post => repeatWithAverages(timestamp, post));
-	return [].concat(...repeated);
-})
-.then(posts => saveCsv(timestamp, posts));
+.then(posts =>
+	saveCsv(timestamp, posts)
+		.then(() => saveLastRun(posts))
+);

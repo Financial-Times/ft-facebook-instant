@@ -168,6 +168,16 @@ const getCapi = id => client.getAsync(`capi:${id}`)
 
 const purgeCapi = id => client.delAsync(`capi:${id}`);
 
+const wipeInsights = () => client.delAsync('insights');
+
+const getLastInsight = () => client.zrevrangeAsync('insights', 0, 1)
+.then(insight => insight && insight[0] && JSON.parse(insight[0]) || null);
+
+const setInsight = (timestamp, data) => client.multi()
+	.zremrangebyscore('insights', timestamp, timestamp)
+	.zadd('insights', timestamp, JSON.stringify({timestamp, data}))
+	.execAsync();
+
 module.exports = {
 	get(canonicals) {
 		if(Array.isArray(canonicals)) {
@@ -187,4 +197,7 @@ module.exports = {
 	getCapi,
 	setCapi,
 	purgeCapi,
+	getLastInsight,
+	setInsight,
+	wipeInsights,
 };
