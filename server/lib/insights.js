@@ -119,6 +119,55 @@ const iaMetricTypes = {
 	all_scrolls: 'week',
 };
 
+const otherColumns = [
+	'id',
+	'timestamp',
+	'type',
+	'name',
+	'message',
+	'description',
+	'created_time',
+	'updated_time',
+	'is_published',
+	'link',
+	'canonical',
+	'uuid',
+	'ia_published',
+	'ia_earliest_views',
+	'ia_import_status',
+];
+
+const numericColumns = [
+	'post_shares',
+	'post_likes',
+	'post_comments',
+	'canonical_share',
+];
+
+Object.keys(insightsMetricsKeys).forEach(key => {
+	if(insightsMetricsKeyTypes[key]) {
+		Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
+			numericColumns.push(`insight_${key}_${type}`);
+		});
+	} else {
+		numericColumns.push(`insight_${key}`);
+	}
+});
+
+Object.keys(iaMetricTypes).forEach(key => {
+	switch(iaMetricTypes[key]) {
+		case 'day':
+			numericColumns.push(`ia_${key}`);
+			break;
+		case 'week':
+			['min', 'max', 'mean', 'median', 'mode', 'stdev', 'p25', 'p50', 'p75', 'p95'].forEach(type => {
+				numericColumns.push(`ia_${key}_${type}`);
+			});
+			break;
+		default:
+			throw Error(`Unexpected Instant Article metric key [${key}]`);
+	}
+});
 
 const postsResultPath = 'posts:$.*.link';
 const linksResultPath = 'links:$.*.og_object.url';
@@ -340,52 +389,7 @@ const batchIdList = idList => {
 };
 
 const getColumns = () => {
-	const columns = [
-		'id',
-		'type',
-		'name',
-		'message',
-		'description',
-		'created_time',
-		'updated_time',
-		'is_published',
-		'link',
-		'canonical',
-		'uuid',
-		'ia_published',
-		'ia_earliest_views',
-		'ia_import_status',
-		'post_shares',
-		'post_likes',
-		'post_comments',
-		'canonical_share',
-	];
-
-	Object.keys(insightsMetricsKeys).forEach(key => {
-		if(insightsMetricsKeyTypes[key]) {
-			Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
-				columns.push(`insight_${key}_${type}`);
-			});
-		} else {
-			columns.push(`insight_${key}`);
-		}
-	});
-
-	Object.keys(iaMetricTypes).forEach(key => {
-		switch(iaMetricTypes[key]) {
-			case 'day':
-				columns.push(`ia_${key}`);
-				break;
-			case 'week':
-				['min', 'max', 'mean', 'median', 'mode', 'stdev', 'p25', 'p50', 'p75', 'p95'].forEach(type => {
-					columns.push(`ia_${key}_${type}`);
-				});
-				break;
-			default:
-				throw Error(`Unexpected Instant Article metric key [${key}]`);
-		}
-	});
-
+	const columns = otherColumns.concat(numericColumns);
 	const obj = {};
 	columns.forEach(key => (obj[key] = key.replace(/\s/g, '_')));
 	return obj;
@@ -419,10 +423,57 @@ const generateCsv = data => {
 	});
 };
 
-module.exports.fetch = () => getPostsLists({since: '2016-05-03'})
+const repeatWithAverages = (timestamp, post) => {
+	const created = moment.utc(post.created_time);
+	const now = moment.utc(timestamp);
+	const hoursDifference = now.diff(created, 'hours');
+
+	if(!hoursDifference) return post;
+
+	const overflowPost = Object.assign({}, post);
+	const averagePost = Object.assign({}, post);
+
+	numericColumns.forEach(column => {
+		const divisor = hoursDifference + 1;
+		const average = Math.floor(post[column] / divisor);
+		overflowPost[column] = average + (post[column] % divisor);
+		averagePost[column] = average;
+	});
+
+	const repetitions = [overflowPost];
+
+	for(let hour = hoursDifference; hour > 0; hour--) {
+		repetitions.unshift(
+			Object.assign({}, averagePost, {
+				timestamp: moment(now).subtract(hour, 'hours').format(),
+			})
+		);
+	}
+
+	return repetitions;
+};
+
+const zeroFill = post => {
+	numericColumns.forEach(column => {
+		post[column] = post[column] || 0;
+	});
+	return post;
+};
+
+module.exports.fetch = ({since, timestamp, firstRun}) => getPostsLists({since, until: timestamp / 1000})
 .then(result => (batchIdList(result.data)))
 .then(idBatch => Promise.all(idBatch.map(executeQuery)))
 .then(batchedResults => [].concat(...batchedResults))
-
 .then(posts => Promise.all(posts.map(flattenPost)))
+.then(posts => posts.map(zeroFill))
+.then(posts => {
+	const formattedTimestamp = moment.utc(timestamp).format();
+	return posts.map(post => Object.assign(post, {timestamp: formattedTimestamp}));
+})
+.then(posts => {
+	if(!firstRun) return posts;
+
+	const repeated = posts.map(post => repeatWithAverages(timestamp, post));
+	return [].concat(...repeated);
+})
 .then(generateCsv);
