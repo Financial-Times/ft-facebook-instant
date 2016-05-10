@@ -10,6 +10,7 @@ const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
+const FbApiImportException = require('./fbApi/importException');
 
 // See introspect()
 const defaultFields = {
@@ -35,6 +36,8 @@ const defaultFields = {
 
 	related: [],
 };
+
+const MAX_IMPORT_WAIT = 5 * 60 * 1000;
 
 Facebook.options({
 	version: 'v2.5',
@@ -155,7 +158,42 @@ const introspect = ({id = null} = {}) => {
 	.then(results => results.metadata);
 };
 
-const post = ({uuid, html, published = false} = {}) => {
+const waitForSuccess = importResult => new Promise((resolve, reject) => {
+	const start = Date.now();
+
+	const loop = () => get({
+		type: 'import',
+		id: importResult.id,
+		fields: ['id', 'errors', 'instant_article{canonical_url}', 'status'],
+	})
+	.then(result => {
+		if(result.status === 'SUCCESS') {
+			console.log(`Import ${importResult.id} successfully completed in ${(Date.now() - start) / 1000} seconds`);
+			return resolve(result);
+		}
+
+		if(result.status !== 'IN_PROGRESS') {
+			return reject(
+				new FbApiImportException(`Unexpected import status ${result.status} for import ${importResult.id}. Errors: ${JSON.stringify(result.errors)}`)
+			);
+		}
+
+		if(Date.now() > (start + MAX_IMPORT_WAIT)) {
+			return reject(
+				new FbApiImportException(
+					`Timeout after ${MAX_IMPORT_WAIT / 60} seconds for import ${importResult.id} with status ${result.status}.` +
+					`Errors: ${JSON.stringify(result.errors)}`
+				)
+			);
+		}
+
+		setTimeout(loop, 1000);
+	});
+
+	loop();
+});
+
+const post = ({uuid, html, published = false, wait = false} = {}) => {
 	if(!uuid) {
 		return Promise.reject(Error('Missing required parameter [uuid]'));
 	}
@@ -177,7 +215,14 @@ const post = ({uuid, html, published = false} = {}) => {
 			html_source: html,
 		}
 	)
-	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result));
+	.then(result => (wait ? waitForSuccess(result) : result))
+	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result))
+	.catch(e => {
+		if(e.type === 'FbApiImportException') {
+			throw Error(`Import error encountered posting UUID ${uuid} to Facebook: ${e.message}`);
+		}
+		throw e;
+	});
 };
 
 const find = ({canonical = null, fields = []} = {}) => {

@@ -13,7 +13,13 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 	const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 	if(sentToFacebook && shouldRepublish) {
 		return transform(article)
-			.then(({html, warnings}) => fbApi.post({uuid: article.uuid, html, published: article.fbRecords[mode].published})
+			.then(({html, warnings}) =>
+				fbApi.post({
+					uuid: article.uuid,
+					html,
+					published: article.fbRecords[mode].published,
+					wait: true,
+				})
 				.then(({id}) => articleModel.setImportStatus({
 					article,
 					id,
