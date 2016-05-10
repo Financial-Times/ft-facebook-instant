@@ -515,8 +515,7 @@ const saveCsvs = (timestamp, posts) => {
 		.then(() => console.log(`Wrote ${oldestPostAge + 1} CSVs to ${path.resolve(process.cwd(), `insights/*.${uniq}.csv`)}`));
 };
 
-const getHistoricValues = (timestamp, posts) => database.getLastInsight()
-.then(lastRun => {
+const getHistoricValues = (lastRun, timestamp, posts) => {
 	const lastTimestamp = moment.utc(lastRun ? lastRun.timestamp : 0);
 	return posts.map(post => getValueDiffs({
 		timestamp,
@@ -524,22 +523,43 @@ const getHistoricValues = (timestamp, posts) => database.getLastInsight()
 		lastTimestamp,
 		lastValues: lastRun ? lastRun.data[post.id] : {},
 	}));
+};
+
+const saveLastRun = (timestamp, posts) => {
+	const data = {};
+
+	posts.forEach(post => {
+		const integers = {};
+		integerColumns.forEach(column => {
+			integers[column] = post[column];
+		});
+		data[post.id] = integers;
+	});
+
+	return database.setInsight(timestamp, data);
+};
+
+
+module.exports.fetch = ({since, timestamp}) => database.getLastInsight()
+.then(lastRun => {
+	if(lastRun && lastRun.timestamp === timestamp) {
+		console.log(`Insights data already processed for timestamp ${moment.utc(timestamp).format()}`);
+		return;
+	}
+
+	return getPostsLists({since, until: timestamp / 1000})
+	.then(result => (batchIdList(result.data)))
+	.then(idBatch => Promise.all(idBatch.map(executeQuery)))
+	.then(batchedResults => [].concat(...batchedResults))
+	.then(posts => Promise.all(posts.map(flattenPost)))
+	.then(posts => posts.map(zeroFill))
+	.then(posts => {
+		const formattedTimestamp = moment.utc(timestamp).format();
+		return posts.map(post => Object.assign(post, {timestamp: formattedTimestamp}));
+	})
+	.then(posts =>
+		getHistoricValues(lastRun, timestamp, posts)
+			.then(historic => saveCsvs(timestamp, historic))
+			.then(() => saveLastRun(timestamp, posts))
+	);
 });
-
-const saveLastRun = posts => {};
-
-module.exports.fetch = ({since, timestamp}) => getPostsLists({since, until: timestamp / 1000})
-.then(result => (batchIdList(result.data)))
-.then(idBatch => Promise.all(idBatch.map(executeQuery)))
-.then(batchedResults => [].concat(...batchedResults))
-.then(posts => Promise.all(posts.map(flattenPost)))
-.then(posts => posts.map(zeroFill))
-.then(posts => {
-	const formattedTimestamp = moment.utc(timestamp).format();
-	return posts.map(post => Object.assign(post, {timestamp: formattedTimestamp}));
-})
-.then(posts =>
-	getHistoricValues(timestamp, posts)
-		.then(historic => saveCsvs(timestamp, historic))
-		.then(() => saveLastRun(posts))
-);
