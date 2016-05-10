@@ -14,7 +14,7 @@ const fs = require('fs');
 const pageId = process.env.FB_PAGE_ID;
 const BATCH_SIZE = 50;
 const VERBOSE_AGGREGATIONS = false;
-const EXPLAINER_ROW = true;
+const EXPLAINER_ROW = false;
 
 const postAttributeKeys = [
 	'type',
@@ -126,9 +126,9 @@ const otherColumns = [
 	'id',
 	'timestamp',
 	'type',
-	'name',
 	'message',
-	'description',
+	// 'name',			// Verbose text, not needed
+	// 'description',	// Verbose text, not needed
 	'created_time',
 	'updated_time',
 	'is_published',
@@ -436,16 +436,25 @@ const diffIntegerValues = (newValues, oldValues) => {
 	return values;
 };
 
-const repeatWithAverages = ({timestamp, post, lastTimestamp, lastValues}) => {
+const getValueDiffs = ({timestamp, post, lastTimestamp, lastValues}) => {
 	const created = moment.utc(post.created_time);
 	const then = moment.max(created, lastTimestamp);
 	const now = moment.utc(timestamp);
 	const hoursDifference = now.diff(then, 'hours');
 
+	const ret = {
+		age: hoursDifference || 0,
+	};
+
 	const diff = diffIntegerValues(post, lastValues);
 	const postWithDiffValues = Object.assign({}, post, diff);
 
-	if(!hoursDifference) return postWithDiffValues;
+	if(!hoursDifference) {
+		return Object.assign(ret, {
+			initial: postWithDiffValues,
+			last: null,
+		});
+	}
 
 	const overflowPost = Object.assign({}, postWithDiffValues);
 	const averagePost = Object.assign({}, postWithDiffValues);
@@ -457,17 +466,10 @@ const repeatWithAverages = ({timestamp, post, lastTimestamp, lastValues}) => {
 		averagePost[column] = average;
 	});
 
-	const repetitions = [overflowPost];
-
-	for(let hour = hoursDifference; hour > 0; hour--) {
-		repetitions.unshift(
-			Object.assign({}, averagePost, {
-				timestamp: moment(now).subtract(hour, 'hours').format(),
-			})
-		);
-	}
-
-	return repetitions;
+	return Object.assign(ret, {
+		initial: averagePost,
+		last: overflowPost,
+	});
 };
 
 const zeroFill = post => {
@@ -477,21 +479,51 @@ const zeroFill = post => {
 	return post;
 };
 
-const saveCsv = (timestamp, posts) => database.getLastInsight()
+const getCsvRows = (posts, age, historicTimestampUtc) => {
+	const rows = [];
+	posts.forEach(post => {
+		if(post.age < age) return;
+
+		let row;
+		if(age > 0) {
+			row = Object.assign({}, post.initial, {timestamp: historicTimestampUtc});
+		} else {
+			row = Object.assign({}, post.last, {timestamp: historicTimestampUtc});
+		}
+		rows.push(row);
+	});
+
+	return rows;
+};
+
+const saveCsvs = (timestamp, posts) => {
+	const now = moment.utc(timestamp);
+	const uniq = cuid();
+	const oldestPostAge = posts.sort((a, b) => b.age - a.age)[0].age;
+
+	// Write files in series to avoid eating up memory
+	return Array.apply(0, Array(oldestPostAge + 1))
+		.map((x, index) => oldestPostAge - index)
+		.reduce((promise, age) => promise.then(() => {
+			const historicTimestamp = moment(now).subtract(age, 'hours');
+			const historicTimestampUtc = historicTimestamp.format();
+			const filename = path.resolve(process.cwd(), `insights/${historicTimestamp.toISOString()}.${uniq}.csv`);
+
+			return generateCsv(getCsvRows(posts, age, historicTimestampUtc))
+				.then(csv => fs.writeFile(filename, csv));
+		}), Promise.resolve())
+		.then(() => console.log(`Wrote ${oldestPostAge + 1} CSVs to ${path.resolve(process.cwd(), `insights/*.${uniq}.csv`)}`));
+};
+
+const getHistoricValues = (timestamp, posts) => database.getLastInsight()
 .then(lastRun => {
 	const lastTimestamp = moment.utc(lastRun ? lastRun.timestamp : 0);
-	const repeated = posts.map(post => repeatWithAverages({
+	return posts.map(post => getValueDiffs({
 		timestamp,
 		post,
 		lastTimestamp,
 		lastValues: lastRun ? lastRun.data[post.id] : {},
 	}));
-	const data = [].concat(...repeated);
-
-	const filename = path.resolve(process.cwd(), `insights/${moment.utc(timestamp).toISOString()}.${cuid()}.csv`);
-	return generateCsv(data)
-		.then(csv => fs.writeFile(filename, csv))
-		.then(() => console.log(`Wrote CSV to ${filename}`));
 });
 
 const saveLastRun = posts => {};
@@ -507,6 +539,7 @@ module.exports.fetch = ({since, timestamp}) => getPostsLists({since, until: time
 	return posts.map(post => Object.assign(post, {timestamp: formattedTimestamp}));
 })
 .then(posts =>
-	saveCsv(timestamp, posts)
+	getHistoricValues(timestamp, posts)
+		.then(historic => saveCsvs(timestamp, historic))
 		.then(() => saveLastRun(posts))
 );
