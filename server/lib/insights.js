@@ -453,24 +453,20 @@ const getValueDiffs = ({timestamp, post, lastTimestamp, lastValues}) => {
 
 	if(!hoursDifference) {
 		return Object.assign(ret, {
-			initial: postWithDiffValues,
-			last: null,
+			values: postWithDiffValues,
 		});
 	}
 
-	const overflowPost = Object.assign({}, postWithDiffValues);
 	const averagePost = Object.assign({}, postWithDiffValues);
 
 	integerColumns.forEach(column => {
 		const divisor = hoursDifference + 1;
-		const average = Math.floor(postWithDiffValues[column] / divisor);
-		overflowPost[column] = average + (postWithDiffValues[column] % divisor);
+		const average = Math.round(postWithDiffValues[column] / divisor * 100) / 100;
 		averagePost[column] = average;
 	});
 
 	return Object.assign(ret, {
-		initial: averagePost,
-		last: overflowPost,
+		values: averagePost,
 	});
 };
 
@@ -485,14 +481,9 @@ const getCsvRows = (posts, age, historicTimestampUtc) => {
 	const rows = [];
 	posts.forEach(post => {
 		if(post.age < age) return;
-
-		let row;
-		if(age > 0) {
-			row = Object.assign({}, post.initial, {timestamp: historicTimestampUtc});
-		} else {
-			row = Object.assign({}, post.last, {timestamp: historicTimestampUtc});
-		}
-		rows.push(row);
+		rows.push(
+			Object.assign({}, post.values, {timestamp: historicTimestampUtc})
+		);
 	});
 
 	return rows;
