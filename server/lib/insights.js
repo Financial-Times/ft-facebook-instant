@@ -117,9 +117,9 @@ const canonicalKeys = [
 ];
 
 const iaMetricTypes = {
-	all_views: 'day',
-	all_view_durations: 'week',
-	all_scrolls: 'week',
+	all_views: {period: 'day', aggregation: 'count'},
+	all_view_durations: {period: 'week', aggregation: 'bucket'},
+	all_scrolls: {period: 'week', aggregation: 'bucket'},
 };
 
 const otherColumns = [
@@ -147,6 +147,8 @@ const integerColumns = [
 	'canonical_share',
 ];
 
+const statisticalColumns = [];
+
 Object.keys(insightsMetricsKeys).forEach(key => {
 	if(insightsMetricsKeyTypes[key]) {
 		Object.keys(insightsMetricsKeyTypes[key]).forEach(type => {
@@ -158,17 +160,17 @@ Object.keys(insightsMetricsKeys).forEach(key => {
 });
 
 Object.keys(iaMetricTypes).forEach(key => {
-	switch(iaMetricTypes[key]) {
-		case 'day':
+	switch(iaMetricTypes[key].aggregation) {
+		case 'count':
 			integerColumns.push(`ia_${key}`);
 			break;
-		case 'week':
+		case 'bucket':
 			['min', 'max', 'mean', 'median', 'mode', 'stdev', 'p25', 'p50', 'p75', 'p95'].forEach(type => {
-				integerColumns.push(`ia_${key}_${type}`);
+				statisticalColumns.push(`ia_${key}_${type}`);
 			});
 			break;
 		default:
-			throw Error(`Unexpected Instant Article metric key [${key}]`);
+			throw Error(`Unexpected Instant Article metric aggregation [${iaMetricTypes[key].aggregation}] for key [${key}]`);
 	}
 });
 
@@ -201,7 +203,7 @@ const createPostsQuery = ids => {
 const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_object{type,url}`;
 
 const createCanonicalsQuery = () => {
-	const iaMetricQueries = Object.keys(iaMetricTypes).map(key => `insights.metric(${key}).period(${iaMetricTypes[key]}).as(metrics_${key})`);
+	const iaMetricQueries = Object.keys(iaMetricTypes).map(key => `insights.metric(${key}).period(${iaMetricTypes[key].period}).as(metrics_${key})`);
 	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
 	const canonicalAttributesQuery = canonicalKeys.concat(iaQuery).join(',');
@@ -256,18 +258,18 @@ const flattenIaMetrics = (post, flat) => {
 	Object.keys(iaMetricTypes).forEach(key => {
 		const metric = post.canonical && post.canonical.instant_article && post.canonical.instant_article[`metrics_${key}`];
 		let aggregations;
-		switch(iaMetricTypes[key]) {
-			case 'day':
+		switch(iaMetricTypes[key].aggregation) {
+			case 'count':
 				flat[`ia_${key}`] = metric ? metric.data.reduce((total, item) => (total + parseInt(item.value, 10)), 0) : 0;
 				break;
-			case 'week':
+			case 'bucket':
 				aggregations = metric ? aggregateMetricBreakdowns(metric.data) : getAggregationStatistics([0]);
 				Object.keys(aggregations).forEach(aggregation => {
 					flat[`ia_${key}_${aggregation}`] = aggregations[aggregation];
 				});
 				break;
 			default:
-				throw Error(`Unexpected Instant Article metric key [${key}]`);
+				throw Error(`Unexpected Instant Article metric aggregation [${iaMetricTypes[key].aggregation}] for key [${key}]`);
 		}
 	});
 };
@@ -392,7 +394,7 @@ const batchIdList = idList => {
 };
 
 const getColumns = () => {
-	const columns = otherColumns.concat(integerColumns);
+	const columns = otherColumns.concat(integerColumns).concat(statisticalColumns);
 	const obj = {};
 	columns.forEach(key => (obj[key] = key.replace(/\s/g, '_')));
 	return obj;
@@ -473,7 +475,7 @@ const getValueDiffs = ({timestamp, post, lastTimestamp, lastValues}) => {
 };
 
 const zeroFill = post => {
-	integerColumns.forEach(column => {
+	integerColumns.concat(statisticalColumns).forEach(column => {
 		post[column] = post[column] || 0;
 	});
 	return post;
@@ -517,12 +519,16 @@ const saveCsvs = (timestamp, posts) => {
 
 const getHistoricValues = (lastRun, timestamp, posts) => {
 	const lastTimestamp = moment.utc(lastRun ? lastRun.timestamp : 0);
-	return posts.map(post => getValueDiffs({
-		timestamp,
-		post,
-		lastTimestamp,
-		lastValues: lastRun ? lastRun.data[post.id] : {},
-	}));
+	return Promise.resolve(
+		posts.map(post =>
+			getValueDiffs({
+				timestamp,
+				post,
+				lastTimestamp,
+				lastValues: lastRun ? lastRun.data[post.id] : {},
+			})
+		)
+	);
 };
 
 const saveLastRun = (timestamp, posts) => {
