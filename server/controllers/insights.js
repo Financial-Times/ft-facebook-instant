@@ -4,17 +4,12 @@ const moment = require('moment');
 const insights = require('../lib/insights');
 
 module.exports = (req, res, next) => {
-	const timestamp = moment.utc()
-		.startOf('hour')
-		.valueOf();
-
 	const since = moment.utc()
-		.subtract(3, 'day')
-		.format('YYYY-MM-DD');
+		.startOf('hour')
+		.subtract(1, 'month');
 
 	return insights.fetch({
 		since,
-		timestamp,
 	})
 	.then(() => {
 		res.send('done');

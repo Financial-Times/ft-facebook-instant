@@ -438,10 +438,9 @@ const diffIntegerValues = (newValues, oldValues) => {
 	return values;
 };
 
-const getValueDiffs = ({timestamp, post, lastTimestamp, lastValues}) => {
+const getValueDiffs = ({post, now, ageLimit, lastValues}) => {
 	const created = moment.utc(post.created_time);
-	const then = moment.max(created, lastTimestamp);
-	const now = moment.utc(timestamp);
+	const then = moment.max(created, ageLimit);
 	const hoursDifference = now.diff(then, 'hours');
 
 	const ret = {
@@ -489,8 +488,7 @@ const getCsvRows = (posts, age, historicTimestampUtc) => {
 	return rows;
 };
 
-const saveCsvs = (timestamp, posts) => {
-	const now = moment.utc(timestamp);
+const saveCsvs = (now, posts) => {
 	const uniq = cuid();
 	const oldestPostAge = posts.sort((a, b) => b.age - a.age)[0].age;
 
@@ -498,7 +496,7 @@ const saveCsvs = (timestamp, posts) => {
 	return Array.apply(0, Array(oldestPostAge + 1))
 		.map((x, index) => oldestPostAge - index)
 		.reduce((promise, age) => promise.then(() => {
-			const historicTimestamp = moment(now).subtract(age, 'hours');
+			const historicTimestamp = moment(now).subtract(age + 1, 'hours');
 			const historicTimestampUtc = historicTimestamp.format();
 			const filename = path.resolve(process.cwd(), `insights/${historicTimestamp.toISOString()}.${uniq}.csv`);
 
@@ -508,19 +506,16 @@ const saveCsvs = (timestamp, posts) => {
 		.then(() => console.log(`Wrote ${oldestPostAge + 1} CSVs to ${path.resolve(process.cwd(), `insights/*.${uniq}.csv`)}`));
 };
 
-const getHistoricValues = (lastRun, timestamp, posts) => {
-	const lastTimestamp = moment.utc(lastRun ? lastRun.timestamp : 0);
-	return Promise.resolve(
-		posts.map(post =>
-			getValueDiffs({
-				timestamp,
-				post,
-				lastTimestamp,
-				lastValues: lastRun ? lastRun.data[post.id] : {},
-			})
-		)
-	);
-};
+const getHistoricValues = (lastRun, now, posts) => Promise.resolve(
+	posts.map(post =>
+		getValueDiffs({
+			post,
+			now,
+			ageLimit: lastRun ? moment.utc(lastRun.timestamp).add(1, 'hour') : moment.utc(0),
+			lastValues: lastRun ? lastRun.data[post.id] : {},
+		})
+	)
+);
 
 const saveLastRun = (timestamp, posts) => {
 	const data = {};
@@ -537,26 +532,31 @@ const saveLastRun = (timestamp, posts) => {
 };
 
 
-module.exports.fetch = ({since, timestamp}) => database.getLastInsight()
+module.exports.fetch = ({since}) => database.getLastInsight()
 .then(lastRun => {
+	const now = moment.utc().startOf('hour');
+	const timestamp = now.valueOf();
+
+	console.log(`Fetching insights data from ${since.format()} to ${now.format()}. ` +
+		`Last run was ${lastRun && moment.utc(lastRun.timestamp).format() || 'null'}.`);
+
 	if(lastRun && lastRun.timestamp === timestamp) {
-		console.log(`Insights data already processed for timestamp ${moment.utc(timestamp).format()}`);
+		console.log(`Insights data already processed for ${now.format()}`);
 		return;
 	}
 
-	return getPostsLists({since, until: timestamp / 1000})
+	return getPostsLists({
+		since: (since.valueOf() / 1000),
+		until: (timestamp / 1000),
+	})
 	.then(result => (batchIdList(result.data)))
 	.then(idBatch => Promise.all(idBatch.map(executeQuery)))
 	.then(batchedResults => [].concat(...batchedResults))
 	.then(posts => Promise.all(posts.map(flattenPost)))
 	.then(posts => posts.map(zeroFill))
-	.then(posts => {
-		const formattedTimestamp = moment.utc(timestamp).format();
-		return posts.map(post => Object.assign(post, {timestamp: formattedTimestamp}));
-	})
 	.then(posts =>
-		getHistoricValues(lastRun, timestamp, posts)
-			.then(historic => saveCsvs(timestamp, historic))
+		getHistoricValues(lastRun, now, posts)
+			.then(historic => saveCsvs(now, historic))
 			.then(() => saveLastRun(timestamp, posts))
 	);
 });
