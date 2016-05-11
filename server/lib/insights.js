@@ -476,7 +476,9 @@ const zeroFill = post => {
 	return post;
 };
 
-const getCsvRows = (posts, age, historicTimestampUtc) => {
+// Use async function to avoid eating memory
+const getCsvRows = (posts, age, historicTimestampUtc) => Promise.resolve()
+.then(() => {
 	const rows = [];
 	posts.forEach(post => {
 		if(post.age < age) return;
@@ -486,7 +488,7 @@ const getCsvRows = (posts, age, historicTimestampUtc) => {
 	});
 
 	return rows;
-};
+});
 
 const saveCsvs = (now, posts) => {
 	const uniq = cuid();
@@ -500,7 +502,8 @@ const saveCsvs = (now, posts) => {
 			const historicTimestampUtc = historicTimestamp.format();
 			const filename = path.resolve(process.cwd(), `insights/${historicTimestamp.toISOString()}.${uniq}.csv`);
 
-			return generateCsv(getCsvRows(posts, age, historicTimestampUtc))
+			return getCsvRows(posts, age, historicTimestampUtc)
+				.then(generateCsv)
 				.then(csv => fs.writeFile(filename, csv));
 		}), Promise.resolve())
 		.then(() => console.log(`Wrote ${oldestPostAge + 1} CSVs to ${path.resolve(process.cwd(), `insights/*.${uniq}.csv`)}`));
