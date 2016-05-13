@@ -202,8 +202,13 @@ const createPostsQuery = ids => {
 
 const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_object{type,url}`;
 
-const createCanonicalsQuery = () => {
-	const iaMetricQueries = Object.keys(iaMetricTypes).map(key => `insights.metric(${key}).period(${iaMetricTypes[key].period}).as(metrics_${key})`);
+const createCanonicalsQuery = lastRun => {
+	// "The data is only available after 24 March, 2016" => 1458864000
+	const since = lastRun ? moment.utc(lastRun.timestamp).subtract(1, 'week') : moment.utc(1458864000);
+
+	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
+		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(${since}).until(now).as(metrics_${key})`
+	);
 	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
 	const canonicalAttributesQuery = canonicalKeys.concat(iaQuery).join(',');
@@ -211,11 +216,11 @@ const createCanonicalsQuery = () => {
 	return `?ids={result=${linksResultPath}}&fields=${canonicalAttributesQuery}`;
 };
 
-const createQuery = ids => {
+const createQuery = ({lastRun, ids}) => {
 	const queries = {
 		posts: createPostsQuery(ids),
 		links: createLinksQuery(),
-		canonicals: createCanonicalsQuery(),
+		canonicals: createCanonicalsQuery(lastRun),
 	};
 
 	return Object.keys(queries).map(key => ({
@@ -239,17 +244,29 @@ const getAggregationStatistics = values => ({
 	p95: numbers.statistic.quantile(values, 95, 100),
 });
 
+const getTotalAggregateValue = data => data.reduce((counter, item) => (counter + item.value), 0);
+
 const aggregateMetricBreakdowns = (data) => {
+	const periods = {};
+	data.forEach(item => {
+		periods[item.time] = periods[item.time] || [];
+		periods[item.time].push({
+			bucket: parseInt(item.breakdowns.bucket, 10),
+			value: parseInt(item.value, 10),
+		});
+	});
+
+	const busiestPeriod = Object.keys(periods).sort((a, b) => getTotalAggregateValue(periods[a]) - getTotalAggregateValue(periods[b]))[0];
+
 	const aggregations = {};
 	let values = [];
 
-	data.sort((a, b) => a.breakdowns.bucket - b.breakdowns.bucket);
-	data.forEach(item => {
-		const bucket = parseInt(item.breakdowns.bucket, 10);
-		const value = parseInt(item.value, 10);
-		if(VERBOSE_AGGREGATIONS) aggregations[bucket] = value;
-		values = values.concat(Array(value).fill(bucket));
-	});
+	periods[busiestPeriod]
+		.sort((a, b) => a.bucket - b.bucket)
+		.forEach(item => {
+			if(VERBOSE_AGGREGATIONS) aggregations[item.bucket] = item.value;
+			values = values.concat(Array(item.value).fill(item.bucket));
+		});
 
 	return Object.assign(aggregations, getAggregationStatistics(values));
 };
@@ -374,8 +391,8 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 	return post;
 });
 
-const executeQuery = ids => fbApi.call('', 'POST', {
-	batch: createQuery(ids),
+const executeQuery = ({lastRun, ids}) => fbApi.call('', 'POST', {
+	batch: createQuery({lastRun, ids}),
 	include_headers: false,
 	__dependent: true,
 })
@@ -553,7 +570,7 @@ module.exports.fetch = ({since}) => database.getLastInsight()
 		until: (timestamp / 1000),
 	})
 	.then(result => (batchIdList(result.data)))
-	.then(idBatch => Promise.all(idBatch.map(executeQuery)))
+	.then(idBatch => Promise.all(idBatch.map(ids => executeQuery({lastRun, ids}))))
 	.then(batchedResults => [].concat(...batchedResults))
 	.then(posts => Promise.all(posts.map(flattenPost)))
 	.then(posts => posts.map(zeroFill))
