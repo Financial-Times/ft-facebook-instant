@@ -157,7 +157,9 @@ app.use(notFoundHandler);
 
 /* Start */
 
-notificationsController.init();
+if(!process.env.DISABLE_NOTIFICATIONS) {
+	notificationsController.init();
+}
 
 if(app.get('env') !== 'production') {
 	republishController();
