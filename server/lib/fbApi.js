@@ -93,15 +93,16 @@ const call = (...params) => addAccessToken(params)
 	return api(...newParams)
 		.then(result => handlePagedResult(result, limit))
 		.catch(e => {
-			if(e.name === 'FacebookApiException' &&
-				e.response &&
-				e.response.error &&
-				e.response.error.code === 'ETIMEDOUT') {
-				throw Error('Facebook API call timed-out');
+			if(e.name === 'FacebookApiException' && e.response) {
+				if(e.response.error && e.response.error.code === 'ETIMEDOUT') {
+					throw Error('Facebook API call timed-out');
+				}
+
+				e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
+				throw new Facebook.FacebookApiException(e.response);
 			}
 
-			e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
-			throw new Facebook.FacebookApiException(e.response);
+			throw e;
 		});
 });
 
