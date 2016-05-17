@@ -99,7 +99,9 @@ const call = (...params) => addAccessToken(params)
 				e.response.error.code === 'ETIMEDOUT') {
 				throw Error('Facebook API call timed-out');
 			}
-			throw e;
+
+			e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
+			throw new Facebook.FacebookApiException(e.response);
 		});
 });
 
