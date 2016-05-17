@@ -90,6 +90,7 @@ const call = (...params) => addAccessToken(params)
 
 	delete options.__limit;
 
+	console.log(`${Date()}: FACEBOOK API: ${newParams[0]} ${JSON.stringify(options)}`);
 	return api(...newParams)
 		.then(result => handlePagedResult(result, limit))
 		.catch(e => {
