@@ -10,6 +10,7 @@ const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
+const FbApiImportException = require('./fbApi/importException');
 
 const BATCH_SIZE = 50;
 
@@ -37,6 +38,8 @@ const defaultFields = {
 
 	related: [],
 };
+
+const MAX_IMPORT_WAIT = 5 * 60 * 1000;
 
 Facebook.options({
 	version: 'v2.5',
@@ -89,15 +92,19 @@ const call = (...params) => addAccessToken(params)
 
 	delete options.__limit;
 
+	console.log(`${Date()}: FACEBOOK API: ${newParams[0]} ${JSON.stringify(options)}`);
 	return api(...newParams)
 		.then(result => handlePagedResult(result, limit))
 		.catch(e => {
-			if(e.name === 'FacebookApiException' &&
-				e.response &&
-				e.response.error &&
-				e.response.error.code === 'ETIMEDOUT') {
-				throw Error('Facebook API call timed-out');
+			if(e.name === 'FacebookApiException' && e.response) {
+				if(e.response.error && e.response.error.code === 'ETIMEDOUT') {
+					throw Error('Facebook API call timed-out');
+				}
+
+				e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
+				throw new Facebook.FacebookApiException(e.response);
 			}
+
 			throw e;
 		});
 });
@@ -157,7 +164,42 @@ const introspect = ({id = null} = {}) => {
 	.then(results => results.metadata);
 };
 
-const post = ({uuid, html, published = false} = {}) => {
+const waitForSuccess = importResult => new Promise((resolve, reject) => {
+	const start = Date.now();
+
+	const loop = () => get({
+		type: 'import',
+		id: importResult.id,
+		fields: ['id', 'errors', 'instant_article{canonical_url}', 'status'],
+	})
+	.then(result => {
+		if(result.status === 'SUCCESS') {
+			console.log(`Import ${importResult.id} successfully completed in ${(Date.now() - start) / 1000} seconds`);
+			return resolve(result);
+		}
+
+		if(result.status !== 'IN_PROGRESS') {
+			return reject(
+				new FbApiImportException(`Unexpected import status ${result.status} for import ${importResult.id}. Errors: ${JSON.stringify(result.errors)}`)
+			);
+		}
+
+		if(Date.now() > (start + MAX_IMPORT_WAIT)) {
+			return reject(
+				new FbApiImportException(
+					`Timeout after ${MAX_IMPORT_WAIT / 60} seconds for import ${importResult.id} with status ${result.status}.` +
+					`Errors: ${JSON.stringify(result.errors)}`
+				)
+			);
+		}
+
+		setTimeout(loop, 1000);
+	});
+
+	loop();
+});
+
+const post = ({uuid, html, published = false, wait = false} = {}) => {
 	if(!uuid) {
 		return Promise.reject(Error('Missing required parameter [uuid]'));
 	}
@@ -179,7 +221,14 @@ const post = ({uuid, html, published = false} = {}) => {
 			html_source: html,
 		}
 	)
-	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result));
+	.then(result => (wait ? waitForSuccess(result) : result))
+	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result))
+	.catch(e => {
+		if(e.type === 'FbApiImportException') {
+			throw Error(`Import error encountered posting UUID ${uuid} to Facebook: ${e.message}`);
+		}
+		throw e;
+	});
 };
 
 const find = ({canonical = null, fields = []} = {}) => {

@@ -88,6 +88,7 @@ module.exports = article => {
 			authors: getAuthors(article.apiRecord, warnings),
 			cookieChecker: false,
 			relatedArticles,
+			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
 		};
 
 		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)

@@ -66,6 +66,9 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}
 	const sentToFacebook = (fbRecord && fbRecord[mode] && !fbRecord[mode].nullRecord);
 	const wasPublished = sentToFacebook && fbRecord[mode].published;
 
+	console.log(`handleCanonicalChange from ${cachedCanonical} to ${freshCanonical} with uuid ${uuid}, ` +
+		`sentToFacebook: ${sentToFacebook}, wasPublished: ${wasPublished}`);
+
 	const freshDatabaseRecord = Object.assign({}, databaseRecord, {
 		canonical: freshCanonical,
 	});
@@ -106,6 +109,7 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}
 							html,
 							uuid: article.uuid,
 							published: wasPublished,
+							wait: true,
 						})
 						.then(({id}) => articleModel.setImportStatus({
 							article,
@@ -168,10 +172,18 @@ const updateArticles = uuids => Promise.all(
 		.then(staleArticle => articleModel.update(staleArticle))
 		.then(article => {
 			const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
-			console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], sentToFacebook [${sentToFacebook}]`);
+			const publishedOnFacebook = sentToFacebook && article.fbRecords[mode].published;
+			console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], ` +
+				`sentToFacebook [${sentToFacebook}], publishedOnFacebook [${publishedOnFacebook}]`);
 			if(sentToFacebook) {
 				return transform(article)
-					.then(({html, warnings}) => fbApi.post({uuid: article.uuid, html, published: article.fbRecords[mode].published})
+					.then(({html, warnings}) =>
+						fbApi.post({
+							uuid: article.uuid,
+							html,
+							published: article.fbRecords[mode].published,
+							wait: true,
+						})
 						.then(({id}) => articleModel.setImportStatus({
 							article,
 							id,
