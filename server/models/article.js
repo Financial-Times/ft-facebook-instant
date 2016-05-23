@@ -117,8 +117,7 @@ const getCanonical = key => database.getCanonical(key)
 		.then(canonical => database.setCanonical(key, canonical));
 });
 
-const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
-.then(fbRecords => {
+const mergeFbData = ({databaseRecord, apiRecord, fbRecords}) => {
 	const imports = databaseRecord.import_meta
 		.filter(item => item.mode === mode)
 		.filter(item => !!item.id);
@@ -140,9 +139,9 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 		);
 	return Promise.all(promises)
 		.then(fbImports => fbImports.filter(record => record !== undefined))
-		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
-})
-.then(mergeRecords);
+		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}))
+		.then(mergeRecords);
+};
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
 	// Delete FB ids from all previous imports
@@ -163,7 +162,8 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		published,
 	});
 	return updateDb(article)
-		.then(() => addFbData({databaseRecord: article, apiRecord: article.apiRecord}));
+		.then(() => fbApi.find({canonical: article.canonical}))
+		.then(fbRecords => mergeFbData({databaseRecord: article, apiRecord: article.apiRecord, fbRecords}));
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
@@ -196,7 +196,7 @@ const getApi = canonical => database.getCapi(canonical)
 		});
 });
 
-const get = key => getCanonical(key)
+const getOwnData = key => getCanonical(key)
 .then(canonical => Promise.all([
 	database.get(canonical),
 	getApi(canonical),
@@ -208,8 +208,13 @@ const get = key => getCanonical(key)
 
 	return setDb(apiRecord)
 		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
-})
-.then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
+});
+
+const get = key => getOwnData(key)
+.then(({databaseRecord, apiRecord}) =>
+	fbApi.find({canonical: databaseRecord.canonical})
+	.then(fbRecords => mergeFbData({databaseRecord, apiRecord, fbRecords}))
+);
 
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
@@ -225,8 +230,8 @@ const update = article => Promise.all([
 })
 .then(() => get(article.canonical));
 
-const getList = canonicals => Promise.all(canonicals.map(
-	canonical => get(canonical)
+const getOwnDataList = canonicals => Promise.all(canonicals.map(
+	canonical => getOwnData(canonical)
 		.catch(e => {
 			if(e.type === 'FtApiContentMissingException') {
 				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
@@ -236,6 +241,17 @@ const getList = canonicals => Promise.all(canonicals.map(
 		})
 ))
 .then(articles => articles.filter(article => !!article));
+
+const getList = canonicals => getOwnDataList(canonicals)
+.then(ownDataList =>
+	fbApi.findMany({canonicals: ownDataList.map(article => article.databaseRecord.canonical)})
+	.then(fbDataList => Promise.all(
+		ownDataList.map(article => {
+			article.fbRecords = fbDataList[article.databaseRecord.canonical];
+			return mergeFbData(article);
+		})
+	))
+);
 
 module.exports = {
 	getApi,

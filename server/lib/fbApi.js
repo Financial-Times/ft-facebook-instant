@@ -11,6 +11,8 @@ const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
 
+const BATCH_SIZE = 50;
+
 // See introspect()
 const defaultFields = {
 
@@ -202,6 +204,51 @@ const find = ({canonical = null, fields = []} = {}) => {
 	});
 };
 
+const findBatch = ({canonicals = [], fields = []} = {}) => {
+	if(!canonicals.length) {
+		return Promise.reject(Error('Missing required parameter [canonicals]'));
+	}
+
+	fields = fields.length ? fields : defaultFields.article;
+	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
+
+	return call(
+		'/',
+		'GET',
+		{
+			fields: `${key}{${fields.join(',')}}`,
+			ids: canonicals.join(','),
+		}
+	)
+	.then(result => {
+		canonicals.forEach(canonical => {
+			const ret = {};
+			ret[mode] = result[canonical][key] || {nullRecord: true};
+			result[canonical] = ret;
+		});
+		return result;
+	});
+};
+
+const findMany = ({canonicals = [], fields = []} = {}) => {
+	const batch = [];
+	for(let i = 0; i < canonicals.length; i += BATCH_SIZE) {
+		batch.push(
+			canonicals
+				.slice(i, i + BATCH_SIZE)
+		);
+	}
+
+	return Promise.all(
+		batch.map(canonicalsBatch => findBatch({canonicals: canonicalsBatch, fields}))
+	)
+	.then(batchedResults => {
+		let ret = {};
+		batchedResults.forEach(results => (ret = Object.assign(ret, results)));
+		return ret;
+	});
+};
+
 const del = ({canonical = null} = {}) => {
 	if(!canonical) {
 		return Promise.reject(Error('Missing required parameter [id]'));
@@ -226,6 +273,7 @@ module.exports = {
 	post,
 	delete: del,
 	find,
+	findMany,
 	wipe,
 	call,
 };
