@@ -160,10 +160,16 @@ app.use(notFoundHandler);
 
 /* Start */
 
-notificationsController.init();
+if(process.env.DISABLE_NOTIFICATIONS) {
+	console.log(`${Date()}: DISABLE_NOTIFICATIONS flag prevented notificationsController initialisation`);
+} else {
+	notificationsController.init();
+}
 
-if(app.get('env') !== 'production') {
+if(process.env.DISABLE_REPUBLISH) {
+	console.log(`${Date()}: DISABLE_REPUBLISH flag prevented republishController initialisation`);
+} else if(app.get('env') !== 'production') {
 	republishController();
 }
 
-app.listen(port, () => console.log(`Up and running on port ${port} in ${mode} mode.`));
+app.listen(port, () => console.log(`${Date()}: Up and running on port ${port} in ${mode} mode.`));
