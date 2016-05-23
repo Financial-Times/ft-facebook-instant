@@ -83,17 +83,17 @@ const handlePagedResult = (result, limit) => {
 		});
 };
 
-const call = (...params) => addAccessToken(params)
-.then(newParams => {
-	const options = newParams[newParams.length - 1];
+const call = (...params) => {
+	const options = params[params.length - 1];
 
 	let limit = parseInt(options.__limit, 10);
 	limit = isNaN(limit) ? 25 : limit;
 
 	delete options.__limit;
 
-	console.log(`${Date()}: FACEBOOK API: ${newParams[0]} ${JSON.stringify(options)}`);
-	return api(...newParams)
+	console.log(`${Date()}: FACEBOOK API: ${params.map(JSON.stringify).join(' ')}`);
+	return addAccessToken(params)
+		.then(newParams => api(...newParams))
 		.then(result => handlePagedResult(result, limit))
 		.catch(e => {
 			if(e.name === 'FacebookApiException' && e.response) {
@@ -107,7 +107,7 @@ const call = (...params) => addAccessToken(params)
 
 			throw e;
 		});
-});
+};
 
 const list = ({fields = [], __limit} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
