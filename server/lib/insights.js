@@ -209,7 +209,7 @@ const createCanonicalsQuery = lastRun => {
 	const since = lastRun ? moment.utc(lastRun.timestamp).subtract(1, 'week') : moment.utc(1458864000);
 
 	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
-		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(${since}).until(now).as(metrics_${key})`
+		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(${since.unix()}).until(now).as(metrics_${key})`
 	);
 	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
@@ -578,8 +578,8 @@ module.exports.fetch = ({since}) => Promise.resolve()
 			}
 
 			return getPostsLists({
-				since: (since.valueOf() / 1000),
-				until: (timestamp / 1000),
+				since: since.unix(),
+				until: now.unix(),
 			})
 			.then(result => (batchIdList(result.data)))
 			.then(idBatch => Promise.all(idBatch.map(ids => executeQuery({lastRun, ids}))))
