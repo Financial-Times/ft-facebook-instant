@@ -16,6 +16,8 @@ const BATCH_SIZE = 50;
 const VERBOSE_AGGREGATIONS = false;
 const EXPLAINER_ROW = false;
 
+let importStart = null;
+
 const postAttributeKeys = [
 	'type',
 	'shares',
@@ -552,31 +554,47 @@ const saveLastRun = (timestamp, posts) => {
 };
 
 
-module.exports.fetch = ({since}) => database.getLastInsight()
-.then(lastRun => {
-	const now = moment.utc().startOf('hour');
-	const timestamp = now.valueOf();
-
-	console.log(`Fetching insights data from ${since.format()} to ${now.format()}. ` +
-		`Last run was ${lastRun && moment.utc(lastRun.timestamp).format() || 'null'}.`);
-
-	if(lastRun && lastRun.timestamp === timestamp) {
-		console.log(`Insights data already processed for ${now.format()}`);
+module.exports.fetch = ({since}) => Promise.resolve()
+.then(() => {
+	if(importStart) {
+		console.log(`Insights import is already running (${Math.round((Date.now() - importStart) / 1000)} seconds since start). No further work to do`);
 		return;
 	}
 
-	return getPostsLists({
-		since: (since.valueOf() / 1000),
-		until: (timestamp / 1000),
-	})
-	.then(result => (batchIdList(result.data)))
-	.then(idBatch => Promise.all(idBatch.map(ids => executeQuery({lastRun, ids}))))
-	.then(batchedResults => [].concat(...batchedResults))
-	.then(posts => Promise.all(posts.map(flattenPost)))
-	.then(posts => posts.map(zeroFill))
-	.then(posts =>
-		getHistoricValues(lastRun, now, posts)
-			.then(historic => saveCsvs(now, historic))
-			.then(() => saveLastRun(timestamp, posts))
-	);
+	importStart = Date.now();
+
+	return database.getLastInsight()
+		.then(lastRun => {
+			const now = moment.utc().startOf('hour');
+			const timestamp = now.valueOf();
+
+			console.log(`Fetching insights data from ${since.format()} to ${now.format()}. ` +
+				`Last run was ${lastRun && moment.utc(lastRun.timestamp).format() || 'null'}.`);
+
+			if(lastRun && lastRun.timestamp === timestamp) {
+				console.log(`Insights data already processed for ${now.format()}`);
+				importStart = null;
+				return;
+			}
+
+			return getPostsLists({
+				since: (since.valueOf() / 1000),
+				until: (timestamp / 1000),
+			})
+			.then(result => (batchIdList(result.data)))
+			.then(idBatch => Promise.all(idBatch.map(ids => executeQuery({lastRun, ids}))))
+			.then(batchedResults => [].concat(...batchedResults))
+			.then(posts => Promise.all(posts.map(flattenPost)))
+			.then(posts => posts.map(zeroFill))
+			.then(posts =>
+				getHistoricValues(lastRun, now, posts)
+					.then(historic => saveCsvs(now, historic))
+					.then(() => saveLastRun(timestamp, posts))
+			)
+			.then(() => (importStart = null));
+		});
+})
+.catch(e => {
+	importStart = null;
+	throw e;
 });
