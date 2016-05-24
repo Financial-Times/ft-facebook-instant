@@ -8,7 +8,6 @@ const moment = require('moment');
 const denodeify = require('denodeify');
 const csvStringify = denodeify(require('csv-stringify'));
 const path = require('path');
-const cuid = require('cuid');
 const fs = require('fs');
 
 const pageId = process.env.FB_PAGE_ID;
@@ -128,7 +127,7 @@ const otherColumns = [
 	'id',
 	'timestamp',
 	'type',
-	'message',
+	// 'message',		// Verbose text, not needed
 	// 'name',			// Verbose text, not needed
 	// 'description',	// Verbose text, not needed
 	'created_time',
@@ -436,13 +435,13 @@ const addExplainerRow = data => {
 	data.unshift(explainer);
 };
 
-const generateCsv = data => {
+const generateCsv = ({data, header}) => {
 	if(EXPLAINER_ROW) {
 		addExplainerRow(data);
 	}
 
 	return csvStringify(data, {
-		header: true,
+		header,
 		columns: getColumns(),
 	});
 };
@@ -510,22 +509,22 @@ const getCsvRows = (posts, age, historicTimestampUtc) => Promise.resolve()
 });
 
 const saveCsvs = (now, posts) => {
-	const uniq = cuid();
+	const random8 = Math.floor(Math.random() * 90000000) + 10000000;
+	const filename = `facebookinstantinsights-${random8}-${now.format('YYYYMMDDHHmmss')}.txt`;
+	const filepath = path.resolve(process.cwd(), `insights/${filename}`);
 	const oldestPostAge = posts.sort((a, b) => b.age - a.age)[0].age;
 
-	// Write files in series to avoid eating up memory
+	// Generate CSVs in series to avoid eating up memory
 	return Array.apply(0, Array(oldestPostAge + 1))
 		.map((x, index) => oldestPostAge - index)
-		.reduce((promise, age) => promise.then(() => {
+		.reduce((promise, age, index) => promise.then(() => {
 			const historicTimestamp = moment(now).subtract(age + 1, 'hours');
 			const historicTimestampUtc = historicTimestamp.format();
-			const filename = path.resolve(process.cwd(), `insights/${historicTimestamp.toISOString()}.${uniq}.csv`);
-
 			return getCsvRows(posts, age, historicTimestampUtc)
-				.then(generateCsv)
-				.then(csv => fs.writeFile(filename, csv));
+				.then(data => generateCsv({data, header: (index === 0)}))
+				.then(csv => fs.writeFile(filepath, csv, {flag: 'a'}));
 		}), Promise.resolve())
-		.then(() => console.log(`Wrote ${oldestPostAge + 1} CSVs to ${path.resolve(process.cwd(), `insights/*.${uniq}.csv`)}`));
+		.then(() => console.log(`Wrote CSV to ${filepath}`));
 };
 
 const getHistoricValues = (lastRun, now, posts) => Promise.resolve(
