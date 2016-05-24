@@ -206,7 +206,7 @@ const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_objec
 
 const createCanonicalsQuery = lastRun => {
 	// "The data is only available after 24 March, 2016" => 1458864000
-	const since = lastRun ? moment.utc(lastRun.timestamp).subtract(1, 'week') : moment.utc(1458864000);
+	const since = lastRun ? moment.utc(lastRun.timestamp).subtract(1, 'week') : moment.utc(1458864000000);
 
 	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
 		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(${since.unix()}).until(now).as(metrics_${key})`
@@ -539,7 +539,7 @@ const getHistoricValues = (lastRun, now, posts) => Promise.resolve(
 	)
 );
 
-const saveLastRun = (timestamp, posts) => {
+const saveLastRun = (now, posts) => {
 	const data = {};
 
 	posts.forEach(post => {
@@ -550,7 +550,7 @@ const saveLastRun = (timestamp, posts) => {
 		data[post.id] = integers;
 	});
 
-	return database.setInsight(timestamp, data);
+	return database.setInsight(now.valueOf(), data);
 };
 
 
@@ -566,12 +566,10 @@ module.exports.fetch = ({since}) => Promise.resolve()
 	return database.getLastInsight()
 		.then(lastRun => {
 			const now = moment.utc().startOf('hour');
-			const timestamp = now.valueOf();
-
 			console.log(`Fetching insights data from ${since.format()} to ${now.format()}. ` +
 				`Last run was ${lastRun && moment.utc(lastRun.timestamp).format() || 'null'}.`);
 
-			if(lastRun && lastRun.timestamp === timestamp) {
+			if(lastRun && lastRun.timestamp === now.valueOf()) {
 				console.log(`Insights data already processed for ${now.format()}`);
 				importStart = null;
 				return;
@@ -589,7 +587,7 @@ module.exports.fetch = ({since}) => Promise.resolve()
 			.then(posts =>
 				getHistoricValues(lastRun, now, posts)
 					.then(historic => saveCsvs(now, historic))
-					.then(() => saveLastRun(timestamp, posts))
+					.then(() => saveLastRun(now, posts))
 			)
 			.then(() => (importStart = null));
 		});
