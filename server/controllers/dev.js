@@ -3,6 +3,7 @@
 const database = require('../lib/database');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
+const s3 = require('../lib/s3');
 const accessTokens = require('../lib/accessTokens');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
@@ -129,6 +130,14 @@ module.exports = (req, res, next) => {
 		case 'wipeInsights':
 			return database.wipeInsights()
 				.then(result => res.json({result}));
+		case 'uploadS3':
+			return s3.upload('./george-test-123.txt', 'george-test-123.txt')
+				.then(result => res.json({result}))
+				.catch(next);
+		case 'listS3':
+			return s3.list()
+				.then(result => res.json({result}))
+				.catch(next);
 		default:
 			res.sendStatus(404);
 			break;

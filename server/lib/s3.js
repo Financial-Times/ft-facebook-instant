@@ -1,63 +1,65 @@
 'use strict';
 
-const s3 = require('s3');
+const knox = require('knox');
+const denodeify = require('denodeify');
 
-const client = s3.createClient({
-	s3Options: {
-		accessKeyId: process.env.S3_ACCESS_KEY_ID,
-		secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-		region: process.env.S3_REGION,
-	},
+const client = knox.createClient({
+	key: process.env.S3_ACCESS_KEY_ID,
+	secret: process.env.S3_SECRET_ACCESS_KEY,
+	bucket: process.env.S3_BUCKET,
+	region: process.env.S3_REGION,
 });
 
+module.exports.upload = (localPath, remoteFilename) => new Promise((resolve, reject) => {
+	console.log(`${Date()}: S3_UPLOAD: Uploading file from ${localPath} to Amazon S3 at ` +
+		`${process.env.S3_BUCKET}/${process.env.S3_REMOTE_PATH}/${remoteFilename}`);
 
-module.exports.download = () => new Promise((resolve, reject) => {
-	const proc = client.downloadFile({
-		localFile: './aws-download',
-		s3Params: {
-			Bucket: 'dev.ft.dw.source',
-			// Key: 'content/annotations-02051870-20160523115505.txt',
-			Key: 'external/apps.facebook-instant.dev/george-test.txt',
-		},
-	});
+	const remotePath = `${process.env.S3_REMOTE_PATH}/${remoteFilename}`;
+	const proc = client.putFile(localPath, remotePath, (err, res) => {
+		if(err) {
+			return reject(err);
+		}
 
-	proc.on('error', err => {
-		console.error('unable to download:', err.stack);
-		reject(err);
-	});
+		if(res.statusCode !== 200) {
+			console.error(`${Date()}: S3_UPLOAD: Upload failed with status ${res.statusCode}`);
+			console.error(res);
+			return reject(Error(`S3_UPLOAD: Upload failed with status ${res.statusCode}`));
+		}
 
-	proc.on('progress', () => {
-		console.log('progress', proc.progressAmount, proc.progressTotal);
-	});
-
-	proc.on('end', () => {
-		console.log('done downloading');
+		console.log(`${Date()}: S3_UPLOAD: Upload complete`);
 		resolve();
+	});
+
+	let lastPercent = 0;
+	proc.on('progress', ({written, total, percent}) => {
+		percent = Math.floor(percent / 10) * 10;
+		if(percent === 100) {
+			console.log(`${Date()}: S3_UPLOAD: Upload progress: 100%. Waiting for confirmation of succesful upload.`);
+		} else if(percent > lastPercent) {
+			console.log(`${Date()}: S3_UPLOAD: Upload progress: ${percent}%`);
+			lastPercent = percent;
+		}
 	});
 });
 
+module.exports.list = () => new Promise((resolve, reject) => {
+	console.log(`${Date()}: S3_LIST: Listing files at ` +
+		`${process.env.S3_BUCKET}/${process.env.S3_REMOTE_PATH}/`);
 
-module.exports.upload = () => new Promise((resolve, reject) => {
-	const proc = client.uploadFile({
-		localFile: './george-test.txt',
-		s3Params: {
-			Bucket: 'dev.ft.dw.source',
-			Key: 'content/george-test.txt',
-			// Key: 'external/apps.facebook-instant.dev/george-test.txt',
-		},
-	});
+	client.list({
+		prefix: process.env.S3_REMOTE_PATH,
+	}, (err, data) => {
+		if(err) {
+			return reject(err);
+		}
 
-	proc.on('error', err => {
-		console.error('unable to upload:', err.stack);
-		reject(err);
-	});
+		if(data.Code || data.Message) {
+			console.error(`${Date()}: S3_LIST: List failed with code ${data.Code} and message ${data.Message}`);
+			console.error(data);
+			return reject(Error(`S3_LIST: List failed with code ${data.Code} and message ${data.Message}`));
+		}
 
-	proc.on('progress', () => {
-		console.log('progress', proc.progressAmount, proc.progressTotal);
-	});
-
-	proc.on('end', () => {
-		console.log('done uploading');
-		resolve();
+		console.log(`${Date()}: S3_LIST: Found files: ${JSON.stringify(data)}`);
+		resolve(data);
 	});
 });
