@@ -163,8 +163,7 @@ app.use(notFoundHandler);
 
 
 /* Start */
-
-if(process.env.ENABLE_INSIGHTS_FETCH) {
+if(process.env.ENABLE_INSIGHTS_FETCH === 'true') {
 	console.log(`${Date()}: ENABLE_INSIGHTS_FETCH flag is set. Initialising insightsController`);
 	insightsController.init();
 } else {
