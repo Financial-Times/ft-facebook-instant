@@ -31,6 +31,8 @@ const port = process.env.PORT || 6247;
 
 let ravenClient;
 
+console.log('break 1');
+
 if(app.get('env') === 'development') {
 	process.on('uncaughtException', error => {
 		console.error(`${Date()}: uncaughtException`);
@@ -42,6 +44,8 @@ if(app.get('env') === 'development') {
 	ravenClient = require('./lib/raven');
 	ravenClient.patchGlobal(() => process.exit(1));
 }
+
+console.log('break 2');
 
 assertEnv([
 	'AWS_ACCESS_KEY',
@@ -74,6 +78,8 @@ if(app.get('env') !== 'development') {
 		next();
 	});
 }
+
+console.log('break 3');
 
 /* Middleware */
 
@@ -161,6 +167,7 @@ app.use(logErrors);
 app.use(clientErrorHandler);
 app.use(notFoundHandler);
 
+console.log('break 4');
 
 /* Start */
 if(process.env.ENABLE_INSIGHTS_FETCH === 'true') {
