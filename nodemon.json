@@ -11,6 +11,5 @@
 		"start": "which osascript > /dev/null && osascript -e 'display notification \"App started\" with title \"nodemon\"'",
 		"restart": "which osascript > /dev/null && osascript -e 'display notification \"App restarted\" with title \"nodemon\"'",
 		"crash": "which osascript > /dev/null && osascript -e 'display notification \"App crashed\" with title \"nodemon\"'"
-	},
-	"exec": "node --optimize_for_size --max_old_space_size=460 --gc_interval=100 build/index.js"
+	}
 }
