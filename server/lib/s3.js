@@ -1,7 +1,6 @@
 'use strict';
 
 const knox = require('knox');
-const denodeify = require('denodeify');
 
 const client = knox.createClient({
 	key: process.env.S3_ACCESS_KEY_ID,
