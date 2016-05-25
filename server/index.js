@@ -63,6 +63,7 @@ assertEnv([
 	'S3_REGION',
 	'S3_BUCKET',
 	'S3_REMOTE_PATH',
+	'ENABLE_INSIGHTS_FETCH',
 ]);
 
 if(app.get('env') !== 'development') {
