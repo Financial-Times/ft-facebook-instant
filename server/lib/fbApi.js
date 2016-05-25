@@ -38,6 +38,7 @@ const defaultFields = {
 };
 
 const MAX_IMPORT_WAIT = 5 * 60 * 1000;
+const MAX_ATTEMPTS = 3;
 
 Facebook.options({
 	version: 'v2.5',
@@ -119,6 +120,26 @@ const handleBatchedResults = (results, params, dependent) => Promise.resolve()
 	throw e;
 });
 
+const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...params)
+.then(result => (batched ? handleBatchedResults(result, params, dependent) : handlePagedResult(result, limit)))
+.catch(e => {
+	if(e.name === 'FacebookApiException' && e.response) {
+		if(e.response.error && e.response.error.code === 'ETIMEDOUT') {
+			if(attempts >= MAX_ATTEMPTS) {
+				throw Error('Facebook API call timed-out');
+			}
+			attempts++;
+			console.log('Retrying timed-out Facebook call', params, {batched, dependent, limit, attempts});
+			return callApi(params, {batched, dependent, limit, attempts});
+		}
+
+		e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
+		throw new Facebook.FacebookApiException(e.response);
+	}
+
+	throw e;
+});
+
 const call = (...params) => addAccessToken(params)
 .then(newParams => {
 	const options = newParams[newParams.length - 1];
@@ -127,25 +148,14 @@ const call = (...params) => addAccessToken(params)
 	limit = isNaN(limit) ? 25 : limit;
 
 	const dependent = options.__dependent;
+	const batched = options.__batched;
 
 	delete options.__limit;
 	delete options.__dependent;
+	delete options.__batched;
 
 	console.log(`${Date()}: FACEBOOK API: ${newParams[0]} ${JSON.stringify(options)}`);
-	return api(...newParams)
-		.then(result => (options.batch ? handleBatchedResults(result, newParams, dependent) : handlePagedResult(result, limit)))
-		.catch(e => {
-			if(e.name === 'FacebookApiException' && e.response) {
-				if(e.response.error && e.response.error.code === 'ETIMEDOUT') {
-					throw Error('Facebook API call timed-out');
-				}
-
-				e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
-				throw new Facebook.FacebookApiException(e.response);
-			}
-
-			throw e;
-		});
+	return callApi(newParams, {batched, dependent, limit});
 });
 
 const list = ({fields = [], __limit} = {}) => {
