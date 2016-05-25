@@ -113,8 +113,6 @@ app.route('^/reload-s3o$').get((req, res, next) => {
 	res.render('reload-s30');
 });
 
-app.route('^/insights$').all(noCache).get(insightsController);
-
 
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);
@@ -164,6 +162,13 @@ app.use(notFoundHandler);
 
 
 /* Start */
+
+if(process.env.ENABLE_INSIGHTS_FETCH) {
+	console.log(`${Date()}: ENABLE_INSIGHTS_FETCH flag is set. Initialising insightsController`);
+	insightsController.init();
+} else {
+	console.log(`${Date()}: ENABLE_INSIGHTS_FETCH flag is not set. Will not initialise insightsController`);
+}
 
 if(process.env.DISABLE_NOTIFICATIONS) {
 	console.log(`${Date()}: DISABLE_NOTIFICATIONS flag prevented notificationsController initialisation`);
