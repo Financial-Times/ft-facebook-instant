@@ -2,13 +2,17 @@
 
 const fbApi = require('./fbApi');
 const ftApi = require('./ftApi');
+const s3 = require('./s3');
 const database = require('./database');
 const numbers = require('numbers');
 const moment = require('moment');
 const denodeify = require('denodeify');
+const fs = require('fs');
+const writeFile = denodeify(fs.writeFile);
+const deleteFile = denodeify(fs.unlink);
+const readDir = denodeify(fs.readdir);
 const csvStringify = denodeify(require('csv-stringify'));
 const path = require('path');
-const fs = require('fs');
 
 const pageId = process.env.FB_PAGE_ID;
 const BATCH_SIZE = 50;
@@ -396,6 +400,7 @@ const executeQuery = ({lastRun, ids}) => fbApi.call('', 'POST', {
 	batch: createQuery({lastRun, ids}),
 	include_headers: false,
 	__dependent: true,
+	__batched: true,
 })
 .then(processResults);
 
@@ -508,12 +513,13 @@ const getCsvRows = (posts, age, historicTimestampUtc) => Promise.resolve()
 	return rows;
 });
 
-const saveCsvs = (now, posts) => {
+const writeCsv = (now, posts) => {
 	const random8 = Math.floor(Math.random() * 90000000) + 10000000;
-	const filename = `facebookinstantinsights-${random8}-${now.format('YYYYMMDDHHmmss')}.txt`;
-	const filepath = path.resolve(process.cwd(), `insights/${filename}`);
+	const filename = `facebookinstantinsights-${random8}-${now.format('YYYYMMDDHHmmss')}`;
+	const localPath = path.resolve(process.cwd(), `insights/${filename}.csv`);
 	const oldestPostAge = posts.sort((a, b) => b.age - a.age)[0].age;
 
+	let rows = 0;
 	// Generate CSVs in series to avoid eating up memory
 	return Array.apply(0, Array(oldestPostAge + 1))
 		.map((x, index) => oldestPostAge - index)
@@ -521,11 +527,38 @@ const saveCsvs = (now, posts) => {
 			const historicTimestamp = moment(now).subtract(age + 1, 'hours');
 			const historicTimestampUtc = historicTimestamp.format();
 			return getCsvRows(posts, age, historicTimestampUtc)
+				.then(data => (rows += data.length, data))
 				.then(data => generateCsv({data, header: (index === 0)}))
-				.then(csv => fs.writeFile(filepath, csv, {flag: 'a'}));
+				.then(csv => writeFile(localPath, csv, {flag: 'a'}));
 		}), Promise.resolve())
-		.then(() => console.log(`Wrote CSV to ${filepath}`));
+		.then(() => {
+			console.log(`Wrote CSV with ${rows} rows to ${localPath}.`);
+			return {localPath, filename};
+		});
 };
+
+const uploadCsv = ({localPath, filename}) => {
+	console.log(`Uploading CSV from ${localPath} to Amazon S3.`);
+
+	// Data team prefer .txt suffix for some reason
+	return s3.upload(localPath, `${filename}.txt`)
+		.then(() => {
+			console.log(`Uploading complete, will delete CSV from ${localPath}.`);
+			return deleteFile(localPath);
+		});
+};
+
+const uploadHistoricCsvs = () => readDir(path.resolve(process.cwd(), 'insights/'))
+.then(items => Promise.all(
+	items
+		.filter(item => /^facebookinstantinsights-\d{8}-\d{14}\.csv$/.test(item))
+		.map(item => item.slice(0, -4))
+		.map(filename => (console.log(`Found historic CSV to upload at insights/${filename}.csv`), filename))
+		.map(filename => uploadCsv({
+			localPath: path.resolve(process.cwd(), `insights/${filename}.csv`),
+			filename,
+		}))
+));
 
 const getHistoricValues = (lastRun, now, posts) => Promise.resolve(
 	posts.map(post =>
@@ -556,13 +589,18 @@ const saveLastRun = (now, posts) => {
 module.exports.fetch = ({since}) => Promise.resolve()
 .then(() => {
 	if(importStart) {
-		console.log(`Insights import is already running (${Math.round((Date.now() - importStart) / 1000)} seconds since start). No further work to do`);
+		const seconds = Math.round((Date.now() - importStart) / 1000);
+		if(seconds > (60 * 10)) {
+			throw Error('Insights import has been running for more than 10 minutes.');
+		}
+		console.log(`Insights import is already running (process is ${seconds} old). No further work to do`);
 		return;
 	}
 
 	importStart = Date.now();
 
-	return database.getLastInsight()
+	return uploadHistoricCsvs()
+		.then(database.getLastInsight)
 		.then(lastRun => {
 			const now = moment.utc().startOf('hour');
 			console.log(`Fetching insights data from ${since.format()} to ${now.format()}. ` +
@@ -585,8 +623,12 @@ module.exports.fetch = ({since}) => Promise.resolve()
 			.then(posts => posts.map(zeroFill))
 			.then(posts =>
 				getHistoricValues(lastRun, now, posts)
-					.then(historic => saveCsvs(now, historic))
-					.then(() => saveLastRun(now, posts))
+					.then(historic => writeCsv(now, historic))
+					.then(({localPath, filename}) =>
+						// CSV has been generated, so this run has been a success even if file couldn't be uploaded (which can be done another time)
+						saveLastRun(now, posts)
+						.then(() => uploadCsv({localPath, filename}))
+					)
 			)
 			.then(() => (importStart = null));
 		});
