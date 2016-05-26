@@ -134,6 +134,10 @@ module.exports = (req, res, next) => {
 			return s3.upload('./george-test-123.txt', 'george-test-123.txt')
 				.then(result => res.json({result}))
 				.catch(next);
+		case 'downloadS3':
+			return s3.download('facebookinstantinsights-14954213-20160526080000.txt', './s3-download.csv')
+				.then(result => res.json({result}))
+				.catch(next);
 		case 'listS3':
 			return s3.list()
 				.then(result => res.json({result}))

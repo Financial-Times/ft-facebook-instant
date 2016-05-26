@@ -1,6 +1,7 @@
 'use strict';
 
 const knox = require('knox');
+const fs = require('fs');
 
 const client = knox.createClient({
 	key: process.env.S3_ACCESS_KEY_ID,
@@ -38,6 +39,48 @@ module.exports.upload = (localPath, remoteFilename) => new Promise((resolve, rej
 			console.log(`${Date()}: S3_UPLOAD: Upload progress: ${percent}%`);
 			lastPercent = percent;
 		}
+	});
+});
+
+module.exports.download = (remoteFilename, localPath) => new Promise((resolve, reject) => {
+	console.log(`${Date()}: S3_DOWNLOAD: Downloading file from Amazon S3 at ` +
+		`${process.env.S3_BUCKET}/${process.env.S3_REMOTE_PATH}/${remoteFilename} to ${localPath}`);
+
+	const writeStream = fs.createWriteStream(localPath);
+	const remotePath = `${process.env.S3_REMOTE_PATH}/${remoteFilename}`;
+
+	client.getFile(remotePath, (err, res) => {
+		if(err) {
+			return reject(err);
+		}
+
+		if(res.statusCode !== 200) {
+			console.error(`${Date()}: S3_DOWNLOAD: Download failed with status ${res.statusCode}`);
+			console.error(res);
+			return reject(Error(`S3_DOWNLOAD: Download failed with status ${res.statusCode}`));
+		}
+
+		const total = res.headers['content-length'];
+		let bytes = 0;
+		let lastPercent = 0;
+		let percent;
+
+		res.on('data', chunk => {
+			writeStream.write(chunk);
+
+			bytes += chunk.length;
+			percent = Math.floor(bytes / total * 10) * 10;
+			if(percent > lastPercent) {
+				console.log(`${Date()}: S3_DOWNLOAD: Download progress: ${percent}%`);
+				lastPercent = percent;
+			}
+		});
+
+		res.on('end', chunk => {
+			writeStream.end();
+			console.log(`${Date()}: S3_DOWNLOAD: Download complete`);
+			resolve();
+		});
 	});
 });
 
