@@ -43,7 +43,7 @@ const MAX_ATTEMPTS = 3;
 Facebook.options({
 	version: 'v2.5',
 	accessToken,
-	timeout: (mode === 'production' ? 2000 : 10000),
+	timeout: (mode === 'production' ? 10000 : 30000),
 });
 
 function addAccessToken(params) {
