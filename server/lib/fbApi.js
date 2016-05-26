@@ -22,18 +22,18 @@ const defaultFields = {
 		'canonical_url',
 		'development_mode',
 		'most_recent_import_status',
-		'photos',
 		'published',
-		'videos',
-		'html_source',
+		// 'photos',
+		// 'videos',
+		// 'html_source',
 	],
 
 	import: [
 		'id',
 		'errors',
-		'html_source',
-		'instant_article',
 		'status',
+		// 'html_source',
+		// 'instant_article',
 	],
 
 	related: [],
@@ -109,6 +109,22 @@ const call = (...params) => {
 		});
 };
 
+const batchIds = ids => {
+	const batch = [];
+	for(let i = 0; i < ids.length; i += BATCH_SIZE) {
+		batch.push(
+			ids.slice(i, i + BATCH_SIZE)
+		);
+	}
+	return batch;
+};
+
+const prepareBatchedResults = batchedResults => {
+	let ret = {};
+	batchedResults.forEach(results => (ret = Object.assign(ret, results)));
+	return ret;
+};
+
 const list = ({fields = [], __limit} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
 
@@ -129,9 +145,9 @@ const list = ({fields = [], __limit} = {}) => {
 	.then(results => results.data || []);
 };
 
-const get = ({type = 'article', id = null, fields = []} = {}) => {
-	if(!id) {
-		return Promise.reject(Error('Missing required parameter [id]'));
+const getBatch = ({type = 'article', ids = [], fields = []} = {}) => {
+	if(!ids.length) {
+		return Promise.reject(Error('Missing required parameter [ids]'));
 	}
 
 	if(!type || !defaultFields[type]) {
@@ -141,13 +157,39 @@ const get = ({type = 'article', id = null, fields = []} = {}) => {
 	fields = fields.length ? fields : defaultFields[type];
 
 	return call(
-		`/${id}`,
+		'/',
 		'GET',
 		{
+			ids: ids.join(','),
 			fields: fields.join(','),
 		}
 	);
 };
+
+const get = ({type = 'article', id = null, fields = []}) => {
+	if(!id) {
+		return Promise.reject(Error('Missing required parameter [id]'));
+	}
+
+	return getBatch({
+		type,
+		ids: [id],
+		fields,
+	})
+	.then(result => result[id]);
+};
+
+const many = ({ids, type, fields}, fn) => Promise.all(
+	batchIds(ids)
+	.map(idsBatch => fn({
+		ids: idsBatch,
+		type,
+		fields,
+	}))
+)
+.then(prepareBatchedResults);
+
+const getMany = args => many(args, getBatch);
 
 const introspect = ({id = null} = {}) => {
 	if(!id) {
@@ -231,34 +273,17 @@ const post = ({uuid, html, published = false, wait = false} = {}) => {
 	});
 };
 
-const find = ({canonical = null, fields = []} = {}) => {
-	if(!canonical) {
-		return Promise.reject(Error('Missing required parameter [canonical]'));
+const findBatch = ({type = 'article', ids = [], fields = []} = {}) => {
+	if(!ids.length) {
+		return Promise.reject(Error('Missing required parameter [ids]'));
 	}
 
-	fields = fields.length ? fields : defaultFields.article;
-	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
-
-	return call(
-		`/${canonical}`,
-		'GET',
-		{
-			fields: `${key}{${fields.join(',')}}`,
-		}
-	)
-	.then(result => {
-		const ret = {};
-		ret[mode] = result[key] || {nullRecord: true};
-		return ret;
-	});
-};
-
-const findBatch = ({canonicals = [], fields = []} = {}) => {
-	if(!canonicals.length) {
-		return Promise.reject(Error('Missing required parameter [canonicals]'));
+	if(!type || !defaultFields[type]) {
+		return Promise.reject(Error(`Missing or invalid type parameter: [${type}]`));
 	}
 
-	fields = fields.length ? fields : defaultFields.article;
+	fields = fields.length ? fields : defaultFields[type];
+
 	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
 
 	return call(
@@ -266,11 +291,11 @@ const findBatch = ({canonicals = [], fields = []} = {}) => {
 		'GET',
 		{
 			fields: `${key}{${fields.join(',')}}`,
-			ids: canonicals.join(','),
+			ids: ids.join(','),
 		}
 	)
 	.then(result => {
-		canonicals.forEach(canonical => {
+		ids.forEach(canonical => {
 			const ret = {};
 			ret[mode] = result[canonical][key] || {nullRecord: true};
 			result[canonical] = ret;
@@ -279,24 +304,20 @@ const findBatch = ({canonicals = [], fields = []} = {}) => {
 	});
 };
 
-const findMany = ({canonicals = [], fields = []} = {}) => {
-	const batch = [];
-	for(let i = 0; i < canonicals.length; i += BATCH_SIZE) {
-		batch.push(
-			canonicals
-				.slice(i, i + BATCH_SIZE)
-		);
+const find = ({canonical = null, fields = []}) => {
+	if(!canonical) {
+		return Promise.reject(Error('Missing required parameter [canonical]'));
 	}
 
-	return Promise.all(
-		batch.map(canonicalsBatch => findBatch({canonicals: canonicalsBatch, fields}))
-	)
-	.then(batchedResults => {
-		let ret = {};
-		batchedResults.forEach(results => (ret = Object.assign(ret, results)));
-		return ret;
-	});
+	return findBatch({
+		type: 'article',
+		ids: [canonical],
+		fields,
+	})
+	.then(result => result[canonical]);
 };
+
+const findMany = args => many(args, findBatch);
 
 const del = ({canonical = null} = {}) => {
 	if(!canonical) {
@@ -318,6 +339,7 @@ const wipe = () => list({fields: ['id']})
 module.exports = {
 	list,
 	get,
+	getMany,
 	introspect,
 	post,
 	delete: del,
