@@ -11,10 +11,10 @@ const client = knox.createClient({
 });
 
 module.exports.upload = (localPath, remoteFilename) => new Promise((resolve, reject) => {
-	console.log(`${Date()}: S3_UPLOAD: Uploading file from ${localPath} to Amazon S3 at ` +
-		`${process.env.S3_BUCKET}/${process.env.S3_REMOTE_PATH}/${remoteFilename}`);
-
 	const remotePath = `${process.env.S3_REMOTE_PATH}/${remoteFilename}`;
+	console.log(`${Date()}: S3_UPLOAD: Uploading file from ${localPath} to Amazon S3 at ` +
+		`${process.env.S3_BUCKET}/${remotePath}`);
+
 	const proc = client.putFile(localPath, remotePath, (err, res) => {
 		if(err) {
 			return reject(err);
@@ -43,11 +43,9 @@ module.exports.upload = (localPath, remoteFilename) => new Promise((resolve, rej
 });
 
 module.exports.download = (remoteFilename, localPath) => new Promise((resolve, reject) => {
-	console.log(`${Date()}: S3_DOWNLOAD: Downloading file from Amazon S3 at ` +
-		`${process.env.S3_BUCKET}/${process.env.S3_REMOTE_PATH}/${remoteFilename} to ${localPath}`);
-
-	const writeStream = fs.createWriteStream(localPath);
 	const remotePath = `${process.env.S3_REMOTE_PATH}/${remoteFilename}`;
+	console.log(`${Date()}: S3_DOWNLOAD: Downloading file from Amazon S3 at ` +
+		`${process.env.S3_BUCKET}/${remotePath} to ${localPath}`);
 
 	client.getFile(remotePath, (err, res) => {
 		if(err) {
@@ -59,6 +57,8 @@ module.exports.download = (remoteFilename, localPath) => new Promise((resolve, r
 			console.error(res);
 			return reject(Error(`S3_DOWNLOAD: Download failed with status ${res.statusCode}`));
 		}
+
+		const writeStream = fs.createWriteStream(localPath);
 
 		const total = res.headers['content-length'];
 		let bytes = 0;
