@@ -11,6 +11,7 @@ const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
 const FbApiImportException = require('./fbApi/importException');
+const FbApiTimeoutException = require('./fbApi/timeoutException');
 
 // See introspect()
 const defaultFields = {
@@ -88,8 +89,6 @@ const handlePagedResult = (result, limit) => Promise.resolve()
 });
 
 const parseBatchResult = result => {
-	if(result === null) return result;
-
 	try{
 		return JSON.parse(result.body);
 	} catch(e) {
@@ -98,42 +97,39 @@ const parseBatchResult = result => {
 };
 
 const handleBatchedResults = (results, params, dependent) => Promise.resolve()
-.then(() => results.map(parseBatchResult))
-.then(parsed => {
-	const errors = parsed.filter((result, index) => (!results[index] || results[index].code !== 200));
+.then(() => {
+	const statuses = results.map((result, index) => (result.code === 200 ? 'ok' : {result, query: params.batch[index]}));
+	const errors = results.filter(result => (result.code !== 200));
+	const nulls = results.filter(result => (result === null));
 
-	if(!errors.length) return parsed;
-
-	if(dependent && results[0].code === 200 && parsed[0].data === []) {
-		// First batch member is empty, and other members depend on the first one
-		return null;
+	if(errors.length) {
+		throw Error(`Batch failed with ${errors.length} error(s). Results: ${JSON.stringify(statuses)}. Params: ${JSON.stringify(params)}`);
 	}
 
-	// TODO: throw exception if any result is null, as it's likely to be a timeout
-
-	throw Error(`Batch failed with ${errors.length} error(s). Errors: ${JSON.stringify(errors)}. Params: ${JSON.stringify(params)}`);
-})
-.catch(e => {
-	console.log('Batch error', {results});
-	if(dependent && results[0].code === 200 && results[0].body === '{"data":[]}') {
-		return null;
+	if(nulls.length) {
+		// Null batch responses where there are no errors are probably timeouts, so retry the
+		// whole batch. Ideally, we'd retry only the failing batch parts here.
+		throw new FbApiTimeoutException();
 	}
-	throw e;
+
+	return results.map(parseBatchResult);
 });
 
 const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...params)
 .then(result => (batched ? handleBatchedResults(result, params, dependent) : handlePagedResult(result, limit)))
 .catch(e => {
-	if(e.name === 'FacebookApiException' && e.response) {
-		if(e.response.error && e.response.error.code === 'ETIMEDOUT') {
-			if(attempts >= MAX_ATTEMPTS) {
-				throw Error('Facebook API call timed-out');
-			}
-			attempts++;
-			console.log('Retrying timed-out Facebook call', params, {batched, dependent, limit, attempts});
-			return callApi(params, {batched, dependent, limit, attempts});
+	if(e.type === 'FbApiTimeoutException' ||
+		(e.name === 'FacebookApiException' && e.response && e.response.error && e.response.error.code === 'ETIMEDOUT')
+		) {
+		if(attempts >= MAX_ATTEMPTS) {
+			throw Error('Facebook API call timed-out');
 		}
+		attempts++;
+		console.log('Retrying timed-out Facebook call', params, {batched, dependent, limit, attempts});
+		return callApi(params, {batched, dependent, limit, attempts});
+	}
 
+	if(e.name === 'FacebookApiException' && e.response) {
 		e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
 		throw new Facebook.FacebookApiException(e.response);
 	}
