@@ -586,7 +586,7 @@ const saveLastRun = (now, posts) => {
 };
 
 
-module.exports.fetch = ({since}) => Promise.resolve()
+module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 .then(() => {
 	if(importStart) {
 		const seconds = Math.round((Date.now() - importStart) / 1000);
@@ -627,7 +627,7 @@ module.exports.fetch = ({since}) => Promise.resolve()
 					.then(({localPath, filename}) =>
 						// CSV has been generated, so this run has been a success even if file couldn't be uploaded (which can be done another time)
 						saveLastRun(now, posts)
-						.then(() => uploadCsv({localPath, filename}))
+						.then(() => upload && uploadCsv({localPath, filename}))
 					)
 			)
 			.then(() => (importStart = null));

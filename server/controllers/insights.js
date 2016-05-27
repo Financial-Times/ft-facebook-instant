@@ -27,6 +27,7 @@ const fetch = () => {
 	console.log(`${Date()}: INSIGHTS_FETCH periodic fetch starting now`);
 	return insights.fetch({
 		since,
+		upload: true,
 	})
 	.then(() => {
 		console.log(`${Date()}: INSIGHTS_FETCH periodic fetch complete`);

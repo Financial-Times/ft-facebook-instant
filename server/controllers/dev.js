@@ -5,6 +5,8 @@ const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
 const s3 = require('../lib/s3');
 const accessTokens = require('../lib/accessTokens');
+const moment = require('moment');
+const insights = require('../lib/insights');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
 .filter(name => (name.indexOf('s3o') === -1)) // Don't clear S3O cookies!
@@ -142,6 +144,14 @@ module.exports = (req, res, next) => {
 			return s3.list()
 				.then(result => res.json({result}))
 				.catch(next);
+		case 'insights':
+			return insights.fetch({
+				since: moment.utc().startOf('hour').subtract(2, 'day'),
+			})
+			.then(() => {
+				res.send('done');
+			})
+			.catch(next);
 		default:
 			res.sendStatus(404);
 			break;
