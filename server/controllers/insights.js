@@ -1,23 +1,11 @@
 'use strict';
 
 const moment = require('moment');
+const mode = require('../lib/mode').get();
 const insights = require('../lib/insights');
+const ravenClient = require('../lib/raven');
 const promiseLoopInterval = require('@quarterto/promise-loop-interval');
 const UPDATE_INTERVAL = 1 * 60 * 1000;
-
-module.exports = (req, res, next) => {
-	const since = moment.utc()
-		.startOf('hour')
-		.subtract(1, 'month');
-
-	return insights.fetch({
-		since,
-	})
-	.then(() => {
-		res.send('done');
-	})
-	.catch(next);
-};
 
 const fetch = () => {
 	const since = moment.utc()
@@ -31,6 +19,12 @@ const fetch = () => {
 	})
 	.then(() => {
 		console.log(`${Date()}: INSIGHTS_FETCH periodic fetch complete`);
+	})
+	.catch(e => {
+		console.error(`${Date()}: INSIGHTS_FETCH periodic fetch failed with error: ${e.stack || e}`);
+		if(mode === 'production') {
+			ravenClient.captureException(e, {tags: {from: 'insights'}});
+		}
 	});
 };
 
