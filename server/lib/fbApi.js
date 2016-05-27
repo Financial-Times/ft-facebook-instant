@@ -139,11 +139,13 @@ const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...pa
 
 const truncate = val => {
 	const ret = {};
-	switch(typeof val) {
-		case 'object':
+	switch(Object.prototype.toString.call(val)) {
+		case '[object Array]':
+			return val.map(truncate);
+		case '[object Object]':
 			Object.keys(val).forEach(key => (ret[key] = truncate(val[key])));
 			return ret;
-		case 'string':
+		case '[object String]':
 			return val.length > STRING_LIMIT ? `${val.substr(0, STRING_LIMIT)}...` : val;
 		default:
 			return val;
