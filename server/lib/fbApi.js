@@ -39,6 +39,7 @@ const defaultFields = {
 
 const MAX_IMPORT_WAIT = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
+const STRING_LIMIT = 500;
 
 Facebook.options({
 	version: 'v2.5',
@@ -140,9 +141,21 @@ const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...pa
 	throw e;
 });
 
-const call = (...params) => addAccessToken(params)
-.then(newParams => {
-	const options = newParams[newParams.length - 1];
+const truncate = val => {
+	const ret = {};
+	switch(typeof val) {
+		case 'object':
+			Object.keys(val).forEach(key => (ret[key] = truncate(val[key])));
+			return ret;
+		case 'string':
+			return val.length > STRING_LIMIT ? `${val.substr(0, STRING_LIMIT)}...` : val;
+		default:
+			return val;
+	}
+};
+
+const call = (...params) => {
+	const options = params[params.length - 1];
 
 	let limit = parseInt(options.__limit, 10);
 	limit = isNaN(limit) ? 25 : limit;
@@ -154,9 +167,10 @@ const call = (...params) => addAccessToken(params)
 	delete options.__dependent;
 	delete options.__batched;
 
-	console.log(`${Date()}: FACEBOOK API: ${newParams[0]} ${JSON.stringify(options)}`);
-	return callApi(newParams, {batched, dependent, limit});
-});
+	console.log(`${Date()}: FACEBOOK API: ${params.map(truncate).map(JSON.stringify).join(' ')}`);
+	return addAccessToken(params)
+		.then(newParams => callApi(newParams, {batched, dependent, limit}));
+};
 
 const list = ({fields = [], __limit} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
