@@ -18,7 +18,9 @@
 		"BRIGHTCOVE_ACCOUNT_ID": {"required": true},
 		"SPOOR_API_KEY": {"required": true},
 		"SEGMENT_ID": {"required": true},
-		"SENTRY_DSN": {"required": true}
+		"SENTRY_DSN": {"required": true},
+		"LIGHT_SIGNUP_URL": {"required": true},
+		"ENABLE_LIGHT_SIGNUP": {"required": true}
 	},
 	"addons": [
 

@@ -89,6 +89,7 @@ module.exports = article => {
 			cookieChecker: false,
 			relatedArticles,
 			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
+			enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
 		};
 
 		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
