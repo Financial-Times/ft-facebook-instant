@@ -30,9 +30,16 @@ const port = process.env.PORT || 6247;
 
 let ravenClient;
 
-if(app.get('env') !== 'development') {
+if(app.get('env') === 'development') {
+	process.on('uncaughtException', error => {
+		console.error(`${Date()}: uncaughtException`);
+		console.error(error.stack);
+		process.exit(1);
+	});
+} else {
 	assertEnv(['SENTRY_DSN']);
 	ravenClient = require('./lib/raven');
+	ravenClient.patchGlobal(() => process.exit(1));
 }
 
 assertEnv([
@@ -44,7 +51,9 @@ assertEnv([
 	'API_V1_KEY',
 	'FB_PAGE_ID',
 	'FB_APP_ID',
+	'FB_APP_SECRET',
 	'FB_PAGE_ACCESS_TOKEN',
+	'FB_INITIAL_USER_ID',
 	'BRIGHTCOVE_ACCOUNT_ID',
 	'SPOOR_API_KEY',
 	'SEGMENT_ID',
@@ -71,7 +80,7 @@ app.use(cookieParser());
 // Handlebars middleware
 handlebars(app);
 
-// S30 in prod only
+// S30, but not in dev
 if(app.get('env') !== 'development') {
 	app.use(authS3O);
 }
@@ -92,10 +101,15 @@ app.route('^/article/:url/api$').get(apiController);
 // TODO: change these to post only, and remove debugging routes
 app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleController);
 
+app.route('^/republish$').post(republishController.route);
+
+app.route('^/reload-s3o$').get((req, res, next) => {
+	res.render('reload-s30');
+});
+
+
 // Dev-only routes
 app.route('^/dev/:action').get(noCache).get(devController);
-
-app.route('^/republish$').post(republishController.route);
 
 
 /* Errors */
@@ -105,7 +119,7 @@ if(app.get('env') !== 'development') {
 }
 
 const logErrors = (error, req, res, next) => {
-	console.error('LOGERRORS', error.stack || error);
+	console.error(`${Date()}: LOGERRORS: ${error.stack || error}`);
 	next(error);
 };
 
@@ -143,10 +157,16 @@ app.use(notFoundHandler);
 
 /* Start */
 
-notificationsController.init();
+if(process.env.DISABLE_NOTIFICATIONS) {
+	console.log(`${Date()}: DISABLE_NOTIFICATIONS flag prevented notificationsController initialisation`);
+} else {
+	notificationsController.init();
+}
 
-if(app.get('env') !== 'production') {
+if(process.env.DISABLE_REPUBLISH) {
+	console.log(`${Date()}: DISABLE_REPUBLISH flag prevented republishController initialisation`);
+} else if(app.get('env') !== 'production') {
 	republishController();
 }
 
-app.listen(port, () => console.log(`Up and running on port ${port} in ${mode} mode.`));
+app.listen(port, () => console.log(`${Date()}: Up and running on port ${port} in ${mode} mode.`));

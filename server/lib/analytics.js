@@ -17,7 +17,7 @@ module.exports = article => {
 			api_key: process.env.SPOOR_API_KEY,
 			source: 'facebook-instant',
 
-			environment: (prod ? 'p' : 'd'),
+			environment: process.env.NODE_ENV,
 			is_live: !!prod,
 
 			version: '1.0.0',

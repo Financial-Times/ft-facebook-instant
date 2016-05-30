@@ -38,7 +38,15 @@
 
 			{{{body}}}
 
+			{{#if enableLightSignup}}
+			<figure class="op-interactive">
+				<iframe src="{{lightSignupUrl}}?article={{uuid}}" width="320" height="350"></iframe>
+			</figure>
+			{{/if}}
+
 			<footer>
+				{{#if relatedArticles.length}}{{> related-articles relatedArticles}}{{/if}}
+
 				<small><a href="http://www.ft.com/servicestools/help/copyright">Copyright</a> The Financial Times Limited 2016. All rights reserved. Please don't cut articles from FT.com and redistribute by email or post to the web.</small>
 			</footer>
 		</article>

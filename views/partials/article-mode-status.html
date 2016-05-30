@@ -27,12 +27,10 @@
 		{{else}}
 			{{#if nullRecord}}
 				<span class="o-buttons o-buttons--small">Not imported</span>
-			{{else}}
-				{{#if imports.0.status}}
-					<span class="o-buttons o-buttons--small">Current status: {{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
-				{{else if most_recent_import_status}}
-					<span class="o-buttons o-buttons--small">Current status: {{most_recent_import_status.status}}</span>
-				{{/if}}
+			{{else if imports.0.status}}
+				<span class="o-buttons o-buttons--small">{{imports.0.status}} (<span title="{{rfcDate imports.0.timestamp}}">{{relativeDate imports.0.timestamp}}</span>)</span>
+			{{else if most_recent_import_status}}
+				<span class="o-buttons o-buttons--small">{{most_recent_import_status.status}}</span>
 			{{/if}}
 		{{/ifEqual}}
 		{{#if imports}}
@@ -41,14 +39,12 @@
 			{{#each imports}}
 				<ul>
 					{{#if id}}<li>ID: {{id}}</li>{{/if}}
-					<li>Imported: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
+					<li>Timestamp: <strong title="{{rfcDate timestamp}}">{{relativeDate timestamp}}</strong></li>
 					{{#if status}}<li>Status: <strong>{{status}}</strong></li>{{/if}}
 					{{#if env}}<li>Environment: <strong>{{env}}</strong></li>{{/if}}
 					{{#if username}}<li>Username: <strong>{{username}}</strong></li>{{/if}}
 					<li>Type: <strong>{{type}}</strong></li>
-					{{#ifEqual mode "production"}}
-						<li>Published: <strong>{{#if ../published}}yes{{else}}no{{/if}}</strong></li>
-					{{/ifEqual}}
+					<li>Published: <strong>{{published}}</strong></li>
 					{{#if warnings}}
 					<li class="warning">Transform warnings:
 						<ul>

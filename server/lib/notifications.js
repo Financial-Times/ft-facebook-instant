@@ -50,11 +50,11 @@ const getNotifications = (url, notifications, cb) => {
 			try{
 				const data = JSON.parse(body);
 
-				// Normalise the notication format
-				const newNotifcations = normaliseNotifications(data.notifications);
+				// Normalise the notification format
+				const newNotifications = normaliseNotifications(data.notifications);
 
 				// Append any new notifications
-				notifications = notifications.concat(newNotifcations);
+				notifications = notifications.concat(newNotifications);
 
 				// Figure out if there are any more links to come
 				const nextLink = getNextNotificationsUrl(data);

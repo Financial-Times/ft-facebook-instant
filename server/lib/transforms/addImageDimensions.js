@@ -3,6 +3,8 @@
 const fetch = require('node-fetch');
 const fetchres = require('fetchres');
 const statusCodes = require('http').STATUS_CODES;
+const ravenClient = require('../raven');
+const mode = require('../mode').get();
 
 function getWidthAndRatio(metaUrl, options) {
 	return fetch(metaUrl)
@@ -17,7 +19,13 @@ function getWidthAndRatio(metaUrl, options) {
 		.then(
 			meta => Object.assign(meta, {ratio: meta.height / meta.width}),
 			(e) => {
-				console.error(e, {extra: {metaUrl}});
+				console.error(`${Date()}: addImageDimensions error for metaUrl [${metaUrl}]: ${e.stack || e}`);
+				if(mode === 'production') {
+					ravenClient.captureException(e, {
+						tags: {from: 'addImageDimensions'},
+						extra: {metaUrl},
+					});
+				}
 				return {width: 600, ratio: 4 / 7};
 			}
 		);

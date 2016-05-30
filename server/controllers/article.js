@@ -50,7 +50,7 @@ module.exports = (req, res, next) => {
 			case 'import':
 				return articleModel.get(url)
 					.then(article => transform(article)
-						.then(({html, warnings}) => fbApi.post({html})
+						.then(({html, warnings}) => fbApi.post({uuid: article.uuid, html})
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui'}))
 						)
 					)
@@ -59,14 +59,15 @@ module.exports = (req, res, next) => {
 			case 'publish':
 				return articleModel.get(url)
 					.then(article => transform(article)
-						.then(({html, warnings}) => fbApi.post({html, published: true})
-							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui'}))
+						.then(({html, warnings}) => fbApi.post({uuid: article.uuid, html, published: true})
+							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui', published: true}))
 						)
 					)
 					.then(article => res.json(article));
 
 			case 'reingest':
-				return ftApi.updateEs(url)
+				return articleModel.get(url)
+					.then(article => ftApi.updateEs(article.uuid))
 					.then(() => articleModel.get(url))
 					.then(articleModel.update)
 					.then(html => res.send(html));

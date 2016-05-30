@@ -5,20 +5,12 @@ const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
-const diskCache = require('../lib/diskCache');
 
 const mode = require('../lib/mode').get();
 
-const getApi = canonical => diskCache.articles.get(canonical)
-.then(cached => {
-	if(cached) {
-		return cached;
-	}
-
-	return ftApi.fetchByCanonical(canonical)
-		.then(article => article || Promise.reject(Error(`Canonical URL [${canonical}] is not in Elastic Search`)))
-		.then(article => diskCache.articles.set(canonical, article));
-});
+// TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
+// contents as part of the article JSON?
+const clearCache = canonical => database.purgeCapi(canonical);
 
 const setDb = apiRecord => database.set({
 	canonical: apiRecord.webUrl,
@@ -33,9 +25,9 @@ const setDb = apiRecord => database.set({
 const updateDb = article => database.set({
 	canonical: article.canonical,
 	uuid: article.uuid,
-	title: article.apiRecord.title,
-	date_editorially_published: new Date(article.apiRecord.publishedDate).getTime(),
-	date_record_updated: Date.now(),
+	title: article.apiRecord ? article.apiRecord.title : article.title,
+	date_editorially_published: article.apiRecord ? new Date(article.apiRecord.publishedDate).getTime() : article.date_editorially_published,
+	date_record_updated: article.date_record_updated,
 	import_meta: article.import_meta || [],
 });
 
@@ -69,9 +61,10 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 		let merged;
 		if(dbImportIndex >= 0) {
-			merged = Object.assign({}, importMeta.splice(dbImportIndex, 1)[0], item);
+			// Add the FB data to the DB record, to be saved later
+			merged = Object.assign(importMeta.splice(dbImportIndex, 1)[0], item);
 		} else {
-			merged = item;
+			merged = Object.assign({mode, timestamp: 0}, item);
 		}
 
 		merged.messages = flattenErrors(merged.errors);
@@ -91,7 +84,8 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 		}
 	});
 
-	return article;
+	return updateDb(article)
+		.then(() => article);
 };
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
@@ -109,29 +103,39 @@ const deriveCanonical = key => {
 		if(uuid) {
 			return ftApi.getCanonicalFromUuid(uuid);
 		}
-		return ftApi.verifyCanonical(key)
-			.then(canonical => canonical || Promise.reject(Error(`Canonical URL [${key}] is not in Elastic Search`)));
+		return ftApi.verifyCanonical(key);
 	});
 };
 
-const getCanonical = key => diskCache.canonical.get(`canonical:${key}`)
+const getCanonical = key => database.getCanonical(key)
 .then(cached => {
 	if(cached) {
 		return cached;
 	}
 
 	return deriveCanonical(key)
-		.then(canonical => diskCache.canonical.set(`canonical:${key}`, canonical));
+		.then(canonical => database.setCanonical(key, canonical));
 });
 
 const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
 .then(fbRecords => {
-	const promises = databaseRecord.import_meta
+	const imports = databaseRecord.import_meta
 		.filter(item => item.mode === mode)
-		.filter(item => !!item.id)
+		.filter(item => !!item.id);
+
+	if(fbRecords[mode].most_recent_import_status && !imports.find(item => item.id === fbRecords[mode].most_recent_import_status.id)) {
+		imports.unshift(fbRecords[mode].most_recent_import_status);
+	}
+
+	const promises = imports
 		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']})
-			.catch(() => {
-				// Ignore db records which don't map to existing FB records
+			.catch(e => {
+				if(e.name === 'FacebookApiException' && e.response && e.response.error.type === 'GraphMethodException') {
+					// This import will never be resolveable, so delete it
+					delete item.id;
+					return;
+				}
+				throw e;
 			})
 		);
 	return Promise.all(promises)
@@ -139,6 +143,58 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
 })
 .then(mergeRecords);
+
+const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
+	// Delete FB ids from all previous imports
+	article.import_meta = article.import_meta.map(item => {
+		delete item.id;
+		return item;
+	});
+
+	article.import_meta.unshift({
+		timestamp: Date.now(),
+		mode,
+		id,
+		type,
+		appVersion: process.env.HEROKU_RELEASE_VERSION,
+		env: process.env.NODE_ENV,
+		warnings,
+		username,
+		published,
+	});
+	return updateDb(article)
+		.then(() => addFbData({databaseRecord: article, apiRecord: article.apiRecord}));
+};
+
+const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
+.then(() => database.get(canonical))
+.then(article => setImportStatus({article, type, username: 'system'}))
+.then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
+
+const getApi = canonical => database.getCapi(canonical)
+.then(cached => {
+	if(cached) {
+		return cached;
+	}
+
+	return ftApi.fetchByCanonical(canonical)
+
+		// Only set in cache if bodyHTML is set (otherwise no point, and prevents
+		// automatically fetching better content)
+		.then(article => (article.bodyHTML && database.setCapi(canonical, article), article))
+
+		// Content is not available in ES, so ensure deleted from FB before rethrowing
+		.catch(e => {
+			if(e.type === 'FtApiContentMissingException') {
+				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
+				return removeFromFacebook(canonical, 'article-model-get-api')
+				.then(() => {
+					throw e;
+				});
+			}
+			throw e;
+		});
+});
 
 const get = key => getCanonical(key)
 .then(canonical => Promise.all([
@@ -155,44 +211,39 @@ const get = key => getCanonical(key)
 })
 .then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
 
-const ensureInDb = key => getCanonical(key)
-.then(canonical => database.get(canonical)
-	.then(databaseRecord => databaseRecord || getApi(canonical)
-		.then(apiRecord => setDb(apiRecord))
-	)
-);
-
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
 const update = article => Promise.all([
-	diskCache.articles.del(article.canonical),
+	clearCache(article.canonical),
 	ftApi.updateEs(article.uuid),
 ])
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
-.then(() => updateDb(article))
+.then(() => {
+	article.date_record_updated = Date.now();
+	return updateDb(article);
+})
 .then(() => get(article.canonical));
 
-const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown'}) => {
-	article.import_meta.unshift({
-		timestamp: Date.now(),
-		mode,
-		id,
-		type,
-		appVersion: process.env.HEROKU_RELEASE_VERSION,
-		env: process.env.NODE_ENV,
-		warnings,
-		username,
-	});
-	return updateDb(article)
-		.then(() => get(article.canonical));
-};
+const getList = canonicals => Promise.all(canonicals.map(
+	canonical => get(canonical)
+		.catch(e => {
+			if(e.type === 'FtApiContentMissingException') {
+				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
+				return removeFromFacebook(canonical, 'article-model-get-list');
+			}
+			throw e;
+		})
+))
+.then(articles => articles.filter(article => !!article));
 
 module.exports = {
 	getApi,
 	get,
+	getList,
 	update,
+	clearCache,
 	setImportStatus,
-	ensureInDb,
 	getCanonical,
+	removeFromFacebook,
 };

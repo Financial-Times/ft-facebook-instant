@@ -8,10 +8,12 @@ module.exports = {
 		return date.format();
 	},
 	shortDate(timestamp) {
+		if(!timestamp) return 'unknown timestamp';
 		const date = moment(parseInt(timestamp, 10));
 		return date.format('MMMM D, YYYY');
 	},
 	relativeDate(timestamp) {
+		if(!timestamp) return 'unknown timestamp';
 		const date = moment(parseInt(timestamp, 10));
 		return date.fromNow();
 	},

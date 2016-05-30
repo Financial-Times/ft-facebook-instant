@@ -6,10 +6,19 @@ const handlebarsTransform = require('./handlebars').render;
 const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
+const getRelatedArticles = require('./related');
+
+const requiredParams = [
+	'apiRecord',
+	'canonical',
+	'uuid',
+	'date_editorially_published',
+	'date_record_updated',
+];
 
 const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
-		throw Error('Missing required [bodyHTML] field');
+		return Promise.reject(Error('Missing required [bodyHTML] field'));
 	}
 
 	const xsltParams = {
@@ -43,11 +52,23 @@ const getAuthors = apiRecord => {
 	return authors.length ? authors : [(apiRecord.byline || '').replace(/^by\s+/i, '')];
 };
 
+const basicValidate = article => Promise.resolve()
+.then(() => {
+	const missing = requiredParams.filter(key => !article[key]);
+	if(missing.length) {
+		throw Error(`Article [${article.canonical}] is missing required keys: [${missing.join(', ')}]`);
+	}
+});
+
 module.exports = article => {
 	const warnings = [];
 
-	return transformArticleBody(article.apiRecord, warnings)
-	.then(transformed$ => {
+	return basicValidate(article)
+	.then(() => Promise.all([
+		transformArticleBody(article.apiRecord, warnings),
+		getRelatedArticles(article.apiRecord),
+	]))
+	.then(([transformed$, relatedArticles]) => {
 		validateArticleElements(transformed$, warnings);
 
 		const mainImageHtml = extractMainImage(transformed$, warnings);
@@ -66,6 +87,9 @@ module.exports = article => {
 			subtitle: getSubtitle(article.apiRecord, warnings),
 			authors: getAuthors(article.apiRecord, warnings),
 			cookieChecker: false,
+			relatedArticles,
+			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
+			enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
 		};
 
 		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)

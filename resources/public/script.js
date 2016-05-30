@@ -9,10 +9,27 @@ function getError(jqXHR) {
 	if (jqXHR.responseJSON) {
 		console.error(jqXHR.responseJSON.stack || jqXHR.responseJSON);
 		return jqXHR.responseJSON.error || jqXHR.responseText;
-	} else {
+	} else if (jqXHR.responseText) {
 		console.error(jqXHR.responseText);
 		return jqXHR.responseText;
+	} else {
+		verifyS3O();
+		return 'Authentication failure: please try again';
 	}
+}
+
+function verifyS3O(complete) {
+	var iframe = $('#verify-s30')[0];
+	if (iframe) iframe.remove();
+
+	if (complete) {
+		console.log('verifyS3O callback complete!');
+		return;
+	}
+
+	iframe = $('<iframe id="verify-s30"></iframe>');
+	iframe.attr('src', '/reload-s3o');
+	iframe.appendTo('body');
 }
 
 function updateArticle(mode, action) {
@@ -186,9 +203,10 @@ function republishAll() {
 	).then(
 		updateList,
 		function(jqXHR, status, error) {
+			var message = getError(jqXHR);
 			updateStatusIcon(iconSelector, 'fa-times');
 			setButtonState(buttonSelector, true);
-			$('.article-list').before(Handlebars.partials['error-card'](jqXHR.responseJSON));
+			$('.article-list').before(Handlebars.partials['error-card']({error: message}));
 		}
 	);
 

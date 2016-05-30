@@ -1,28 +1,34 @@
 {
-  "name": "ft-facebook-instant",
-  "scripts": {
-  },
-  "env": {
-    "AWS_ACCESS_KEY": {"required": true},
-    "AWS_SECRET_ACCESS_KEY": {"required": true},
-    "ELASTIC_SEARCH_DOMAIN": {"required": true},
-    "ES_INTERFACE_API_KEY": {"required": true},
-    "REDIS_URL": {"required": true},
-    "API_V1_KEY": {"required": true},
-    "FB_PAGE_ID": {"required": true},
-    "FB_APP_ID": {"required": true},
-    "FB_PAGE_ACCESS_TOKEN": {"required": true},
-    "BRIGHTCOVE_ACCOUNT_ID": {"required": true},
-    "SPOOR_API_KEY": {"required": true},
-    "SEGMENT_ID": {"required": true},
-    "SENTRY_DSN": {"required": true}
-  },
-  "addons": [
+	"name": "ft-facebook-instant",
+	"scripts": {
+	},
+	"env": {
+		"NODE_ENV": "staging",
+		"HEROKU_APP_NAME": {"required": true},
+		"AWS_ACCESS_KEY": {"required": true},
+		"AWS_SECRET_ACCESS_KEY": {"required": true},
+		"ELASTIC_SEARCH_DOMAIN": {"required": true},
+		"ES_INTERFACE_API_KEY": {"required": true},
+		"REDIS_URL": {"required": true},
+		"API_V1_KEY": {"required": true},
+		"FB_PAGE_ID": {"required": true},
+		"FB_APP_ID": {"required": true},
+		"FB_APP_SECRET": {"required": true},
+		"FB_INITIAL_USER_ID": {"required": true},
+		"FB_PAGE_ACCESS_TOKEN": {"required": true},
+		"BRIGHTCOVE_ACCOUNT_ID": {"required": true},
+		"SPOOR_API_KEY": {"required": true},
+		"SEGMENT_ID": {"required": true},
+		"SENTRY_DSN": {"required": true},
+		"LIGHT_SIGNUP_URL": {"required": true},
+		"ENABLE_LIGHT_SIGNUP": {"required": true}
+	},
+	"addons": [
 
-  ],
-  "buildpacks": [
-    {
-      "url": "urn:buildpack:heroku/nodejs"
-    }
-  ]
+	],
+	"buildpacks": [
+		{
+			"url": "urn:buildpack:heroku/nodejs"
+		}
+	]
 }
