@@ -3,6 +3,7 @@
 const database = require('../lib/database');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
+const articleModel = require('../models/article');
 const accessTokens = require('../lib/accessTokens');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
@@ -16,6 +17,12 @@ const clearCookies = (req, res) => Object.keys(req.cookies)
 
 module.exports = (req, res, next) => {
 	switch(req.params.action) {
+		case 'index':
+			return fbApi.list({fields: ['canonical_url'], __limit: 0})
+			.then(articles => articles.map(article => article.canonical_url))
+			.then(canonicals => articleModel.getList(canonicals))
+			.then(articles => res.json({articles}))
+			.catch(next);
 		case 'wipe':
 			return Promise.all([
 				fbApi.wipe(),
@@ -40,6 +47,13 @@ module.exports = (req, res, next) => {
 			return fbApi.find({canonical: 'http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377.html'})
 				.then(result => res.json(result))
 				.catch(next);
+		case 'findfbmulti':
+			return fbApi.findMany({ids: [
+				'http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377.html',
+				'http://www.ft.com/cms/s/0/4b984bb0-f5f2-11e5-96db-fc683b5e52db.html',
+			]})
+				.then(result => res.json(result))
+				.catch(next);
 		case 'introspectimport':
 			return fbApi.introspect({id: 263911067276234})
 				.then(result => res.json(result))
@@ -53,7 +67,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json(result))
 				.catch(next);
 		case 'importstatus':
-			return fbApi.get({type: 'import', id: 263911067276234})
+			return fbApi.get({type: 'import', id: 533448293494529})
 				.then(result => res.json(result))
 				.catch(next);
 		case 'article':
