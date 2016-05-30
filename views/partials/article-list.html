@@ -39,7 +39,7 @@
 						{{#if initialImport}}
 							{{#ifEqual mode "production"}}
 							{{else}}
-								<li>Initial import: <span title="{{rfcDate initialImport.timestamp}}">{{relativeDate initialImport.timestamp}}</span> ({{#if initialImport.username}}{{initialImport.username}}, {{/if}} appVersion: {{initialImport.appVersion}})</li>
+								<li>Initial import: <span title="{{rfcDate initialImport.timestamp}}">{{relativeDate initialImport.timestamp}}</span> ({{#if initialImport.username}}user: {{initialImport.username}}{{#if initialImport.appVersion}}, {{/if}}{{/if}}{{#if initialImport.appVersion}}appVersion: {{initialImport.appVersion}}{{/if}})</li>
 							{{/ifEqual}}
 						{{/if}}
 					{{/each}}
