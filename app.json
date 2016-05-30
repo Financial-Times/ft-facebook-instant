@@ -24,6 +24,7 @@
 		"ENABLE_LIGHT_SIGNUP": {"required": true}
 	},
 	"addons": [
+
 	],
 	"buildpacks": [
 		{
