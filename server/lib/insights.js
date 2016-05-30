@@ -13,6 +13,8 @@ const deleteFile = denodeify(fs.unlink);
 const readDir = denodeify(fs.readdir);
 const csvStringify = denodeify(require('csv-stringify'));
 const path = require('path');
+const mode = require('./mode').get();
+const ravenClient = require('./raven');
 
 const pageId = process.env.FB_PAGE_ID;
 const BATCH_SIZE = 50;
@@ -597,19 +599,40 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 		return;
 	}
 
+	console.log(`Insights import starting. Will ${upload || 'not '}upload to Amazon S3`);
 	importStart = Date.now();
 
-	return uploadHistoricCsvs()
+	return Promise.resolve()
+		.then(() => upload && uploadHistoricCsvs())
 		.then(database.getLastInsight)
 		.then(lastRun => {
 			const now = moment.utc().startOf('hour');
-			console.log(`Fetching insights data from ${since.format()} to ${now.format()}. ` +
-				`Last run was ${lastRun && moment.utc(lastRun.timestamp).format() || 'null'}.`);
 
-			if(lastRun && lastRun.timestamp === now.valueOf()) {
-				console.log(`Insights data already processed for ${now.format()}`);
-				importStart = null;
-				return;
+			if(lastRun) {
+				const lastRunMoment = moment.utc(lastRun.timestamp);
+				const age = now.diff(lastRunMoment, 'hours', true);
+
+				if(lastRun.timestamp === now.valueOf()) {
+					console.log(`Insights data already processed for ${now.format()}`);
+					importStart = null;
+					return;
+				} else if(age > 1) {
+					console.log(`Warning: last run was ${age} hours ago (should be run every hour).`);
+					if(mode === 'production') {
+						ravenClient.captureMessage('Last insights import > 1 hour', {
+							extra: {
+								lastRunAge: `${age} hours`,
+								lastRun: lastRun.format(),
+								now: now.format(),
+							},
+							tags: {from: 'insights'},
+						});
+					}
+				}
+
+				console.log(`Fetching insights data from ${since.format()} to ${now.format()}. Last run was ${lastRunMoment.format()} (${age} hours ago).`);
+			} else {
+				console.log(`Fetching insights data from ${since.format()} to ${now.format()}. No saved lastRun.`);
 			}
 
 			return getPostsLists({
@@ -634,6 +657,7 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 		});
 })
 .catch(e => {
+	console.log(`Insights import encountered an exception: ${e.stack || e}`);
 	importStart = null;
 	throw e;
 });
