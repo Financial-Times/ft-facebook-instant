@@ -8,7 +8,7 @@ const ravenClient = new raven.Client(process.env.SENTRY_DSN, {
 });
 ravenClient.setExtraContext({env: process.env});
 ravenClient.setTagsContext({
-	server_name: process.env.HEROKU_APP_NAME || os.hostname(),
+	name: process.env.HEROKU_APP_NAME || os.hostname(),
 });
 
 module.exports = ravenClient;
