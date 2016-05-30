@@ -84,6 +84,16 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 		}
 	});
 
+	const initialImport = imports.filter(item => console.log(item.type, item.status, item.pub) || (
+		item.type === 'ui' &&
+		item.status === 'SUCCESS' &&
+		item.published === (process.env.NODE_ENV === 'production')
+	)).pop();
+
+	if(initialImport && article.fbRecords[initialImport.mode]) {
+		article.fbRecords[initialImport.mode].initialImport = initialImport;
+	}
+
 	return updateDb(article)
 		.then(() => article);
 };
