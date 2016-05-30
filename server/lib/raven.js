@@ -10,7 +10,6 @@ const ravenClient = new raven.Client(process.env.SENTRY_DSN, {
 		env: process.env,
 	},
 	tags: {
-		george: '12345',
 	},
 });
 
