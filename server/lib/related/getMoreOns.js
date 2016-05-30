@@ -1,7 +1,6 @@
 'use strict';
 
 const api = require('next-ft-api-client');
-const articlesToLinks = require('./articlesToLinks');
 const moreOnCount = 3;
 
 const getStreamArticles = metadatum => api.search({
@@ -13,17 +12,17 @@ const getStreamArticles = metadatum => api.search({
 		'id',
 		'title',
 	],
-}).then(res => res.filter(article => article.title));
+}).then(res => res.filter(article => article.title).map(article => article.id));
 
 
 const getMoreOns = async (article) => {
 	const moreOns = article.metadata.filter(({primary}) => primary);
-	let allLinks = [];
+	let all = [];
 	const streams = await Promise.all(moreOns.map(getStreamArticles));
 	for(const articles of streams) {
-		allLinks = allLinks.concat(await articlesToLinks(articles));
+		all = all.concat(await articles);
 	}
-	return allLinks;
+	return all;
 };
 
 module.exports = getMoreOns;
