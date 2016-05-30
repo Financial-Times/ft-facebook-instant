@@ -14,6 +14,4 @@ const ravenClient = new raven.Client(process.env.SENTRY_DSN, {
 	},
 });
 
-ravenClient.patchGlobal(() => process.exit(1));
-
 module.exports = ravenClient;
