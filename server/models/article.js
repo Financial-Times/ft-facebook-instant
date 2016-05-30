@@ -168,10 +168,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		published,
 	});
 	return updateDb(article)
-		.then(() => fbApi.find({canonical: article.canonical}))
-		.then(fbRecords => Object.assign(article, {fbRecords}))
-		.then(addFbImportsScalar)
-		.then(mergeRecords);
+		.then(() => {});
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
