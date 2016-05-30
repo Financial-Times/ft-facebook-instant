@@ -149,7 +149,7 @@ const addFbImports = articles => {
 const addFbImportsScalar = article => addFbImports([article])
 .then(articles => articles[0]);
 
-const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
+const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
 	// Delete FB ids from all previous imports
 	article.import_meta = article.import_meta.map(item => {
 		delete item.id;
