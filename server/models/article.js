@@ -172,7 +172,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		mode,
 		id,
 		type,
-		appVersion: process.env.HEROKU_RELEASE_VERSION,
+		appVersion: process.env.HEROKU_RELEASE_VERSION || 'unreleased',
 		env: process.env.NODE_ENV,
 		warnings,
 		username,
