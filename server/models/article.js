@@ -141,7 +141,8 @@ const addFbImports = articles => {
 	return fbApi.getMany({ids: importIds, type: 'import', fields: ['id', 'errors', 'status']})
 	.then(imports => articles.map(article => {
 		article.fbImports = importIdsMap.get(article)
-			.map(importId => imports[importId]);
+			.map(importId => imports[importId])
+			.filter(item => !!item);
 		return article;
 	}));
 };
