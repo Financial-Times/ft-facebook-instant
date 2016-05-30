@@ -75,7 +75,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 	// Add any remaining import meta which isn't reflected on the FB API
 	imports = imports.concat(importMeta)
-		.sort((a, b) => (a.timestamp ? (b.timestamp - a.timestamp) : Number.NEGATIVE_INFINITY));
+		.sort((a, b) => (a.timestamp ? (b.timestamp - a.timestamp) : Number.POSITIVE_INFINITY));
 
 	imports.forEach(item => {
 		if(article.fbRecords[item.mode]) {
