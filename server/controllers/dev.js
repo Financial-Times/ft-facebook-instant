@@ -134,6 +134,22 @@ module.exports = (req, res, next) => {
 		case 'purgeCanonical':
 			return database.purgeCanonical('http://www.ft.com/cms/s/2/440824a6-bd30-11e5-9fdb-87b8d15baec2.html')
 				.then(result => res.json({result}));
+		case 'updateImports':
+			return database.list()
+			.then(articles => Promise.resolve(
+				articles.map(article => {
+					let updated = false;
+					article.import_meta.forEach(meta => {
+						if(meta.published === 'false') {
+							updated = true;
+							meta.published = false;
+						}
+					});
+					return updated ? database.set(article) : Promise.resolve();
+				})
+			))
+			.then(() => res.json({done: true}))
+			.catch(next);
 		default:
 			res.sendStatus(404);
 			break;

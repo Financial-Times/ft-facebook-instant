@@ -75,7 +75,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 	// Add any remaining import meta which isn't reflected on the FB API
 	imports = imports.concat(importMeta)
-		.sort((a, b) => (a.timestamp ? (b.timestamp - a.timestamp) : Number.NEGATIVE_INFINITY));
+		.sort((a, b) => (a.timestamp ? (b.timestamp - a.timestamp) : Number.POSITIVE_INFINITY));
 
 	imports.forEach(item => {
 		if(article.fbRecords[item.mode]) {
@@ -83,6 +83,16 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 			article.fbRecords[item.mode].imports.push(item);
 		}
 	});
+
+	const initialImport = imports.filter(item => console.log(item.type, item.status, item.pub) || (
+		item.type === 'ui' &&
+		item.status === 'SUCCESS' &&
+		item.published === (process.env.NODE_ENV === 'production')
+	)).pop();
+
+	if(initialImport && article.fbRecords[initialImport.mode]) {
+		article.fbRecords[initialImport.mode].initialImport = initialImport;
+	}
 
 	return updateDb(article)
 		.then(() => article);
@@ -141,7 +151,8 @@ const addFbImports = articles => {
 	return fbApi.getMany({ids: importIds, type: 'import', fields: ['id', 'errors', 'status']})
 	.then(imports => articles.map(article => {
 		article.fbImports = importIdsMap.get(article)
-			.map(importId => imports[importId]);
+			.map(importId => imports[importId])
+			.filter(item => !!item);
 		return article;
 	}));
 };
@@ -149,7 +160,7 @@ const addFbImports = articles => {
 const addFbImportsScalar = article => addFbImports([article])
 .then(articles => articles[0]);
 
-const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
+const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
 	// Delete FB ids from all previous imports
 	article.import_meta = article.import_meta.map(item => {
 		delete item.id;
@@ -161,17 +172,14 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		mode,
 		id,
 		type,
-		appVersion: process.env.HEROKU_RELEASE_VERSION,
+		appVersion: process.env.HEROKU_RELEASE_VERSION || 'unreleased',
 		env: process.env.NODE_ENV,
 		warnings,
 		username,
 		published,
 	});
 	return updateDb(article)
-		.then(() => fbApi.find({canonical: article.canonical}))
-		.then(fbRecords => Object.assign(article, {fbRecords}))
-		.then(addFbImportsScalar)
-		.then(mergeRecords);
+		.then(() => {});
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
