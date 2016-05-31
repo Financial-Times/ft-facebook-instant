@@ -129,6 +129,14 @@ const iaMetricTypes = {
 	all_scrolls: {period: 'week', aggregation: 'bucket'},
 };
 
+const requiredColumns = [
+	'id',
+	'timestamp',
+	'type',
+	'created_time',
+	'updated_time',
+];
+
 const otherColumns = [
 	'id',
 	'timestamp',
@@ -138,13 +146,16 @@ const otherColumns = [
 	// 'description',	// Verbose text, not needed
 	'created_time',
 	'updated_time',
-	'is_published',
 	'link',
 	'canonical',
 	'uuid',
-	'ia_published',
 	'ia_earliest_views',
 	'ia_import_status',
+];
+
+const booleanColumns = [
+	'is_published',
+	'is_published',
 ];
 
 const integerColumns = [
@@ -419,7 +430,7 @@ const batchIdList = idList => {
 };
 
 const getColumns = () => {
-	const columns = otherColumns.concat(integerColumns).concat(statisticalColumns);
+	const columns = otherColumns.concat(booleanColumns).concat(integerColumns).concat(statisticalColumns);
 	const obj = {};
 	columns.forEach(key => (obj[key] = key.replace(/\s/g, '_')));
 	return obj;
@@ -494,8 +505,21 @@ const getValueDiffs = ({post, now, ageLimit, lastValues}) => {
 	});
 };
 
-const zeroFill = post => {
-	integerColumns.concat(statisticalColumns).forEach(column => {
+const validate = post => {
+	// Error if required NOT NULL columns are empty
+	requiredColumns.forEach(column => {
+		if(!post[column]) {
+			ravenClient.captureMessage(`Empty value for required field ${column}`, {
+				extra: {
+					post,
+				},
+				tags: {from: 'insights'},
+			});
+			throw Error(`Empty value for required field ${column}`);
+		}
+	});
+
+	booleanColumns.concat(integerColumns).concat(statisticalColumns).forEach(column => {
 		post[column] = post[column] || 0;
 	});
 	return post;
@@ -643,7 +667,7 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 			.then(idBatch => Promise.all(idBatch.map(ids => executeQuery({lastRun, ids}))))
 			.then(batchedResults => [].concat(...batchedResults))
 			.then(posts => Promise.all(posts.map(flattenPost)))
-			.then(posts => posts.map(zeroFill))
+			.then(posts => posts.map(validate))
 			.then(posts =>
 				getHistoricValues(lastRun, now, posts)
 					.then(historic => writeCsv(now, historic))
