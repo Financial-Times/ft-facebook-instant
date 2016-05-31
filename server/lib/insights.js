@@ -136,25 +136,9 @@ const requiredColumns = [
 	'updated_time',
 ];
 
-const otherColumns = [
-	'id',
-	'timestamp',
-	'type',
-	// 'message',		// Verbose text, not needed
-	// 'name',			// Verbose text, not needed
-	// 'description',	// Verbose text, not needed
-	'created_time',
-	'updated_time',
-	'link',
-	'canonical',
-	'uuid',
-	'ia_earliest_views',
-	'ia_import_status',
-];
-
 const booleanColumns = [
 	'is_published',
-	'is_published',
+	'ia_published',
 ];
 
 const integerColumns = [
@@ -165,6 +149,84 @@ const integerColumns = [
 ];
 
 const statisticalColumns = [];
+
+// Hardcoded because of brittle dependency in Redshift importer
+const csvColumns = {
+	id: 'id',
+	timestamp: 'timestamp',
+	type: 'type',
+	created_time: 'created_time',
+	updated_time: 'updated_time',
+	is_published: 'is_published',
+	link: 'link',
+	canonical: 'canonical',
+	uuid: 'uuid',
+	ia_published: 'ia_published',
+	ia_earliest_views: 'ia_earliest_views',
+	ia_import_status: 'ia_import_status',
+	post_shares: 'post_shares',
+	post_likes: 'post_likes',
+	post_comments: 'post_comments',
+	canonical_share: 'canonical_share',
+	insight_post_impressions: 'insight_post_impressions',
+	insight_post_impressions_unique: 'insight_post_impressions_unique',
+	insight_post_impressions_paid: 'insight_post_impressions_paid',
+	insight_post_impressions_paid_unique: 'insight_post_impressions_paid_unique',
+	insight_post_impressions_fan: 'insight_post_impressions_fan',
+	insight_post_impressions_fan_unique: 'insight_post_impressions_fan_unique',
+	insight_post_impressions_fan_paid: 'insight_post_impressions_fan_paid',
+	insight_post_impressions_fan_paid_unique: 'insight_post_impressions_fan_paid_unique',
+	insight_post_impressions_organic: 'insight_post_impressions_organic',
+	insight_post_impressions_organic_unique: 'insight_post_impressions_organic_unique',
+	insight_post_impressions_viral: 'insight_post_impressions_viral',
+	insight_post_impressions_viral_unique: 'insight_post_impressions_viral_unique',
+	insight_post_impressions_by_story_type_other: 'insight_post_impressions_by_story_type_other',
+	insight_post_impressions_by_story_type_unique_other: 'insight_post_impressions_by_story_type_unique_other',
+	insight_post_consumptions: 'insight_post_consumptions',
+	insight_post_consumptions_unique: 'insight_post_consumptions_unique',
+	'insight_post_consumptions_by_type_other clicks': 'insight_post_consumptions_by_type_other_clicks',
+	'insight_post_consumptions_by_type_link clicks': 'insight_post_consumptions_by_type_link_clicks',
+	'insight_post_consumptions_by_type_video play': 'insight_post_consumptions_by_type_video_play',
+	'insight_post_consumptions_by_type_photo view': 'insight_post_consumptions_by_type_photo_view',
+	'insight_post_consumptions_by_type_unique_other clicks': 'insight_post_consumptions_by_type_unique_other_clicks',
+	'insight_post_consumptions_by_type_unique_link clicks': 'insight_post_consumptions_by_type_unique_link_clicks',
+	'insight_post_consumptions_by_type_unique_video play': 'insight_post_consumptions_by_type_unique_video_play',
+	'insight_post_consumptions_by_type_unique_photo view': 'insight_post_consumptions_by_type_unique_photo_view',
+	insight_post_engaged_users: 'insight_post_engaged_users',
+	insight_post_negative_feedback: 'insight_post_negative_feedback',
+	insight_post_negative_feedback_unique: 'insight_post_negative_feedback_unique',
+	'insight_post_negative_feedback_by_type_hide all clicks': 'insight_post_negative_feedback_by_type_hide_all_clicks',
+	'insight_post_negative_feedback_by_type_hide clicks': 'insight_post_negative_feedback_by_type_hide_clicks',
+	'insight_post_negative_feedback_by_type_report spam clicks': 'insight_post_negative_feedback_by_type_report_spam_clicks',
+	'insight_post_negative_feedback_by_type_unlike page clicks': 'insight_post_negative_feedback_by_type_unlike_page_clicks',
+	'insight_post_negative_feedback_by_type_unique_hide all clicks': 'insight_post_negative_feedback_by_type_unique_hide_all_clicks',
+	'insight_post_negative_feedback_by_type_unique_hide clicks': 'insight_post_negative_feedback_by_type_unique_hide_clicks',
+	'insight_post_negative_feedback_by_type_unique_report spam clicks': 'insight_post_negative_feedback_by_type_unique_report_spam_clicks',
+	'insight_post_negative_feedback_by_type_unique_unlike page clicks': 'insight_post_negative_feedback_by_type_unique_unlike_page_clicks',
+	insight_post_engaged_fan: 'insight_post_engaged_fan',
+	insight_post_fan_reach: 'insight_post_fan_reach',
+	ia_all_views: 'ia_all_views',
+	ia_all_view_durations_min: 'ia_all_view_durations_min',
+	ia_all_view_durations_max: 'ia_all_view_durations_max',
+	ia_all_view_durations_mean: 'ia_all_view_durations_mean',
+	ia_all_view_durations_median: 'ia_all_view_durations_median',
+	ia_all_view_durations_mode: 'ia_all_view_durations_mode',
+	ia_all_view_durations_stdev: 'ia_all_view_durations_stdev',
+	ia_all_view_durations_p25: 'ia_all_view_durations_p25',
+	ia_all_view_durations_p50: 'ia_all_view_durations_p50',
+	ia_all_view_durations_p75: 'ia_all_view_durations_p75',
+	ia_all_view_durations_p95: 'ia_all_view_durations_p95',
+	ia_all_scrolls_min: 'ia_all_scrolls_min',
+	ia_all_scrolls_max: 'ia_all_scrolls_max',
+	ia_all_scrolls_mean: 'ia_all_scrolls_mean',
+	ia_all_scrolls_median: 'ia_all_scrolls_median',
+	ia_all_scrolls_mode: 'ia_all_scrolls_mode',
+	ia_all_scrolls_stdev: 'ia_all_scrolls_stdev',
+	ia_all_scrolls_p25: 'ia_all_scrolls_p25',
+	ia_all_scrolls_p50: 'ia_all_scrolls_p50',
+	ia_all_scrolls_p75: 'ia_all_scrolls_p75',
+	ia_all_scrolls_p95: 'ia_all_scrolls_p95',
+};
 
 Object.keys(insightsMetricsKeys).forEach(key => {
 	if(insightsMetricsKeyTypes[key]) {
@@ -428,13 +490,6 @@ const batchIdList = idList => {
 	return batch;
 };
 
-const getColumns = () => {
-	const columns = otherColumns.concat(booleanColumns).concat(integerColumns).concat(statisticalColumns);
-	const obj = {};
-	columns.forEach(key => (obj[key] = key.replace(/\s/g, '_')));
-	return obj;
-};
-
 const addExplainerRow = data => {
 	const explainer = {
 		id: 'key',
@@ -459,7 +514,7 @@ const generateCsv = ({data, header}) => {
 
 	return csvStringify(data, {
 		header,
-		columns: getColumns(),
+		columns: csvColumns,
 	});
 };
 
