@@ -84,7 +84,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 		}
 	});
 
-	const initialImport = imports.filter(item => console.log(item.type, item.status, item.pub) || (
+	const initialImport = imports.filter(item => (
 		item.type === 'ui' &&
 		item.status === 'SUCCESS' &&
 		item.published === (process.env.NODE_ENV === 'production')

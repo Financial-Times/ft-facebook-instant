@@ -1,5 +1,6 @@
 'use strict';
 
+const articlesToLinks = require('./articlesToLinks');
 const fns = [
 	require('./getStoryPackage'),
 	require('./getMoreOns'),
@@ -8,7 +9,11 @@ const fns = [
 const getRelatedArticles = async article => {
 	const articles = new Set();
 	for(const fn of fns) {
-		(await fn(article)).forEach(moreArticle => articles.add(moreArticle));
+		const uuids = (await fn(article))
+			.filter(uuid => uuid !== article.id);
+
+		(await articlesToLinks(uuids))
+			.forEach(moreArticle => articles.add(moreArticle));
 
 		if(articles.size >= 3) break;
 	}

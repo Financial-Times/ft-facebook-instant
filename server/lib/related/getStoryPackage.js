@@ -1,7 +1,5 @@
 'use strict';
 
-const articlesToLinks = require('./articlesToLinks');
-
-const getStoryPackage = article => articlesToLinks(article.storyPackage);
+const getStoryPackage = article => article.storyPackage.map(item => item.id);
 
 module.exports = getStoryPackage;
