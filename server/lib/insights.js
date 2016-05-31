@@ -131,7 +131,6 @@ const iaMetricTypes = {
 
 const requiredColumns = [
 	'id',
-	'timestamp',
 	'type',
 	'created_time',
 	'updated_time',
