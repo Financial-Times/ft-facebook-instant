@@ -132,9 +132,6 @@ module.exports = (req, res, next) => {
 		case 'wipeLastInsight':
 			return database.wipeLastInsight()
 				.then(result => res.json({result}));
-		case 'migrateLastInsight':
-			return database.migrateLastInsight()
-				.then(result => res.json({result}));
 		case 'uploadS3':
 			return s3.upload('./george-test-123.txt', 'george-test-123.txt')
 				.then(result => res.json({result}))

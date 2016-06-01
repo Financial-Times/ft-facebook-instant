@@ -175,19 +175,6 @@ const setLastInsight = (timestamp, data) => client.setAsync('lastinsight', JSON.
 const getLastInsight = () => client.getAsync('lastinsight')
 .then(insight => insight && JSON.parse(insight) || null);
 
-const migrateLastInsight = () => client.zrevrangeAsync('insights', 0, 1)
-.then(insight => {
-	if(!insight || !insight[0]) {
-		console.log('No last insight stored');
-		return;
-	}
-
-	const {timestamp, data} = JSON.parse(insight[0]);
-	console.log(`Migrating over lastinsight with timestamp ${timestamp}`);
-	return setLastInsight(timestamp, data);
-})
-.then(() => client.delAsync('insights'));
-
 module.exports = {
 	get(canonicals) {
 		if(Array.isArray(canonicals)) {
@@ -210,5 +197,4 @@ module.exports = {
 	setLastInsight,
 	getLastInsight,
 	wipeLastInsight,
-	migrateLastInsight,
 };
