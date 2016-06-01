@@ -604,7 +604,7 @@ const writeCsv = (now, posts) => {
 	return Array.apply(0, Array(oldestPostAge + 1))
 		.map((x, index) => oldestPostAge - index)
 		.reduce((promise, age, index) => promise.then(() => {
-			const historicTimestamp = moment(now).subtract(age + 1, 'hours');
+			const historicTimestamp = moment.utc(now).subtract(age + 1, 'hours');
 			const historicTimestampUtc = historicTimestamp.format();
 			return getCsvRows(posts, age, historicTimestampUtc)
 				.then(data => (rows += data.length, data))
