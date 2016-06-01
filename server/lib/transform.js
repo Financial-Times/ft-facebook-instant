@@ -79,6 +79,7 @@ module.exports = article => {
 			mainImageHtml,
 			analyticsUrl,
 			canonicalUrl: article.canonical,
+			uuid: article.uuid,
 			style: 'default',
 			date_published: article.date_editorially_published,
 			date_updated: article.date_record_updated,
@@ -89,6 +90,8 @@ module.exports = article => {
 			cookieChecker: false,
 			relatedArticles,
 			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
+			lightSignupProduct: 'Facebook Instant',
+			lightSignupMailinglist: 'facebook-instant',
 			enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
 		};
 
