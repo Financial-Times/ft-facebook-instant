@@ -155,7 +155,7 @@ const timestampColumns = [
 	'ia_earliest_views',
 ];
 
-const timestampFormat = 'YYYY-MM-DDTHH:mm:ssZZ';
+const timestampFormat = 'YYYY-MM-DD HH:mm:ss';
 
 const statisticalColumns = [];
 
