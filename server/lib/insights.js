@@ -677,7 +677,7 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 		return;
 	}
 
-	console.log(`Insights import starting. Will ${upload || 'not '}upload to Amazon S3`);
+	console.log(`Insights import starting. Will ${upload ? 'upload' : 'not upload'} to Amazon S3`);
 	importStart = Date.now();
 
 	return Promise.resolve()
