@@ -148,6 +148,15 @@ const integerColumns = [
 	'canonical_share',
 ];
 
+const timestampColumns = [
+	'timestamp',
+	'created_time',
+	'updated_time',
+	'ia_earliest_views',
+];
+
+const timestampFormat = 'YYYY-MM-DDTHH:mm:ssZZ';
+
 const statisticalColumns = [];
 
 // Hardcoded because of brittle dependency in Redshift importer
@@ -576,17 +585,25 @@ const validate = post => {
 	booleanColumns.concat(integerColumns).concat(statisticalColumns).forEach(column => {
 		post[column] = post[column] || 0;
 	});
+
+	timestampColumns.forEach(column => {
+		if(post[column]) {
+			post[column] = moment.utc(post[column]).format(timestampFormat);
+		}
+	});
+
 	return post;
 };
 
 // Use async function to avoid eating memory
-const getCsvRows = (posts, age, historicTimestampUtc) => Promise.resolve()
+const getCsvRows = (posts, age, historicTimestamp) => Promise.resolve()
 .then(() => {
+	const timestamp = historicTimestamp.format(timestampFormat);
 	const rows = [];
 	posts.forEach(post => {
 		if(post.age < age) return;
 		rows.push(
-			Object.assign({}, post.values, {timestamp: historicTimestampUtc})
+			Object.assign({}, post.values, {timestamp})
 		);
 	});
 
@@ -605,8 +622,7 @@ const writeCsv = (now, posts) => {
 		.map((x, index) => oldestPostAge - index)
 		.reduce((promise, age, index) => promise.then(() => {
 			const historicTimestamp = moment.utc(now).subtract(age + 1, 'hours');
-			const historicTimestampUtc = historicTimestamp.format();
-			return getCsvRows(posts, age, historicTimestampUtc)
+			return getCsvRows(posts, age, historicTimestamp)
 				.then(data => (rows += data.length, data))
 				.then(data => generateCsv({data, header: (index === 0)}))
 				.then(csv => writeFile(localPath, csv, {flag: 'a'}));
