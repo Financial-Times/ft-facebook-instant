@@ -662,7 +662,7 @@ const saveLastRun = (now, posts) => {
 		data[post.id] = integers;
 	});
 
-	return database.setInsight(now.valueOf(), data);
+	return database.setLastInsight(now.valueOf(), data);
 };
 
 

@@ -168,15 +168,25 @@ const getCapi = id => client.getAsync(`capi:${id}`)
 
 const purgeCapi = id => client.delAsync(`capi:${id}`);
 
-const wipeInsights = () => client.delAsync('insights');
+const wipeLastInsight = () => client.delAsync('lastinsight');
 
-const getLastInsight = () => client.zrevrangeAsync('insights', 0, 1)
-.then(insight => insight && insight[0] && JSON.parse(insight[0]) || null);
+const setLastInsight = (timestamp, data) => client.setAsync('lastinsight', JSON.stringify({timestamp, data}));
 
-const setInsight = (timestamp, data) => client.multi()
-	.zremrangebyscore('insights', timestamp, timestamp)
-	.zadd('insights', timestamp, JSON.stringify({timestamp, data}))
-	.execAsync();
+const getLastInsight = () => client.getAsync('lastinsight')
+.then(insight => insight && JSON.parse(insight) || null);
+
+const migrateLastInsight = () => client.zrevrangeAsync('insights', 0, 1)
+.then(insight => {
+	if(!insight || !insight[0]) {
+		console.log('No last insight stored');
+		return;
+	}
+
+	const {timestamp, data} = JSON.parse(insight[0]);
+	console.log(`Migrating over lastinsight with timestamp ${timestamp}`);
+	return setLastInsight(timestamp, data);
+})
+.then(() => client.delAsync('insights'));
 
 module.exports = {
 	get(canonicals) {
@@ -197,7 +207,8 @@ module.exports = {
 	getCapi,
 	setCapi,
 	purgeCapi,
+	setLastInsight,
 	getLastInsight,
-	setInsight,
-	wipeInsights,
+	wipeLastInsight,
+	migrateLastInsight,
 };
