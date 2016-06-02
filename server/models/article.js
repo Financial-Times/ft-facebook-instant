@@ -5,6 +5,7 @@ const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
+const {version} = require('../../package.json');
 
 const mode = require('../lib/mode').get();
 
@@ -172,7 +173,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		mode,
 		id,
 		type,
-		appVersion: process.env.HEROKU_RELEASE_VERSION || 'unreleased',
+		appVersion: version,
 		env: process.env.NODE_ENV,
 		warnings,
 		username,
