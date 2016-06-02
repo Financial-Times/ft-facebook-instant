@@ -1,5 +1,7 @@
 'use strict';
 
+const {version} = require('../../package.json');
+
 module.exports = article => {
 	const prod = process.env.NODE_ENV === 'production';
 	const data = {
@@ -20,7 +22,7 @@ module.exports = article => {
 			environment: process.env.NODE_ENV,
 			is_live: !!prod,
 
-			version: '1.0.0',
+			version,
 		},
 	};
 
