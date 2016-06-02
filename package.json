@@ -1,6 +1,6 @@
 {
   "name": "ft-facebook-instant",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "Facebook Instant Articles",
   "main": "build/index.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "postinstall": "make",
     "test": "make test",
     "heroku-config": "heroku-config-to-env -i HEROKU_ -i REDIS_URL -i NODE_ENV -l REDIS_URL=redis://localhost:6379/ -l NODE_ENV=development ft-facebook-instant-staging scripts/env.sh",
-    "watch": "wmake"
+    "watch": "wmake",
+    "heroku-postbuild": "heroku-version-infer && package-version-sentry-release"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,8 @@
   "homepage": "https://github.com/Financial-Times/ft-facebook-instant#readme",
   "dependencies": {
     "@quarterto/assert-env": "^1.1.0",
+    "@quarterto/heroku-version-infer": "^1.0.0",
+    "@quarterto/package-version-sentry-release": "^1.2.0",
     "@quarterto/promise-loop-interval": "^1.0.0",
     "babel-cli": "^6.6.5",
     "babel-plugin-transform-runtime": "^6.7.5",
