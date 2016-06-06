@@ -68,6 +68,10 @@ const insightsMetricsKeys = {
 	post_negative_feedback_by_type_unique: 'The number of people who took a negative action in your post broken down by type',
 	post_engaged_fan: 'People who have liked your page and engaged with your post.',
 	post_fan_reach: 'Post reach by people who like your page.',
+	post_reactions_by_type_total: 'Daily total post reactions by type.',
+	post_stories: 'Lifetime: The number of stories generated about your Page post. (Total Count)',
+	post_stories_by_action_type: 'The number of stories created about your Page post, by action type. (Total Count)',
+	post_storytellers_by_action_type: 'The number of unique people who created a story about your Page post by interacting with it. (Unique Users)'
 };
 
 const insightsMetricsKeyTypes = {
@@ -100,6 +104,24 @@ const insightsMetricsKeyTypes = {
 		'hide clicks': true,
 		'report spam clicks': true,
 		'unlike page clicks': true,
+	},
+	post_reactions_by_type_total: {
+		'like': true,
+		'love': true,
+		'wow': true,
+		'haha': true,
+		'sorry': true,
+		'anger': true,
+	},
+	post_stories_by_action_type: {
+		'share': true,
+		'like': true,
+		'comment': true,
+	},
+	post_storytellers_by_action_type: {
+		'share': true,
+		'like': true,
+		'comment': true,
 	},
 };
 
@@ -212,6 +234,19 @@ const csvColumns = {
 	'insight_post_negative_feedback_by_type_unique_hide clicks': 'insight_post_negative_feedback_by_type_unique_hide_clicks',
 	'insight_post_negative_feedback_by_type_unique_report spam clicks': 'insight_post_negative_feedback_by_type_unique_report_spam_clicks',
 	'insight_post_negative_feedback_by_type_unique_unlike page clicks': 'insight_post_negative_feedback_by_type_unique_unlike_page_clicks',
+	'insight_post_reactions_by_type_total_like': 'insight_post_reactions_by_type_total_like',
+	'insight_post_reactions_by_type_total_love': 'insight_post_reactions_by_type_total_love',
+	'insight_post_reactions_by_type_total_wow': 'insight_post_reactions_by_type_total_wow',
+	'insight_post_reactions_by_type_total_haha': 'insight_post_reactions_by_type_total_haha',
+	'insight_post_reactions_by_type_total_sorry': 'insight_post_reactions_by_type_total_sorry',
+	'insight_post_reactions_by_type_total_anger': 'insight_post_reactions_by_type_total_anger',
+	'insight_post_stories': 'insight_post_stories',
+	'insight_post_stories_by_action_type_share': 'insight_post_stories_by_action_type_share',
+	'insight_post_stories_by_action_type_like': 'insight_post_stories_by_action_type_like',
+	'insight_post_stories_by_action_type_comment': 'insight_post_stories_by_action_type_comment',
+	'insight_post_storytellers_by_action_type_share': 'insight_post_storytellers_by_action_type_share',
+	'insight_post_storytellers_by_action_type_like': 'insight_post_storytellers_by_action_type_like',
+	'insight_post_storytellers_by_action_type_comment': 'insight_post_storytellers_by_action_type_comment',
 	insight_post_engaged_fan: 'insight_post_engaged_fan',
 	insight_post_fan_reach: 'insight_post_fan_reach',
 	ia_all_views: 'ia_all_views',
