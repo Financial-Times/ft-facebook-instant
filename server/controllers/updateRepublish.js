@@ -9,7 +9,8 @@ const {version} = require('../../package.json');
 const mode = require('../lib/mode').get();
 
 const update = (article, {onlyAfterRedeploy = true} = {}) => {
-	const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== version;
+	const isDevelopment = version === '0.0.0-development';
+	const publishedByOldVersion = !isDevelopment && article.import_meta[0] && article.import_meta[0].appVersion !== version;
 	const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
 	const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 	if(sentToFacebook && shouldRepublish) {
@@ -33,10 +34,21 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 	}
 };
 
+const handleError = e => {
+	console.error(`${Date()}: UPDATE/REPUBLISH error: ${e.stack || e}`);
+	if(mode === 'production') {
+		ravenClient.captureException(e, {tags: {from: 'republish'}});
+	}
+};
+
 const republish = options => fbApi.list({fields: ['canonical_url'], __limit: 0})
 .then(articles => articles.map(article => article.canonical_url))
 .then(canonicals => articleModel.getList(canonicals))
-.then(articles => Promise.all(articles.map(article => update(article, options))))
+.then(articles => Promise.all(
+	articles.map(
+		article => update(article, options).catch(handleError)
+	)
+))
 .then(articles => articles.filter(article => !!article));
 
 module.exports = (options) => republish(options)
@@ -46,12 +58,7 @@ module.exports = (options) => republish(options)
 		} else {
 			console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
 		}
-	}).catch(e => {
-		console.error(`${Date()}: UPDATE/REPUBLISH error: ${e.stack || e}`);
-		if(mode === 'production') {
-			ravenClient.captureException(e, {tags: {from: 'republish'}});
-		}
-	});
+	}).catch(handleError);
 
 module.exports.route = (req, res, next) => republish({onlyAfterRedeploy: false}).then(updatedArticles => {
 	res.status(200).json(updatedArticles.map(({uuid}) => uuid));
