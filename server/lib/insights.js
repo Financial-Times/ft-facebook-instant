@@ -325,12 +325,10 @@ const createPostsQuery = ids => {
 
 const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_object{type,url}`;
 
-const createCanonicalsQuery = lastRun => {
-	// "The data is only available after 24 March, 2016" => 1458864000
-	const since = lastRun ? moment.utc(lastRun.timestamp).subtract(1, 'week') : moment.utc(1458864000000);
-
+const createCanonicalsQuery = () => {
 	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
-		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(${since.unix()}).until(now).as(metrics_${key})`
+		// "The data is only available after 24 March, 2016" => 1458864000
+		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1458864000).until(now).as(metrics_${key})`
 	);
 	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
@@ -339,11 +337,11 @@ const createCanonicalsQuery = lastRun => {
 	return `?ids={result=${linksResultPath}}&fields=${canonicalAttributesQuery}`;
 };
 
-const createQuery = ({lastRun, ids}) => {
+const createQuery = ({ids}) => {
 	const queries = {
 		posts: createPostsQuery(ids),
 		links: createLinksQuery(),
-		canonicals: createCanonicalsQuery(lastRun),
+		canonicals: createCanonicalsQuery(),
 	};
 
 	return Object.keys(queries).map(key => ({
@@ -514,11 +512,11 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 	return post;
 });
 
-const getBatchedPosts = ({lastRun, ids}) => fbApi.many(
+const getBatchedPosts = ({ids}) => fbApi.many(
 	{ids},
 	(batch) =>
 		fbApi.call('', 'POST', {
-			batch: createQuery({lastRun, ids: batch.ids}),
+			batch: createQuery({ids: batch.ids}),
 			include_headers: false,
 			__dependent: true,
 			__batched: true,
@@ -563,6 +561,7 @@ const diffIntegerValues = (newValues, oldValues) => {
 
 		if(values[column] < 0) {
 			ravenClient.captureMessage('diffIntegerValues gave negative number', {
+				level: 'warning',
 				extra: {
 					column,
 					oldValues,
@@ -772,7 +771,7 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 				since: since.unix(),
 				until: now.unix(),
 			})
-			.then(ids => getBatchedPosts({lastRun, ids}))
+			.then(ids => getBatchedPosts({ids}))
 			.then(posts => Promise.all(posts.map(flattenPost)))
 			.then(posts => posts.map(validate))
 			.then(posts =>
