@@ -13,6 +13,8 @@ const accessTokens = require('./accessTokens');
 const FbApiImportException = require('./fbApi/importException');
 const FbApiTimeoutException = require('./fbApi/timeoutException');
 
+const BATCH_SIZE = 50;
+
 // See introspect()
 const defaultFields = {
 
@@ -21,18 +23,18 @@ const defaultFields = {
 		'canonical_url',
 		'development_mode',
 		'most_recent_import_status',
-		'photos',
 		'published',
-		'videos',
-		'html_source',
+		// 'photos',
+		// 'videos',
+		// 'html_source',
 	],
 
 	import: [
 		'id',
 		'errors',
-		'html_source',
-		'instant_article',
 		'status',
+		// 'html_source',
+		// 'instant_article',
 	],
 
 	related: [],
@@ -64,6 +66,33 @@ function addAccessToken(params) {
 	}
 }
 
+const parseBatchResult = result => {
+	try{
+		return JSON.parse(result.body);
+	} catch(e) {
+		throw Error(`Failed to parse JSON from result: ${result}`);
+	}
+};
+
+const handleBatchedResults = (results, [path, verb, params], dependent) => Promise.resolve()
+.then(() => {
+	const statuses = results.map((result, index) => (result && result.code === 200 ? 'ok' : {result, query: params.batch[index]}));
+	const errors = results.filter(result => (result.code !== 200));
+	const nulls = results.filter(result => (result === null));
+
+	if(errors.length) {
+		throw Error(`Batch failed with ${errors.length} error(s). Results: ${JSON.stringify(statuses)}. Params: ${JSON.stringify(params)}`);
+	}
+
+	if(nulls.length) {
+		// Null batch responses where there are no errors are probably timeouts, so retry the
+		// whole batch. Ideally, we'd retry only the failing batch parts here.
+		throw new FbApiTimeoutException();
+	}
+
+	return results.map(parseBatchResult);
+});
+
 const handlePagedResult = (result, limit) => Promise.resolve()
 .then(() => {
 	if(limit && result.data && result.data.length >= limit) {
@@ -86,33 +115,6 @@ const handlePagedResult = (result, limit) => Promise.resolve()
 .then(finalResult => {
 	delete finalResult.paging;
 	return finalResult;
-});
-
-const parseBatchResult = result => {
-	try{
-		return JSON.parse(result.body);
-	} catch(e) {
-		throw Error(`Failed to parse JSON from result: ${result}`);
-	}
-};
-
-const handleBatchedResults = (results, params, dependent) => Promise.resolve()
-.then(() => {
-	const statuses = results.map((result, index) => (result.code === 200 ? 'ok' : {result, query: params.batch[index]}));
-	const errors = results.filter(result => (result.code !== 200));
-	const nulls = results.filter(result => (result === null));
-
-	if(errors.length) {
-		throw Error(`Batch failed with ${errors.length} error(s). Results: ${JSON.stringify(statuses)}. Params: ${JSON.stringify(params)}`);
-	}
-
-	if(nulls.length) {
-		// Null batch responses where there are no errors are probably timeouts, so retry the
-		// whole batch. Ideally, we'd retry only the failing batch parts here.
-		throw new FbApiTimeoutException();
-	}
-
-	return results.map(parseBatchResult);
 });
 
 const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...params)
@@ -170,6 +172,16 @@ const call = (...params) => {
 		.then(newParams => callApi(newParams, {batched, dependent, limit}));
 };
 
+const chunkIdList = ids => {
+	const chunks = [];
+	for(let i = 0; i < ids.length; i += BATCH_SIZE) {
+		chunks.push(
+			ids.slice(i, i + BATCH_SIZE)
+		);
+	}
+	return chunks;
+};
+
 const list = ({fields = [], __limit} = {}) => {
 	fields = fields.length ? fields : defaultFields.article;
 
@@ -190,9 +202,9 @@ const list = ({fields = [], __limit} = {}) => {
 	.then(results => results.data || []);
 };
 
-const get = ({type = 'article', id = null, fields = []} = {}) => {
-	if(!id) {
-		return Promise.reject(Error('Missing required parameter [id]'));
+const getIds = ({type = 'article', ids = [], fields = []} = {}) => {
+	if(!ids.length) {
+		return Promise.reject(Error('Missing required parameter [ids]'));
 	}
 
 	if(!type || !defaultFields[type]) {
@@ -202,13 +214,48 @@ const get = ({type = 'article', id = null, fields = []} = {}) => {
 	fields = fields.length ? fields : defaultFields[type];
 
 	return call(
-		`/${id}`,
+		'/',
 		'GET',
 		{
+			ids: ids.join(','),
 			fields: fields.join(','),
 		}
 	);
 };
+
+const get = ({type = 'article', id = null, fields = []}) => {
+	if(!id) {
+		return Promise.reject(Error('Missing required parameter [id]'));
+	}
+
+	return getIds({
+		type,
+		ids: [id],
+		fields,
+	})
+	.then(result => result[id]);
+};
+
+const many = ({ids, type, fields}, fn, returnType) => Promise.all(
+	chunkIdList(ids)
+	.map(chunkedIds => fn({
+		ids: chunkedIds,
+		type,
+		fields,
+	}))
+)
+.then(chunkedResults => {
+	switch(returnType) {
+		case 'array':
+			return chunkedResults.reduce((previous, current) => previous.concat(current), []);
+		case 'object':
+			return chunkedResults.reduce((previous, current) => Object.assign(previous, current), {});
+		default:
+			throw Error(`unrecognised returnType ${returnType}`);
+	}
+});
+
+const getMany = args => many(args, getIds, 'object');
 
 const introspect = ({id = null} = {}) => {
 	if(!id) {
@@ -292,27 +339,47 @@ const post = ({uuid, html, published = false, wait = false} = {}) => {
 	});
 };
 
-const find = ({canonical = null, fields = []} = {}) => {
+const findbyCanonical = ({ids = [], fields = []} = {}) => {
+	if(!ids.length) {
+		return Promise.reject(Error('Missing required parameter [ids]'));
+	}
+
+	fields = fields.length ? fields : defaultFields.article;
+
+	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
+
+	return call(
+		'/',
+		'GET',
+		{
+			fields: `${key}{${fields.join(',')}}`,
+			ids: ids.join(','),
+		}
+	)
+	.then(result => {
+		ids.forEach(canonical => {
+			const ret = {};
+			ret[mode] = result[canonical][key] || {nullRecord: true};
+			result[canonical] = ret;
+		});
+		return result;
+	});
+};
+
+const find = ({canonical = null, fields = []}) => {
 	if(!canonical) {
 		return Promise.reject(Error('Missing required parameter [canonical]'));
 	}
 
-	fields = fields.length ? fields : defaultFields.article;
-	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
-
-	return call(
-		`/${canonical}`,
-		'GET',
-		{
-			fields: `${key}{${fields.join(',')}}`,
-		}
-	)
-	.then(result => {
-		const ret = {};
-		ret[mode] = result[key] || {nullRecord: true};
-		return ret;
-	});
+	return findbyCanonical({
+		type: 'article',
+		ids: [canonical],
+		fields,
+	})
+	.then(result => result[canonical]);
 };
+
+const findMany = args => many(args, findbyCanonical, 'object');
 
 const del = ({canonical = null} = {}) => {
 	if(!canonical) {
@@ -333,11 +400,14 @@ const wipe = () => list({fields: ['id']})
 
 module.exports = {
 	list,
+	many,
 	get,
+	getMany,
 	introspect,
 	post,
 	delete: del,
 	find,
+	findMany,
 	wipe,
 	call,
 };

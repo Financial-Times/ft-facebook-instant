@@ -5,6 +5,7 @@ const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
+const {version} = require('../../package.json');
 
 const mode = require('../lib/mode').get();
 
@@ -75,7 +76,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 	// Add any remaining import meta which isn't reflected on the FB API
 	imports = imports.concat(importMeta)
-		.sort((a, b) => b.timestamp - a.timestamp);
+		.sort((a, b) => (a.timestamp ? (b.timestamp - a.timestamp) : Number.POSITIVE_INFINITY));
 
 	imports.forEach(item => {
 		if(article.fbRecords[item.mode]) {
@@ -83,6 +84,16 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 			article.fbRecords[item.mode].imports.push(item);
 		}
 	});
+
+	const initialImport = imports.filter(item => (
+		item.type === 'ui' &&
+		item.status === 'SUCCESS' &&
+		item.published === (process.env.NODE_ENV === 'production')
+	)).pop();
+
+	if(initialImport && article.fbRecords[initialImport.mode]) {
+		article.fbRecords[initialImport.mode].initialImport = initialImport;
+	}
 
 	return updateDb(article)
 		.then(() => article);
@@ -120,8 +131,7 @@ const getCanonical = key => database.getCanonical(key)
 		.then(canonical => database.setCanonical(key, canonical));
 });
 
-const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databaseRecord.canonical})
-.then(fbRecords => {
+const getFbImportsForLookup = ({databaseRecord, fbRecords}) => {
 	const imports = databaseRecord.import_meta
 		.filter(item => item.mode === mode)
 		.filter(item => !!item.id);
@@ -130,24 +140,31 @@ const addFbData = ({databaseRecord, apiRecord}) => fbApi.find({canonical: databa
 		imports.unshift(fbRecords[mode].most_recent_import_status);
 	}
 
-	const promises = imports
-		.map(item => fbApi.get({type: 'import', id: item.id, fields: ['id', 'errors', 'status']})
-			.catch(e => {
-				if(e.name === 'FacebookApiException' && e.response && e.response.error.type === 'GraphMethodException') {
-					// This import will never be resolveable, so delete it
-					delete item.id;
-					return;
-				}
-				throw e;
-			})
-		);
-	return Promise.all(promises)
-		.then(fbImports => fbImports.filter(record => record !== undefined))
-		.then(fbImports => ({databaseRecord, apiRecord, fbRecords, fbImports}));
-})
-.then(mergeRecords);
+	return imports.map(item => item.id);
+};
 
-const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = 'false'}) => {
+const addFbImports = articles => {
+	const importIdsMap = new Map();
+	let importIds = [];
+	articles.forEach(article => {
+		const ids = getFbImportsForLookup(article);
+		importIds = importIds.concat(ids);
+		importIdsMap.set(article, ids);
+	});
+
+	return fbApi.getMany({ids: importIds, type: 'import', fields: ['id', 'errors', 'status']})
+	.then(imports => articles.map(article => {
+		article.fbImports = importIdsMap.get(article)
+			.map(importId => imports[importId])
+			.filter(item => !!item);
+		return article;
+	}));
+};
+
+const addFbImportsScalar = article => addFbImports([article])
+.then(articles => articles[0]);
+
+const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
 	// Delete FB ids from all previous imports
 	article.import_meta = article.import_meta.map(item => {
 		delete item.id;
@@ -159,14 +176,14 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		mode,
 		id,
 		type,
-		appVersion: process.env.HEROKU_RELEASE_VERSION,
+		appVersion: version,
 		env: process.env.NODE_ENV,
 		warnings,
 		username,
 		published,
 	});
 	return updateDb(article)
-		.then(() => addFbData({databaseRecord: article, apiRecord: article.apiRecord}));
+		.then(() => {});
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
@@ -199,7 +216,7 @@ const getApi = canonical => database.getCapi(canonical)
 		});
 });
 
-const get = key => getCanonical(key)
+const getOwnData = key => getCanonical(key)
 .then(canonical => Promise.all([
 	database.get(canonical),
 	getApi(canonical),
@@ -211,8 +228,15 @@ const get = key => getCanonical(key)
 
 	return setDb(apiRecord)
 		.then(newDatabaseRecord => ({databaseRecord: newDatabaseRecord, apiRecord}));
-})
-.then(({databaseRecord, apiRecord}) => addFbData({databaseRecord, apiRecord}));
+});
+
+const get = key => getOwnData(key)
+.then(({databaseRecord, apiRecord}) =>
+	fbApi.find({canonical: databaseRecord.canonical})
+		.then(fbRecords => ({databaseRecord, apiRecord, fbRecords}))
+		.then(addFbImportsScalar)
+		.then(mergeRecords)
+);
 
 // TODO: also purge slideshow assets which belong to this UUID? Or cache slideshow asset
 // contents as part of the article JSON?
@@ -228,8 +252,8 @@ const update = article => Promise.all([
 })
 .then(() => get(article.canonical));
 
-const getList = canonicals => Promise.all(canonicals.map(
-	canonical => get(canonical)
+const getOwnDataList = canonicals => Promise.all(canonicals.map(
+	canonical => getOwnData(canonical)
 		.catch(e => {
 			if(e.type === 'FtApiContentMissingException') {
 				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
@@ -239,6 +263,24 @@ const getList = canonicals => Promise.all(canonicals.map(
 		})
 ))
 .then(articles => articles.filter(article => !!article));
+
+const getList = canonicals => getOwnDataList(canonicals)
+.then(ownDataList =>
+	fbApi.findMany({
+		type: 'article',
+		ids: ownDataList.map(article => article.databaseRecord.canonical),
+	})
+	.then(fbDataList =>
+		ownDataList.map(article => {
+			article.fbRecords = fbDataList[article.databaseRecord.canonical];
+			return article;
+		})
+	)
+	.then(articles => addFbImports(articles))
+	.then(articles => Promise.all(
+		articles.map(mergeRecords)
+	))
+);
 
 module.exports = {
 	getApi,

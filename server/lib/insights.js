@@ -17,7 +17,6 @@ const mode = require('./mode').get();
 const ravenClient = require('./raven');
 
 const pageId = process.env.FB_PAGE_ID;
-const BATCH_SIZE = 50;
 const VERBOSE_AGGREGATIONS = false;
 const EXPLAINER_ROW = false;
 
@@ -71,7 +70,7 @@ const insightsMetricsKeys = {
 	post_reactions_by_type_total: 'Daily total post reactions by type.',
 	post_stories: 'Lifetime: The number of stories generated about your Page post. (Total Count)',
 	post_stories_by_action_type: 'The number of stories created about your Page post, by action type. (Total Count)',
-	post_storytellers_by_action_type: 'The number of unique people who created a story about your Page post by interacting with it. (Unique Users)'
+	post_storytellers_by_action_type: 'The number of unique people who created a story about your Page post by interacting with it. (Unique Users)',
 };
 
 const insightsMetricsKeyTypes = {
@@ -106,22 +105,22 @@ const insightsMetricsKeyTypes = {
 		'unlike page clicks': true,
 	},
 	post_reactions_by_type_total: {
-		'like': true,
-		'love': true,
-		'wow': true,
-		'haha': true,
-		'sorry': true,
-		'anger': true,
+		like: true,
+		love: true,
+		wow: true,
+		haha: true,
+		sorry: true,
+		anger: true,
 	},
 	post_stories_by_action_type: {
-		'share': true,
-		'like': true,
-		'comment': true,
+		share: true,
+		like: true,
+		comment: true,
 	},
 	post_storytellers_by_action_type: {
-		'share': true,
-		'like': true,
-		'comment': true,
+		share: true,
+		like: true,
+		comment: true,
 	},
 };
 
@@ -234,19 +233,19 @@ const csvColumns = {
 	'insight_post_negative_feedback_by_type_unique_hide clicks': 'insight_post_negative_feedback_by_type_unique_hide_clicks',
 	'insight_post_negative_feedback_by_type_unique_report spam clicks': 'insight_post_negative_feedback_by_type_unique_report_spam_clicks',
 	'insight_post_negative_feedback_by_type_unique_unlike page clicks': 'insight_post_negative_feedback_by_type_unique_unlike_page_clicks',
-	'insight_post_reactions_by_type_total_like': 'insight_post_reactions_by_type_total_like',
-	'insight_post_reactions_by_type_total_love': 'insight_post_reactions_by_type_total_love',
-	'insight_post_reactions_by_type_total_wow': 'insight_post_reactions_by_type_total_wow',
-	'insight_post_reactions_by_type_total_haha': 'insight_post_reactions_by_type_total_haha',
-	'insight_post_reactions_by_type_total_sorry': 'insight_post_reactions_by_type_total_sorry',
-	'insight_post_reactions_by_type_total_anger': 'insight_post_reactions_by_type_total_anger',
-	'insight_post_stories': 'insight_post_stories',
-	'insight_post_stories_by_action_type_share': 'insight_post_stories_by_action_type_share',
-	'insight_post_stories_by_action_type_like': 'insight_post_stories_by_action_type_like',
-	'insight_post_stories_by_action_type_comment': 'insight_post_stories_by_action_type_comment',
-	'insight_post_storytellers_by_action_type_share': 'insight_post_storytellers_by_action_type_share',
-	'insight_post_storytellers_by_action_type_like': 'insight_post_storytellers_by_action_type_like',
-	'insight_post_storytellers_by_action_type_comment': 'insight_post_storytellers_by_action_type_comment',
+	insight_post_reactions_by_type_total_like: 'insight_post_reactions_by_type_total_like',
+	insight_post_reactions_by_type_total_love: 'insight_post_reactions_by_type_total_love',
+	insight_post_reactions_by_type_total_wow: 'insight_post_reactions_by_type_total_wow',
+	insight_post_reactions_by_type_total_haha: 'insight_post_reactions_by_type_total_haha',
+	insight_post_reactions_by_type_total_sorry: 'insight_post_reactions_by_type_total_sorry',
+	insight_post_reactions_by_type_total_anger: 'insight_post_reactions_by_type_total_anger',
+	insight_post_stories: 'insight_post_stories',
+	insight_post_stories_by_action_type_share: 'insight_post_stories_by_action_type_share',
+	insight_post_stories_by_action_type_like: 'insight_post_stories_by_action_type_like',
+	insight_post_stories_by_action_type_comment: 'insight_post_stories_by_action_type_comment',
+	insight_post_storytellers_by_action_type_share: 'insight_post_storytellers_by_action_type_share',
+	insight_post_storytellers_by_action_type_like: 'insight_post_storytellers_by_action_type_like',
+	insight_post_storytellers_by_action_type_comment: 'insight_post_storytellers_by_action_type_comment',
 	insight_post_engaged_fan: 'insight_post_engaged_fan',
 	insight_post_fan_reach: 'insight_post_fan_reach',
 	ia_all_views: 'ia_all_views',
@@ -300,13 +299,14 @@ Object.keys(iaMetricTypes).forEach(key => {
 const postsResultPath = 'posts:$.*.link';
 const linksResultPath = 'links:$.*.og_object.url';
 
-const getPostsLists = params => {
+const getPostIds = params => {
 	params.fields = 'id';
 	const paramsQuery = Object.keys(params).map(key => `${key}=${params[key]}`).join('&');
 
 	return fbApi.call(`/${pageId}/posts?${paramsQuery}`, 'GET', {
 		__limit: 0,
-	});
+	})
+	.then(result => result.data.map(item => item.id));
 };
 
 const createPostsQuery = ids => {
@@ -514,25 +514,18 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 	return post;
 });
 
-const executeQuery = ({lastRun, ids}) => fbApi.call('', 'POST', {
-	batch: createQuery({lastRun, ids}),
-	include_headers: false,
-	__dependent: true,
-	__batched: true,
-})
-.then(processResults);
-
-const batchIdList = idList => {
-	const batch = [];
-	for(let i = 0; i < idList.length; i += BATCH_SIZE) {
-		batch.push(
-			idList
-				.slice(i, i + BATCH_SIZE)
-				.map(item => item.id)
-		);
-	}
-	return batch;
-};
+const getBatchedPosts = ({lastRun, ids}) => fbApi.many(
+	{ids},
+	(batch) =>
+		fbApi.call('', 'POST', {
+			batch: createQuery({lastRun, ids: batch.ids}),
+			include_headers: false,
+			__dependent: true,
+			__batched: true,
+		})
+		.then(processResults),
+	'array'
+);
 
 const addExplainerRow = data => {
 	const explainer = {
@@ -664,7 +657,7 @@ const writeCsv = (now, posts) => {
 
 	let rows = 0;
 	// Generate CSVs in series to avoid eating up memory
-	return Array.apply(0, Array(oldestPostAge + 1))
+	return Array.apply(0, new Array(oldestPostAge + 1))
 		.map((x, index) => oldestPostAge - index)
 		.reduce((promise, age, index) => promise.then(() => {
 			const historicTimestamp = moment.utc(now).subtract(age + 1, 'hours');
@@ -775,13 +768,11 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 				console.log(`Fetching insights data from ${since.format()} to ${now.format()}. No saved lastRun.`);
 			}
 
-			return getPostsLists({
+			return getPostIds({
 				since: since.unix(),
 				until: now.unix(),
 			})
-			.then(result => (batchIdList(result.data)))
-			.then(idBatch => Promise.all(idBatch.map(ids => executeQuery({lastRun, ids}))))
-			.then(batchedResults => [].concat(...batchedResults))
+			.then(ids => getBatchedPosts({lastRun, ids}))
 			.then(posts => Promise.all(posts.map(flattenPost)))
 			.then(posts => posts.map(validate))
 			.then(posts =>

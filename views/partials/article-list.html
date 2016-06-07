@@ -36,6 +36,9 @@
 							Last import: <span class="o-buttons o-buttons--small"><strong>{{fbRecord.most_recent_import_status.status}}</strong></span>
 						{{/if}}
 						</li>
+						{{#if initialImport}}
+						<li>Initial import: <span title="{{rfcDate initialImport.timestamp}}">{{relativeDate initialImport.timestamp}}</span>{{#if initialImport.username}} ({{initialImport.username}}){{/if}}</li>
+						{{/if}}
 					{{/each}}
 				</ul>
 			</li>

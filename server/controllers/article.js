@@ -54,6 +54,7 @@ module.exports = (req, res, next) => {
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui'}))
 						)
 					)
+					.then(() => articleModel.get(url))
 					.then(article => res.json(article));
 
 			case 'publish':
@@ -63,6 +64,7 @@ module.exports = (req, res, next) => {
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui', published: true}))
 						)
 					)
+					.then(() => articleModel.get(url))
 					.then(article => res.json(article));
 
 			case 'reingest':

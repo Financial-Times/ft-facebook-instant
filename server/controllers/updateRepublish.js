@@ -4,11 +4,12 @@ const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
 const ravenClient = require('../lib/raven');
+const {version} = require('../../package.json');
 
 const mode = require('../lib/mode').get();
 
 const update = (article, {onlyAfterRedeploy = true} = {}) => {
-	const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== process.env.HEROKU_RELEASE_VERSION;
+	const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== version;
 	const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
 	const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 	if(sentToFacebook && shouldRepublish) {

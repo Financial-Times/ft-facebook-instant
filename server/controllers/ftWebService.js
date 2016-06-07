@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+const {version} = require('../../package.json');
 
 module.exports = {
 	manifestPath: path.resolve(__dirname, '../../package.json'),
@@ -11,7 +12,7 @@ module.exports = {
 		audience: 'private',
 		primaryUrl: 'https://facebookinstant.ft.com',
 		serviceTier: 'bronze',
-		appVersion: process.env.HEROKU_RELEASE_VERSION,
+		appVersion: version,
 		contacts: [
 			{
 				name: 'Richard Still',
