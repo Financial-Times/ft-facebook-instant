@@ -34,10 +34,21 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 	}
 };
 
+const handleError = e => {
+	console.error(`${Date()}: UPDATE/REPUBLISH error: ${e.stack || e}`);
+	if(mode === 'production') {
+		ravenClient.captureException(e, {tags: {from: 'republish'}});
+	}
+};
+
 const republish = options => fbApi.list({fields: ['canonical_url'], __limit: 0})
 .then(articles => articles.map(article => article.canonical_url))
 .then(canonicals => articleModel.getList(canonicals))
-.then(articles => Promise.all(articles.map(article => update(article, options))))
+.then(articles => Promise.all(
+	articles.map(
+		article => update(article, options).catch(handleError)
+	)
+))
 .then(articles => articles.filter(article => !!article));
 
 module.exports = (options) => republish(options)
@@ -47,12 +58,7 @@ module.exports = (options) => republish(options)
 		} else {
 			console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
 		}
-	}).catch(e => {
-		console.error(`${Date()}: UPDATE/REPUBLISH error: ${e.stack || e}`);
-		if(mode === 'production') {
-			ravenClient.captureException(e, {tags: {from: 'republish'}});
-		}
-	});
+	}).catch(handleError);
 
 module.exports.route = (req, res, next) => republish({onlyAfterRedeploy: false}).then(updatedArticles => {
 	res.status(200).json(updatedArticles.map(({uuid}) => uuid));
