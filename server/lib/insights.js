@@ -561,7 +561,7 @@ const diffIntegerValues = (newValues, oldValues) => {
 
 		if(values[column] < 0) {
 			ravenClient.captureMessage('diffIntegerValues gave negative number', {
-				level: 'warning',
+				level: 'info',
 				extra: {
 					column,
 					oldValues,
