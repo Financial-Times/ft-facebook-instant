@@ -9,7 +9,8 @@ const {version} = require('../../package.json');
 const mode = require('../lib/mode').get();
 
 const update = (article, {onlyAfterRedeploy = true} = {}) => {
-	const publishedByOldVersion = article.import_meta[0] && article.import_meta[0].appVersion !== version;
+	const isDevelopment = version === '0.0.0-development';
+	const publishedByOldVersion = !isDevelopment && article.import_meta[0] && article.import_meta[0].appVersion !== version;
 	const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
 	const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 	if(sentToFacebook && shouldRepublish) {
