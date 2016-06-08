@@ -6,7 +6,6 @@ const ftApi = require('../lib/ftApi');
 const s3 = require('../lib/s3');
 const articleModel = require('../models/article');
 const accessTokens = require('../lib/accessTokens');
-const moment = require('moment');
 const insights = require('../lib/insights');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
@@ -159,9 +158,7 @@ module.exports = (req, res, next) => {
 				.then(result => res.json({result}))
 				.catch(next);
 		case 'insights':
-			return insights.fetch({
-				since: moment.utc().startOf('hour').subtract(2, 'day'),
-			})
+			return insights.fetch()
 			.then(() => {
 				res.send('done');
 			});

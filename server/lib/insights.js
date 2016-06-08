@@ -20,6 +20,7 @@ const ravenClient = require('./raven');
 const pageId = process.env.FB_PAGE_ID;
 const VERBOSE_AGGREGATIONS = false;
 const EXPLAINER_ROW = false;
+const MAX_POST_AGE_MONTHS = 6;
 
 let importStart = null;
 
@@ -536,7 +537,7 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 	return post;
 });
 
-const getBatchedPosts = ({ids}) => fbApi.many(
+const getPostsData = ({ids}) => fbApi.many(
 	{ids},
 	(batch) =>
 		fbApi.call('', 'POST', {
@@ -731,20 +732,26 @@ const getHistoricValues = (lastRun, now, posts) => Promise.resolve(
 
 const saveLastRun = (now, posts) => {
 	const data = {};
+	const historicLimit = moment.utc(now).subtract(MAX_POST_AGE_MONTHS, 'months');
 
-	posts.forEach(post => {
-		const integers = {};
-		integerColumns.forEach(column => {
-			integers[column] = post[column];
+	// Only save lastRun data for posts created within the time limit (i.e. no longer
+	// fetch data for older posts).
+	posts.filter(post => moment.utc(post.created_time).isAfter(historicLimit))
+		.forEach(post => {
+			const integers = {};
+			integerColumns.forEach(column => {
+				integers[column] = post[column];
+			});
+			data[post.id] = integers;
 		});
-		data[post.id] = integers;
-	});
 
+	const savedPostCount = Object.keys(data).length;
+	console.log(`Saving lastRun data for ${savedPostCount} posts (${posts.length - savedPostCount} older posts were not saved).`);
 	return database.setLastInsight(now.valueOf(), data);
 };
 
 
-module.exports.fetch = ({since, upload = false}) => Promise.resolve()
+module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 .then(() => {
 	if(importStart) {
 		const seconds = Math.round((Date.now() - importStart) / 1000);
@@ -763,10 +770,11 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 		.then(database.getLastInsight)
 		.then(lastRun => {
 			const now = moment.utc().startOf('hour');
+			let since;
 
 			if(lastRun) {
-				const lastRunMoment = moment.utc(lastRun.timestamp);
-				const age = now.diff(lastRunMoment, 'hours', true);
+				since = moment.utc(lastRun.timestamp);
+				const age = now.diff(since, 'hours', true);
 
 				if(lastRun.timestamp === now.valueOf()) {
 					console.log(`Insights data already processed for ${now.format()}`);
@@ -786,16 +794,25 @@ module.exports.fetch = ({since, upload = false}) => Promise.resolve()
 					}
 				}
 
-				console.log(`Fetching insights data from ${since.format()} to ${now.format()}. Last run was ${lastRunMoment.format()} (${age} hours ago).`);
+				console.log(`Fetching data for posts from ${since.format()} to ${now.format()}. Last run was ${age} hour(s) ago.`);
 			} else {
-				console.log(`Fetching insights data from ${since.format()} to ${now.format()}. No saved lastRun.`);
+				// For the first run, only look at posts created in the last hour, as the
+				// metrics totals can be used correctly in an hourly record in Redshift.
+				since = moment.utc(now).subtract(1, 'hours');
+				console.log(`Fetching data for posts from ${since.format()} to ${now.format()}. No saved lastRun.`);
 			}
 
 			return getPostIds({
 				since: since.unix(),
 				until: now.unix(),
 			})
-			.then(ids => getBatchedPosts({ids}))
+			.then(newPostIds => {
+				// MAX_POST_AGE_MONTHS
+				const knownPostIds = lastRun && Object.keys(lastRun.data) || [];
+				// Unique list of known posts plus new posts.
+				return [...new Set(newPostIds.concat(knownPostIds))];
+			})
+			.then(ids => getPostsData({ids}))
 			.then(posts => Promise.all(posts.map(flattenPost)))
 			.then(posts => posts.map(validate))
 			.then(posts =>
