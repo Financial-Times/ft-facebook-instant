@@ -2,6 +2,7 @@
 
 const fbApi = require('./fbApi');
 const ftApi = require('./ftApi');
+const articleModel = require('../models/article');
 const s3 = require('./s3');
 const database = require('./database');
 const numbers = require('numbers');
@@ -429,6 +430,25 @@ const getUuid = canonical => database.getCapi(canonical)
 .then(article => article && article.id || null)
 .catch(() => null);
 
+const addUuid = flat => {
+	if(!flat.canonical) return flat;
+
+	return getUuid(flat.canonical)
+		.then(uuid => (flat.uuid = uuid));
+};
+
+const addInstantArticleMetadata = flat => {
+	if(!flat.ia_published) return flat;
+
+	return articleModel.get(flat.canonical)
+		.then(article => {
+			if(article.fbRecords[mode].initialImport && article.fbRecords[mode].initialImport.timestamp) {
+				// Refine the approximation with the actual time of publication
+				flat.ia_earliest_views = moment.utc(article.fbRecords[mode].initialImport.timestamp).format();
+			}
+		});
+};
+
 const flattenPost = post => Promise.resolve()
 .then(() => {
 	const flat = {
@@ -481,8 +501,11 @@ const flattenPost = post => Promise.resolve()
 		flat.canonical_share = post.canonical.share.share_count;
 
 		if(post.canonical.instant_article) {
-			flat.ia_published = post.canonical.instant_article.published;
+			// Initially, approximate the 'earliest view' for an IA using the aggregated
+			// 'metrics_all_views' metrics. Later, refine if the IA publish timestamp can
+			// be found.
 			flat.ia_earliest_views = getEarliestIaView(post);
+			flat.ia_published = post.canonical.instant_article.published;
 			flat.ia_import_status = post.canonical.instant_article.most_recent_import_status &&
 				post.canonical.instant_article.most_recent_import_status.status;
 		}
@@ -491,12 +514,13 @@ const flattenPost = post => Promise.resolve()
 	flattenIaMetrics(post, flat);
 	return flat;
 })
-.then(flat => {
-	if(!flat.canonical) return flat;
-
-	return getUuid(flat.canonical)
-		.then(uuid => Object.assign(flat, {uuid}));
-});
+.then(flat =>
+	Promise.all([
+		addUuid(flat),
+		addInstantArticleMetadata(flat),
+	])
+	.then(() => flat)
+);
 
 const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id => {
 	const post = posts[id];
