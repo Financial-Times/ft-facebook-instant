@@ -809,6 +809,7 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 			.then(newPostIds => {
 				// MAX_POST_AGE_MONTHS
 				const knownPostIds = lastRun && Object.keys(lastRun.data) || [];
+				console.log(`Found ${newPostIds.length} new posts and ${knownPostIds.length} known old posts`);
 				// Unique list of known posts plus new posts.
 				return [...new Set(newPostIds.concat(knownPostIds))];
 			})
