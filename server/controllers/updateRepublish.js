@@ -32,6 +32,8 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 				}))
 			);
 	}
+
+	return Promise.resolve(null);
 };
 
 const handleError = e => {
