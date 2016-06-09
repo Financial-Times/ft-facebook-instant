@@ -168,6 +168,13 @@ const getCapi = id => client.getAsync(`capi:${id}`)
 
 const purgeCapi = id => client.delAsync(`capi:${id}`);
 
+const wipeLastInsight = () => client.delAsync('lastinsight');
+
+const setLastInsight = (timestamp, data) => client.setAsync('lastinsight', JSON.stringify({timestamp, data}));
+
+const getLastInsight = () => client.getAsync('lastinsight')
+.then(insight => insight && JSON.parse(insight) || null);
+
 module.exports = {
 	get(canonicals) {
 		if(Array.isArray(canonicals)) {
@@ -187,4 +194,7 @@ module.exports = {
 	getCapi,
 	setCapi,
 	purgeCapi,
+	setLastInsight,
+	getLastInsight,
+	wipeLastInsight,
 };

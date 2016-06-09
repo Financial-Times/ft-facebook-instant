@@ -11,6 +11,7 @@ const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
 const FbApiImportException = require('./fbApi/importException');
+const FbApiTimeoutException = require('./fbApi/timeoutException');
 
 const BATCH_SIZE = 50;
 
@@ -40,11 +41,13 @@ const defaultFields = {
 };
 
 const MAX_IMPORT_WAIT = 5 * 60 * 1000;
+const MAX_ATTEMPTS = 3;
+const STRING_LIMIT = 500;
 
 Facebook.options({
 	version: 'v2.5',
 	accessToken,
-	timeout: (mode === 'production' ? 2000 : 10000),
+	timeout: (mode === 'production' ? 10000 : 30000),
 });
 
 function addAccessToken(params) {
@@ -63,7 +66,35 @@ function addAccessToken(params) {
 	}
 }
 
-const handlePagedResult = (result, limit) => {
+const parseBatchResult = result => {
+	try{
+		return JSON.parse(result.body);
+	} catch(e) {
+		throw Error(`Failed to parse JSON from result: ${result}`);
+	}
+};
+
+const handleBatchedResults = (results, [path, verb, params], dependent) => Promise.resolve()
+.then(() => {
+	const statuses = results.map((result, index) => (result && result.code === 200 ? 'ok' : {result, query: params.batch[index]}));
+	const errors = results.filter(result => (result.code !== 200));
+	const nulls = results.filter(result => (result === null));
+
+	if(errors.length) {
+		throw Error(`Batch failed with ${errors.length} error(s). Results: ${JSON.stringify(statuses)}. Params: ${JSON.stringify(params)}`);
+	}
+
+	if(nulls.length) {
+		// Null batch responses where there are no errors are probably timeouts, so retry the
+		// whole batch. Ideally, we'd retry only the failing batch parts here.
+		throw new FbApiTimeoutException();
+	}
+
+	return results.map(parseBatchResult);
+});
+
+const handlePagedResult = (result, limit) => Promise.resolve()
+.then(() => {
 	if(limit && result.data && result.data.length >= limit) {
 		result.data = result.data.slice(0, limit);
 		return result;
@@ -71,16 +102,56 @@ const handlePagedResult = (result, limit) => {
 
 	if(!result.paging || !result.paging.next) return result;
 
+	// TODO: Why do these 'lifetime' results contain useless paging links? Is this a Graph API bug?
+	if(Array.isArray(result.data) && result.data[0].period === 'lifetime') return result;
+
 	return nodeFetch(result.paging.next)
 		.then(fetchres.json)
 		.then(nextResult => {
 			nextResult.data = result.data.concat(nextResult.data);
 			return handlePagedResult(nextResult, limit);
-		})
-		.then(finalResult => {
-			delete finalResult.paging;
-			return finalResult;
 		});
+})
+.then(finalResult => {
+	delete finalResult.paging;
+	return finalResult;
+});
+
+const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...params)
+.then(result => (batched ? handleBatchedResults(result, params, dependent) : handlePagedResult(result, limit)))
+.catch(e => {
+	if(e.type === 'FbApiTimeoutException' ||
+		(e.name === 'FacebookApiException' && e.response && e.response.error && e.response.error.code === 'ETIMEDOUT')
+		) {
+		if(attempts >= MAX_ATTEMPTS) {
+			throw Error('Facebook API call timed-out');
+		}
+		attempts++;
+		console.log('Retrying timed-out Facebook call', params, {batched, dependent, limit, attempts});
+		return callApi(params, {batched, dependent, limit, attempts});
+	}
+
+	if(e.name === 'FacebookApiException' && e.response) {
+		e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
+		throw new Facebook.FacebookApiException(e.response);
+	}
+
+	throw e;
+});
+
+const truncate = val => {
+	const ret = {};
+	switch(Object.prototype.toString.call(val)) {
+		case '[object Array]':
+			return val.map(truncate);
+		case '[object Object]':
+			Object.keys(val).forEach(key => (ret[key] = truncate(val[key])));
+			return ret;
+		case '[object String]':
+			return val.length > STRING_LIMIT ? `${val.substr(0, STRING_LIMIT)}...` : val;
+		default:
+			return val;
+	}
 };
 
 const call = (...params) => {
@@ -89,40 +160,26 @@ const call = (...params) => {
 	let limit = parseInt(options.__limit, 10);
 	limit = isNaN(limit) ? 25 : limit;
 
+	const dependent = options.__dependent;
+	const batched = options.__batched;
+
 	delete options.__limit;
+	delete options.__dependent;
+	delete options.__batched;
 
-	console.log(`${Date()}: FACEBOOK API: ${params.map(JSON.stringify).join(' ')}`);
+	console.log(`${Date()}: FACEBOOK API: ${params.map(truncate).map(JSON.stringify).join(' ')}`);
 	return addAccessToken(params)
-		.then(newParams => api(...newParams))
-		.then(result => handlePagedResult(result, limit))
-		.catch(e => {
-			if(e.name === 'FacebookApiException' && e.response) {
-				if(e.response.error && e.response.error.code === 'ETIMEDOUT') {
-					throw Error('Facebook API call timed-out');
-				}
-
-				e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
-				throw new Facebook.FacebookApiException(e.response);
-			}
-
-			throw e;
-		});
+		.then(newParams => callApi(newParams, {batched, dependent, limit}));
 };
 
-const batchIds = ids => {
-	const batch = [];
+const chunkIdList = ids => {
+	const chunks = [];
 	for(let i = 0; i < ids.length; i += BATCH_SIZE) {
-		batch.push(
+		chunks.push(
 			ids.slice(i, i + BATCH_SIZE)
 		);
 	}
-	return batch;
-};
-
-const prepareBatchedResults = batchedResults => {
-	let ret = {};
-	batchedResults.forEach(results => (ret = Object.assign(ret, results)));
-	return ret;
+	return chunks;
 };
 
 const list = ({fields = [], __limit} = {}) => {
@@ -145,7 +202,7 @@ const list = ({fields = [], __limit} = {}) => {
 	.then(results => results.data || []);
 };
 
-const getBatch = ({type = 'article', ids = [], fields = []} = {}) => {
+const getIds = ({type = 'article', ids = [], fields = []} = {}) => {
 	if(!ids.length) {
 		return Promise.reject(Error('Missing required parameter [ids]'));
 	}
@@ -171,7 +228,7 @@ const get = ({type = 'article', id = null, fields = []}) => {
 		return Promise.reject(Error('Missing required parameter [id]'));
 	}
 
-	return getBatch({
+	return getIds({
 		type,
 		ids: [id],
 		fields,
@@ -179,17 +236,26 @@ const get = ({type = 'article', id = null, fields = []}) => {
 	.then(result => result[id]);
 };
 
-const many = ({ids, type, fields}, fn) => Promise.all(
-	batchIds(ids)
-	.map(idsBatch => fn({
-		ids: idsBatch,
+const many = ({ids, type, fields}, fn, returnType) => Promise.all(
+	chunkIdList(ids)
+	.map(chunkedIds => fn({
+		ids: chunkedIds,
 		type,
 		fields,
 	}))
 )
-.then(prepareBatchedResults);
+.then(chunkedResults => {
+	switch(returnType) {
+		case 'array':
+			return chunkedResults.reduce((previous, current) => previous.concat(current), []);
+		case 'object':
+			return chunkedResults.reduce((previous, current) => Object.assign(previous, current), {});
+		default:
+			throw Error(`unrecognised returnType ${returnType}`);
+	}
+});
 
-const getMany = args => many(args, getBatch);
+const getMany = args => many(args, getIds, 'object');
 
 const introspect = ({id = null} = {}) => {
 	if(!id) {
@@ -273,16 +339,12 @@ const post = ({uuid, html, published = false, wait = false} = {}) => {
 	});
 };
 
-const findBatch = ({type = 'article', ids = [], fields = []} = {}) => {
+const findbyCanonical = ({ids = [], fields = []} = {}) => {
 	if(!ids.length) {
 		return Promise.reject(Error('Missing required parameter [ids]'));
 	}
 
-	if(!type || !defaultFields[type]) {
-		return Promise.reject(Error(`Missing or invalid type parameter: [${type}]`));
-	}
-
-	fields = fields.length ? fields : defaultFields[type];
+	fields = fields.length ? fields : defaultFields.article;
 
 	const key = (mode === 'production') ? 'instant_article' : 'development_instant_article';
 
@@ -309,7 +371,7 @@ const find = ({canonical = null, fields = []}) => {
 		return Promise.reject(Error('Missing required parameter [canonical]'));
 	}
 
-	return findBatch({
+	return findbyCanonical({
 		type: 'article',
 		ids: [canonical],
 		fields,
@@ -317,7 +379,7 @@ const find = ({canonical = null, fields = []}) => {
 	.then(result => result[canonical]);
 };
 
-const findMany = args => many(args, findBatch);
+const findMany = args => many(args, findbyCanonical, 'object');
 
 const del = ({canonical = null} = {}) => {
 	if(!canonical) {
@@ -338,6 +400,7 @@ const wipe = () => list({fields: ['id']})
 
 module.exports = {
 	list,
+	many,
 	get,
 	getMany,
 	introspect,

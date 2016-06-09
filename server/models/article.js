@@ -101,6 +101,9 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
 
+const resolveUrl = url => fetch(url)
+.then(res => res.url);
+
 // Follow redirects first
 const deriveCanonical = key => {
 	let uuid = extractUuid(key);
@@ -108,9 +111,9 @@ const deriveCanonical = key => {
 		return ftApi.getCanonicalFromUuid(uuid);
 	}
 
-	return fetch(key)
-	.then(res => {
-		uuid = extractUuid(res.url);
+	return resolveUrl(key)
+	.then(resolved => {
+		uuid = extractUuid(resolved);
 		if(uuid) {
 			return ftApi.getCanonicalFromUuid(uuid);
 		}
@@ -287,5 +290,6 @@ module.exports = {
 	clearCache,
 	setImportStatus,
 	getCanonical,
+	resolveUrl,
 	removeFromFacebook,
 };

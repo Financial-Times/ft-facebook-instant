@@ -6,5 +6,10 @@
 		"scripts",
 		"tests",
 		"build"
-	]
+	],
+	"events": {
+		"start": "which osascript > /dev/null && osascript -e 'display notification \"App started\" with title \"nodemon\"'",
+		"restart": "which osascript > /dev/null && osascript -e 'display notification \"App restarted\" with title \"nodemon\"'",
+		"crash": "which osascript > /dev/null && osascript -e 'display notification \"App crashed\" with title \"nodemon\"'"
+	}
 }

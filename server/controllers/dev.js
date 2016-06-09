@@ -3,8 +3,10 @@
 const database = require('../lib/database');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
+const s3 = require('../lib/s3');
 const articleModel = require('../models/article');
 const accessTokens = require('../lib/accessTokens');
+const insights = require('../lib/insights');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
 .filter(name => (name.indexOf('s3o') === -1)) // Don't clear S3O cookies!
@@ -134,6 +136,48 @@ module.exports = (req, res, next) => {
 		case 'purgeCanonical':
 			return database.purgeCanonical('http://www.ft.com/cms/s/2/440824a6-bd30-11e5-9fdb-87b8d15baec2.html')
 				.then(result => res.json({result}));
+		case 'setInsight':
+			return database.setInsight(1462802400000, {a: '123'})
+				.then(result => res.json({result}));
+		case 'getLastInsight':
+			return database.getLastInsight()
+				.then(result => res.json({result}));
+		case 'wipeLastInsight':
+			return database.wipeLastInsight()
+				.then(result => res.json({result}));
+		case 'uploadS3':
+			return s3.upload('./george-test-123.txt', 'george-test-123.txt')
+				.then(result => res.json({result}))
+				.catch(next);
+		case 'downloadS3':
+			return s3.download('facebookinstantinsights-14954213-20160526080000.txt', './s3-download.csv')
+				.then(result => res.json({result}))
+				.catch(next);
+		case 'listS3':
+			return s3.list()
+				.then(result => res.json({result}))
+				.catch(next);
+		case 'insights':
+			return insights.fetch()
+			.then(() => {
+				res.send('done');
+			});
+		case 'updateImports':
+			return database.list()
+			.then(articles => Promise.resolve(
+				articles.map(article => {
+					let updated = false;
+					article.import_meta.forEach(meta => {
+						if(meta.published === 'false') {
+							updated = true;
+							meta.published = false;
+						}
+					});
+					return updated ? database.set(article) : Promise.resolve();
+				})
+			))
+			.then(() => res.json({done: true}))
+			.catch(next);
 		default:
 			res.sendStatus(404);
 			break;

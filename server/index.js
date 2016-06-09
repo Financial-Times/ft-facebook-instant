@@ -23,6 +23,7 @@ const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
 const articleController = require('./controllers/article');
 const notificationsController = require('./controllers/notifications');
+const insightsController = require('./controllers/insights');
 const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
 
@@ -57,6 +58,12 @@ assertEnv([
 	'BRIGHTCOVE_ACCOUNT_ID',
 	'SPOOR_API_KEY',
 	'SEGMENT_ID',
+	'S3_ACCESS_KEY_ID',
+	'S3_SECRET_ACCESS_KEY',
+	'S3_REGION',
+	'S3_BUCKET',
+	'S3_REMOTE_PATH',
+	'ENABLE_INSIGHTS_FETCH',
 ]);
 
 if(app.get('env') !== 'development') {
@@ -67,6 +74,7 @@ if(app.get('env') !== 'development') {
 		next();
 	});
 }
+
 
 /* Middleware */
 
@@ -156,6 +164,12 @@ app.use(notFoundHandler);
 
 
 /* Start */
+if(process.env.ENABLE_INSIGHTS_FETCH === 'true') {
+	console.log(`${Date()}: ENABLE_INSIGHTS_FETCH flag is set. Initialising insightsController`);
+	insightsController.init();
+} else {
+	console.log(`${Date()}: ENABLE_INSIGHTS_FETCH flag is not set. Will not initialise insightsController`);
+}
 
 if(process.env.DISABLE_NOTIFICATIONS) {
 	console.log(`${Date()}: DISABLE_NOTIFICATIONS flag prevented notificationsController initialisation`);

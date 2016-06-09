@@ -20,6 +20,12 @@
 		"SPOOR_API_KEY": {"required": true},
 		"SEGMENT_ID": {"required": true},
 		"SENTRY_DSN": {"required": true},
+		"S3_ACCESS_KEY_ID": {"required": true},
+		"S3_SECRET_ACCESS_KEY": {"required": true},
+		"S3_REGION": {"required": true},
+		"S3_BUCKET": {"required": true},
+		"S3_REMOTE_PATH": {"required": true},
+		"ENABLE_INSIGHTS_FETCH": {"required": true},
 		"LIGHT_SIGNUP_URL": {"required": true},
 		"ENABLE_LIGHT_SIGNUP": {"required": true}
 	},
