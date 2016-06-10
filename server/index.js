@@ -100,7 +100,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 /*  Routes */
 
-app.route('^/$').get(noCache).get(handlebars.exposeTemplates, indexController);
+app.route('/:all(all)?').get(noCache).get(handlebars.exposeTemplates, indexController);
 
 app.route('^/article/:url$').get(noCache).get(handlebars.exposeTemplates).get(articleController);
 
