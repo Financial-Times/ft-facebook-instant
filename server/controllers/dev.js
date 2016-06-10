@@ -7,6 +7,8 @@ const s3 = require('../lib/s3');
 const articleModel = require('../models/article');
 const accessTokens = require('../lib/accessTokens');
 const insights = require('../lib/insights');
+const retry = require('../lib/retry');
+const fetch = require('node-fetch');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
 .filter(name => (name.indexOf('s3o') === -1)) // Don't clear S3O cookies!
@@ -16,6 +18,28 @@ const clearCookies = (req, res) => Object.keys(req.cookies)
 	});
 	return name;
 });
+
+const fetchUrl = url => {
+	console.log(`Fetching URL ${url}`);
+	return fetch(url, {timeout: 2000})
+		.catch(e => {
+			if(e.message.indexOf('timeout') > -1) {
+				throw new retry.RetryableException(e);
+			}
+			throw e;
+		});
+};
+
+const retryTest = () => {
+	let iteration = 0;
+
+	return retry(() => {
+		iteration++;
+		if(Math.random() > 0.9) return fetchUrl('http://invalid.928374n298374n928374928734j.com');
+		if(Math.random() > 0.2) return fetchUrl('http://fake-response.appspot.com/?sleep=5');
+		return fetchUrl('http://fake-response.appspot.com/?sleep=0');
+	}, 3);
+};
 
 module.exports = (req, res, next) => {
 	switch(req.params.action) {
@@ -177,6 +201,15 @@ module.exports = (req, res, next) => {
 				})
 			))
 			.then(() => res.json({done: true}))
+			.catch(next);
+		case 'retry':
+			return retryTest()
+			.then(() => res.send('Retry passed'))
+			.catch(next);
+		case 'retryFetch':
+			// 1150 timeout is close to 1-second sleep: sometimes passes, sometimes fails
+			return retry.fetch('http://fake-response.appspot.com/?sleep=1', {timeout: 1150})
+			.then(() => res.send('Retry passed'))
 			.catch(next);
 		default:
 			res.sendStatus(404);
