@@ -5,6 +5,7 @@ const fns = [
 	require('./getStoryPackage'),
 	require('./getMoreOns'),
 ];
+const addSegmentId = require('../segmentId');
 
 const getRelatedArticles = async article => {
 	const articles = new Set();
@@ -18,7 +19,9 @@ const getRelatedArticles = async article => {
 		if(articles.size >= 3) break;
 	}
 
-	return Array.from(articles).slice(0, 3);
+	return Array.from(articles)
+		.slice(0, 3)
+		.map(addSegmentId);
 };
 
 module.exports = getRelatedArticles;
