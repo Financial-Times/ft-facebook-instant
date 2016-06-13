@@ -784,9 +784,10 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 					console.log(`Warning: last run was ${age} hours ago (should be run every hour).`);
 					if(mode === 'production') {
 						ravenClient.captureMessage('Last insights import > 1 hour', {
+							level: 'info',
 							extra: {
 								lastRunAge: `${age} hours`,
-								lastRun: lastRun.format(),
+								lastRun: moment.utc(lastRun.timestamp).format(),
 								now: now.format(),
 							},
 							tags: {from: 'insights'},
