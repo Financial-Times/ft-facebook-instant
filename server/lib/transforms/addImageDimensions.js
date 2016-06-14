@@ -1,21 +1,24 @@
 'use strict';
 
-const fetch = require('node-fetch');
+const retry = require('../retry');
 const fetchres = require('fetchres');
-const statusCodes = require('http').STATUS_CODES;
 const ravenClient = require('../raven');
 const mode = require('../mode').get();
 
 function getWidthAndRatio(metaUrl, options) {
-	return fetch(metaUrl)
-		.then(fetchres.json)
+	return retry.fetch(metaUrl)
 		.catch(err => {
-			if(fetchres.originatedError(err)) {
-				return Promise.reject(`Failed to get image metadata for ${metaUrl}. ${err.message}: ${statusCodes[err.message]}`);
+			if(mode === 'production') {
+				ravenClient.captureException(err, {
+					tags: {
+						from: 'getWidthAndRatio',
+					},
+					extra: {metaUrl},
+				});
 			}
-
-			return Promise.reject(err);
+			throw err;
 		})
+		.then(fetchres.json)
 		.then(
 			meta => Object.assign(meta, {ratio: meta.height / meta.width}),
 			(e) => {
