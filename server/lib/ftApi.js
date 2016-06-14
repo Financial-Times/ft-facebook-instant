@@ -1,6 +1,6 @@
 'use strict';
 
-const nodeFetch = require('node-fetch');
+const retry = require('./retry');
 const signedFetch = require('signed-aws-es-fetch');
 const fetchres = require('fetchres');
 const uuidRegex = require('./uuid');
@@ -81,7 +81,7 @@ const verifyCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${
 })
 .catch(() => Promise.reject(new FtApiContentMissingException(`Key [${canonical}] is not a valid canonical URL`)));
 
-const updateEsRegion = (region, uuid) => nodeFetch(
+const updateEsRegion = (region, uuid) => retry.fetch(
 	`https://ft-next-es-interface-${region}.herokuapp.com/api/item?apiKey=${process.env.ES_INTERFACE_API_KEY}`,
 	{
 		method: 'PUT',
@@ -89,13 +89,18 @@ const updateEsRegion = (region, uuid) => nodeFetch(
 			'Content-Type': 'application/json',
 		},
 		body: JSON.stringify({id: uuid}),
+		errorFrom: 'FtApi.updateEsRegion',
+		errorExtra: {region, uuid},
 	}
 )
 .then(fetchres.json);
 
 const updateEs = uuid => Promise.all(['eu', 'us'].map(region => updateEsRegion(region, uuid)));
 
-const fetchAsset = uuid => nodeFetch(`https://api.ft.com/content/items/v1/${uuid}?apiKey=${process.env.API_V1_KEY}`)
+const fetchAsset = uuid => retry.fetch(
+	`https://api.ft.com/content/items/v1/${uuid}?apiKey=${process.env.API_V1_KEY}`,
+	{errorFrom: 'FtApi.fetchAsset', errorExtra: {uuid}}
+)
 .then(fetchres.json)
 .catch(() => Promise.reject(new FtApiContentMissingException(`Asset [${uuid}] is not in Elastic Search`)));
 
