@@ -2,6 +2,7 @@
 
 const util = require('util');
 const nodeFetch = require('node-fetch');
+const signedFetch = require('signed-aws-es-fetch');
 const DEFAULT_ITERATIONS = 3;
 const mode = require('./mode').get();
 const ravenClient = require('./raven');
@@ -37,14 +38,16 @@ function retry(f, maxIterations = DEFAULT_ITERATIONS, iteration = 0) {
 const fetch = (url, options = {}) => {
 	const maxIterations = options.retry || DEFAULT_ITERATIONS;
 	const from = options.errorFrom || 'unknown';
-	const extra = Object.assign({maxIterations}, options.errorExtra || {});
+	const extra = options.errorExtra || {};
+	const fn = options.signedAws ? signedFetch : nodeFetch;
 
 	delete options.retry;
 	delete options.errorFrom;
 	delete options.errorExtra;
+	delete options.signedAws;
 
 	return retry(
-		() => nodeFetch(url, options)
+		() => fn(url, options)
 			.catch(e => {
 				if(e.message.indexOf('timeout') > -1) {
 					throw new RetryableException(e);
@@ -59,7 +62,7 @@ const fetch = (url, options = {}) => {
 				tags: {
 					from,
 				},
-				extra,
+				extra: Object.assign({maxIterations, url, options}, extra),
 			});
 		}
 		throw e;
