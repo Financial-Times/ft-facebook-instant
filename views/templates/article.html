@@ -33,7 +33,31 @@
 			{{/if}}
 
 			{{#if cookieChecker}}
-				<p>Dev-only cookie checker (not shown in live). <a href="http://facebookinstant.ft.com/dev/showCookies">List all cookies</a>. <a href="http://facebookinstant.ft.com/dev/clearCookies">Clear all cookies</a></p>
+			<figure class="op-interactive">
+				<iframe width="320" height="320">
+					<style>
+						body {
+							font-size: 20px;
+							background-color: lightblue;
+						}
+					</style>
+					<p>Dev-only cookie checker (not shown in live). <a href="http://facebookinstant.ft.com/dev/showCookies">List all cookies</a>. <a href="http://facebookinstant.ft.com/dev/clearCookies">Clear all cookies</a></p>
+					<pre class="cookies" style="white-space: nowrap;"></pre>
+					<script>
+						var cookies = document.cookie.split(';');
+						var mapped = cookies.map(function(cookie) {
+							return {
+								key: cookie.slice(0, cookie.indexOf('=')),
+								val: cookie.slice(cookie.indexOf('=') + 1),
+							};
+						});
+						document.querySelector('.cookies').innerHTML = mapped.map(function(cookie) {
+							return '<strong>' + cookie.key + '</strong>: ' + cookie.val;
+						})
+						.join('<br />');
+					</script>
+				</iframe>
+			</figure>
 			{{/if}}
 
 			{{{body}}}
