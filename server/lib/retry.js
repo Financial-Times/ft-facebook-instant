@@ -37,7 +37,7 @@ function retry(f, maxIterations = DEFAULT_ITERATIONS, iteration = 0) {
 const fetch = (url, options = {}) => {
 	const maxIterations = options.retry || DEFAULT_ITERATIONS;
 	const from = options.errorFrom || 'unknown';
-	const extra = options.errorExtra || {};
+	const extra = Object.assign({maxIterations}, options.errorExtra || {});
 
 	delete options.retry;
 	delete options.errorFrom;
