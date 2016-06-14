@@ -6,18 +6,7 @@ const ravenClient = require('../raven');
 const mode = require('../mode').get();
 
 function getWidthAndRatio(metaUrl, options) {
-	return retry.fetch(metaUrl)
-		.catch(err => {
-			if(mode === 'production') {
-				ravenClient.captureException(err, {
-					tags: {
-						from: 'getWidthAndRatio',
-					},
-					extra: {metaUrl},
-				});
-			}
-			throw err;
-		})
+	return retry.fetch(metaUrl, {errorFrom: 'getWidthAndRatio', errorExtra: {metaUrl}})
 		.then(fetchres.json)
 		.then(
 			meta => Object.assign(meta, {ratio: meta.height / meta.width}),

@@ -3,6 +3,8 @@
 const util = require('util');
 const nodeFetch = require('node-fetch');
 const DEFAULT_ITERATIONS = 3;
+const mode = require('./mode').get();
+const ravenClient = require('./raven');
 
 function RetryableException(actualException) {
 	this.message = actualException.message;
@@ -34,15 +36,34 @@ function retry(f, maxIterations = DEFAULT_ITERATIONS, iteration = 0) {
 
 const fetch = (url, options = {}) => {
 	const maxIterations = options.retry || DEFAULT_ITERATIONS;
-	delete options.retry;
+	const from = options.errorFrom || 'unknown';
+	const extra = options.errorExtra || {};
 
-	return retry(() => nodeFetch(url, options)
+	delete options.retry;
+	delete options.errorFrom;
+	delete options.errorExtra;
+
+	return retry(
+		() => nodeFetch(url, options)
+			.catch(e => {
+				if(e.message.indexOf('timeout') > -1) {
+					throw new RetryableException(e);
+				}
+				throw e;
+			}),
+		maxIterations
+	)
 	.catch(e => {
-		if(e.message.indexOf('timeout') > -1) {
-			throw new RetryableException(e);
+		if(mode === 'production') {
+			ravenClient.captureException(e, {
+				tags: {
+					from,
+				},
+				extra,
+			});
 		}
 		throw e;
-	}), maxIterations);
+	});
 };
 
 module.exports = (fn, maxIterations) => retry(fn, maxIterations);

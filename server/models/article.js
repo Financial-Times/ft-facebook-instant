@@ -5,7 +5,6 @@ const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 const {version} = require('../../package.json');
-const ravenClient = require('../lib/raven');
 const retry = require('../lib/retry');
 
 const mode = require('../lib/mode').get();
@@ -102,18 +101,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
 
-const resolveUrl = url => retry.fetch(url)
-.catch(e => {
-	if(mode === 'production') {
-		ravenClient.captureException(e, {
-			tags: {
-				from: 'articles.resolveUrl',
-			},
-			extra: {url},
-		});
-	}
-	throw e;
-})
+const resolveUrl = url => retry.fetch(url, {errorFrom: 'articles.resolveUrl', errorExtra: {url}})
 .then(res => res.url);
 
 // Follow redirects first
