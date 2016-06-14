@@ -87,7 +87,7 @@ module.exports = article => {
 			title: getTitle(article.apiRecord, warnings),
 			subtitle: getSubtitle(article.apiRecord, warnings),
 			authors: getAuthors(article.apiRecord, warnings),
-			cookieChecker: false,
+			cookieChecker: (process.env.NODE_ENV !== 'production'),
 			relatedArticles,
 			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
 			lightSignupProduct: 'Facebook Instant',
