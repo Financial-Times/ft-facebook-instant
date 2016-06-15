@@ -5,7 +5,6 @@ const Facebook = require('fb');
 const api = denodeify(Facebook.napi);
 const fetchres = require('fetchres');
 const retry = require('./retry');
-const ravenClient = require('./raven');
 
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
