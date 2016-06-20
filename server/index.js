@@ -42,6 +42,7 @@ const notificationsController = require('./controllers/notifications');
 const insightsController = require('./controllers/insights');
 const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
+const abController = require('./controllers/fbPosts');
 
 const port = process.env.PORT || 6247;
 
@@ -188,6 +189,13 @@ if(process.env.DISABLE_REPUBLISH) {
 	console.log(`${Date()}: DISABLE_REPUBLISH flag prevented republishController initialisation`);
 } else if(app.get('env') !== 'production') {
 	republishController();
+}
+
+if(process.env.INSTANT_AB === 'true') {
+	console.log(`${Date()}: INSTANT_AB flag is set. Initialising abController`);
+	abController();
+} else {
+	console.log(`${Date()}: INSTANT_AB flag is not set. Will not initialise abController`);
 }
 
 app.listen(port, () => console.log(`${Date()}: Up and running on port ${port} in ${mode} mode.`));

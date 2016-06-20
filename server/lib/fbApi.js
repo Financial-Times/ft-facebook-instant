@@ -458,6 +458,18 @@ const del = ({canonical = null} = {}) => {
 const wipe = () => list({fields: ['id']})
 .then(items => Promise.all(items.map(item => del({id: item.id}))));
 
+const links = ({since} = {}) => call(
+	`/${pageId}/posts`,
+	'GET',
+	{
+		since: since && since.getTime(),
+		fields: ['link', 'type'].join(','),
+	}
+).then(({data: posts}) => getIds({
+	ids: posts.filter(({type}) => type === 'link').map(({link}) => link),
+	fields: ['og_object'],
+})).then(obj => Object.keys(obj).map(key => obj[key].og_object));
+
 module.exports = {
 	list,
 	many,
@@ -470,4 +482,5 @@ module.exports = {
 	findMany,
 	wipe,
 	call,
+	links,
 };
