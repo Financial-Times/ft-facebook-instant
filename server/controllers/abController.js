@@ -7,39 +7,25 @@ const transform = require('../lib/transform');
 const articleModel = require('../models/article');
 const postModel = require('../models/post');
 
-const collectDupes = xs => xs.reduce((status, x) => {
-	if(status.seen.has(x)) {
-		status.seen.delete(x);
-		status.dupes.add(x);
-	} else {
-		status.seen.add(x);
-	}
-
-	return status;
-}, {seen: new Set(), dupes: new Set()});
-
 module.exports = async function abController() {
 	const since = await db.getLastABCheck();
 	await db.setLastABCheck(Date.now()); // set this as soon as possible because this might take a while
 	const posts = since ? (await fbApi.posts({since})) : []; // don't convert any posts on first ever run
 
-	const newPosts = await filterPromise(posts, async function(post) {
-		if(await postModel.get(post)) {
+	const newPosts = await posts.reduce(async function(newPosts, post) {
+		// remove new posts that are already in the AB test *or* are in the current batch multiple times
+		// (except not actually remove, but mark as removed so future runs can see them)
+		if(await postModel.get(post) || newPosts.has(post)) {
 			await postModel.markRemoved(post);
-			return false;
+			newPosts.delete(post);
+		} else {
+			newPosts.add(post);
 		}
 
-		return true;
-	});
+		return newPosts;
+	}, new Set());
 
-	const {seen, dupes} = collectDupes(newPosts);
-	const nonDupePosts = Array.from(seen);
-
-	for(const dupePost of dupes) {
-		await postModel.markRemoved(dupePost);
-	}
-
-	const articles = await Promise.all(nonDupePosts.map(articleModel.get));
+	const articles = await Promise.all(newPosts.map(articleModel.get));
 
 	const renderableArticles = await filterPromise(articles, async function(article) {
 		try {
