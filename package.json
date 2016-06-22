@@ -28,6 +28,7 @@
     "@georgecrawford/raven-express-context-errorhandler": "^1.3.0",
     "@quarterto/assert-env": "^1.1.0",
     "@quarterto/enforce-node-version": "^1.1.0",
+    "@quarterto/filter-promise": "^1.0.0",
     "@quarterto/heroku-version-infer": "^3.2.3",
     "@quarterto/package-version-github-release": "^1.0.0",
     "@quarterto/package-version-jira-release": "^1.1.0",

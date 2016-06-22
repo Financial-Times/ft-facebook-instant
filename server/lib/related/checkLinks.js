@@ -1,11 +1,11 @@
 'use strict';
 
 const fbApi = require('../fbApi');
-const articleModel = require('../../models/article');
+const getCanonical = require('../../models/canonical');
 
 const checkLinks = hrefs => Promise.all(
 	hrefs.map(href =>
-		articleModel.getCanonical(href)
+		getCanonical(href)
 			.catch(() => href)
 	)
 )

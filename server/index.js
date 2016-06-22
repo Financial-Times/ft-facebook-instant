@@ -42,7 +42,7 @@ const notificationsController = require('./controllers/notifications');
 const insightsController = require('./controllers/insights');
 const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
-const abController = require('./controllers/fbPosts');
+const abController = require('./controllers/abController');
 
 const port = process.env.PORT || 6247;
 

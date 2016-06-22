@@ -5,7 +5,7 @@
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
-const uuidRegex = require('../lib/uuid');
+const getCanonical = require('./canonical');
 const {version} = require('../../package.json');
 const retry = require('../lib/retry');
 const RichError = require('../lib/richError');
@@ -28,7 +28,6 @@ const setDb = apiRecord => database.set({
 .then(() => database.get(apiRecord.webUrl));
 
 const updateDb = article => database.set({
-	canonical: article.canonical,
 	uuid: article.uuid,
 	title: article.apiRecord ? article.apiRecord.title : article.title,
 	date_editorially_published: article.apiRecord ? new Date(article.apiRecord.publishedDate).getTime() : article.date_editorially_published,
@@ -102,46 +101,6 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 	return updateDb(article)
 		.then(() => article);
 };
-
-const extractUuid = string => (uuidRegex.exec(string) || [])[0];
-
-const resolveUrl = url => retry.fetch(url, {errorFrom: 'articles.resolveUrl', errorExtra: {url}})
-.then(res => res.url);
-
-const isAbsoluteUrl = url => /^(?:\w+:)\/\//.test(url);
-
-// Follow redirects first
-const deriveCanonical = key => {
-	let uuid = extractUuid(key);
-	if(uuid) {
-		return ftApi.getCanonicalFromUuid(uuid);
-	}
-
-	if(isAbsoluteUrl(key)) {
-		return resolveUrl(key)
-		.then(resolved => {
-			uuid = extractUuid(resolved);
-			if(uuid) {
-				return ftApi.getCanonicalFromUuid(uuid);
-			}
-			return ftApi.verifyCanonical(key);
-		});
-	}
-
-	throw new RichError('Can\'t derive canonical URL from string', {
-		extra: {key},
-	});
-};
-
-const getCanonical = key => database.getCanonical(key)
-.then(cached => {
-	if(cached) {
-		return cached;
-	}
-
-	return deriveCanonical(key)
-		.then(canonical => database.setCanonical(key, canonical));
-});
 
 const getFbImportsForLookup = ({databaseRecord, fbRecords}) => {
 	const imports = databaseRecord.import_meta
@@ -312,7 +271,5 @@ module.exports = {
 	update,
 	clearCache,
 	setImportStatus,
-	getCanonical,
-	resolveUrl,
 	removeFromFacebook,
 };

@@ -14,6 +14,8 @@ const types = {
 	date_record_updated: 'integer',
 	import_meta: 'json',
 	notifications_last_poll: 'integer',
+	ab_last_poll: 'integer',
+	linkpost: 'json',
 };
 
 const format = (type, val) => {
@@ -135,6 +137,11 @@ const setLastNotificationCheck = timestamp => client.setAsync('notifications:las
 const getLastNotificationCheck = () => client.getAsync('notifications:last_poll')
 .then(timestamp => format(types.notifications_last_poll, timestamp));
 
+const setLastABCheck = timestamp => client.setAsync('ab:last_poll', timestamp);
+
+const getLastABCheck = () => client.getAsync('ab:last_poll')
+.then(timestamp => format(types.ab_last_poll, timestamp));
+
 const setCanonical = (key, canonical) => client.multi()
 .set(`canonical_map:${key}`, canonical)
 .sadd(`canonical_keys:${canonical}`, key)
@@ -175,6 +182,9 @@ const setLastInsight = (timestamp, data) => client.setAsync('lastinsight', JSON.
 const getLastInsight = () => client.getAsync('lastinsight')
 .then(insight => insight && JSON.parse(insight) || null);
 
+const getFBLinkPost = url => client.getAsync(`linkpost:${url}`).then(post => format(types.linkpost, post));
+const setFBLinkPost = (url, data) => client.setAsync(`linkpost:${url}`, JSON.stringify(data));
+
 module.exports = {
 	get(canonicals) {
 		if(Array.isArray(canonicals)) {
@@ -188,6 +198,8 @@ module.exports = {
 	wipe,
 	setLastNotificationCheck,
 	getLastNotificationCheck,
+	setLastABCheck,
+	getLastABCheck,
 	getCanonical,
 	setCanonical,
 	purgeCanonical,
@@ -197,4 +209,6 @@ module.exports = {
 	setLastInsight,
 	getLastInsight,
 	wipeLastInsight,
+	getFBLinkPost,
+	setFBLinkPost,
 };
