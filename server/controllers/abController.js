@@ -16,7 +16,7 @@ module.exports = async function abController() {
 		return; // don't convert any posts on first ever run
 	}
 
-	const newPosts = await posts.reduce(async function(seen, post) {
+	const newPosts = await posts.reduce(async function markDupe(seen, post) {
 		// remove new posts that are already in the AB test *or* are in the current batch multiple times
 		// (except not actually remove, but mark as removed so future runs can see them)
 		if(await postModel.get(post) || seen.has(post)) {
@@ -31,7 +31,7 @@ module.exports = async function abController() {
 
 	const articles = await Promise.all(newPosts.map(articleModel.get));
 
-	const renderableArticles = await filterPromise(articles, async function(article) {
+	const renderableArticles = await filterPromise(articles, async function isArticleRenderable(article) {
 		try {
 			article.rendered = await transform(article);
 			return true;
