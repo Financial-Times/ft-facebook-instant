@@ -16,14 +16,14 @@ module.exports = async function abController() {
 		return; // don't convert any posts on first ever run
 	}
 
-	const newPosts = await posts.reduce(async function(newPosts, post) {
+	const newPosts = await posts.reduce(async function(seen, post) {
 		// remove new posts that are already in the AB test *or* are in the current batch multiple times
 		// (except not actually remove, but mark as removed so future runs can see them)
-		if(await postModel.get(post) || newPosts.has(post)) {
+		if(await postModel.get(post) || seen.has(post)) {
 			await postModel.markRemoved(post);
-			newPosts.delete(post);
+			seen.delete(post);
 		} else {
-			newPosts.add(post);
+			seen.add(post);
 		}
 
 		return newPosts;
