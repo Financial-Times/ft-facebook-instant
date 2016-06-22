@@ -7,6 +7,17 @@ const transform = require('../lib/transform');
 const articleModel = require('../models/article');
 const postModel = require('../models/post');
 
+const collectDupes = xs => xs.reduce((status, x) => {
+	if(status.seen.has(x)) {
+		status.seen.delete(x);
+		status.dupes.add(x);
+	} else {
+		status.seen.add(x);
+	}
+
+	return status;
+}, {seen: new Set(), dupes: new Set()});
+
 module.exports = async function abController() {
 	const since = await db.getLastABCheck();
 	await db.setLastABCheck(Date.now()); // set this as soon as possible because this might take a while
@@ -21,14 +32,20 @@ module.exports = async function abController() {
 		return true;
 	});
 
-	const articles = await Promise.all(newPosts.map(articleModel.get));
+	const {seen, dupes} = collectDupes(newPosts);
+	const nonDupePosts = Array.from(seen);
+
+	for(const dupePost of dupes) {
+		await postModel.markRemoved(dupePost);
+	}
+
+	const articles = await Promise.all(nonDupePosts.map(articleModel.get));
 
 	const renderableArticles = await filterPromise(articles, async function(article) {
 		try {
 			article.rendered = await transform(article);
 			return true;
 		} catch(e) {
-			console.log(e);
 			return false;
 		}
 	});
