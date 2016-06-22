@@ -10,7 +10,11 @@ const postModel = require('../models/post');
 module.exports = async function abController() {
 	const since = await db.getLastABCheck();
 	await db.setLastABCheck(Date.now()); // set this as soon as possible because this might take a while
-	const posts = since ? (await fbApi.posts({since})) : []; // don't convert any posts on first ever run
+	const posts = since ? (await fbApi.posts({since})) : [];
+
+	if(!posts.length) {
+		return; // don't convert any posts on first ever run
+	}
 
 	const newPosts = await posts.reduce(async function(newPosts, post) {
 		// remove new posts that are already in the AB test *or* are in the current batch multiple times
