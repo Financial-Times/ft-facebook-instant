@@ -329,10 +329,10 @@ const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_objec
 
 const createCanonicalsQuery = () => {
 	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
-		// The importer script went live at 2016-06-09T10:00 (1465466400), and didn't know
+		// The importer script went live at 2016-06-09 (1465430400), and didn't know
 		// about posts published before then. Limit historic data to this cut-off, in case
 		// a pre-existing IA is re-promoted with a new post.
-		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1465466400).until(now).as(metrics_${key})`
+		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1465430400).until(now).as(metrics_${key})`
 	);
 	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
