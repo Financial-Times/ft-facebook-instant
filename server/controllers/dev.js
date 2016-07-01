@@ -9,6 +9,7 @@ const accessTokens = require('../lib/accessTokens');
 const insights = require('../lib/insights');
 const retry = require('../lib/retry');
 const fetch = require('node-fetch');
+const insightsMckinley = require('../lib/insights-mckinley');
 
 const clearCookies = (req, res) => Object.keys(req.cookies)
 .filter(name => (name.indexOf('s3o') === -1)) // Don't clear S3O cookies!
@@ -185,6 +186,13 @@ module.exports = (req, res, next) => {
 			return insights.fetch()
 			.then(() => {
 				res.send('done');
+			});
+		case 'insightsMckinley':
+			return insightsMckinley.fetch()
+			.then(csv => {
+				res.charset = 'utf-8';
+				res.header('Content-Type', 'text/csv');
+				res.send(csv);
 			});
 		case 'updateImports':
 			return database.list()
