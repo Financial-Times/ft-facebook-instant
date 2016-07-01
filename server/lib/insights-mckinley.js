@@ -173,7 +173,6 @@ const getPostIds = params => {
 
 const createPostsQuery = ids => {
 	const postEdgesQuery = postEdgeKeys.map(key => `${key}.limit(0).summary(true)`);
-	// const insightsQuery = `insights.metric(${Object.keys(insightsMetricsKeys).join(',')}){${insightsKeys.join(',')}}`;
 	const postAttributesQuery = postAttributeKeys.concat(postEdgesQuery).join(',');
 
 	const params = {
@@ -188,13 +187,6 @@ const createPostsQuery = ids => {
 const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_object{type,url}`;
 
 const createCanonicalsQuery = () => {
-	// const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
-	// 	// The importer script went live at 2016-06-09 (1465430400), and didn't know
-	// 	// about posts published before then. Limit historic data to this cut-off, in case
-	// 	// a pre-existing IA is re-promoted with a new post.
-	// 	`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1465430400).until(now).as(metrics_${key})`
-	// );
-	// const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.join(',')}}`;
 	const canonicalAttributesQuery = canonicalKeys.concat(iaQuery).join(',');
 
@@ -255,7 +247,6 @@ const getPostsData = ({ids}) => fbApi.many(
 
 module.exports.fetch = () => getPostIds({
 	since: 1463652000, // Last 6 weeks
-	// since: 1466952000,
 	until: 'now',
 })
 .then(ids => getPostsData({ids}))
@@ -284,17 +275,3 @@ module.exports.fetch = () => getPostIds({
 	console.log(`Insights import encountered an exception: ${e.stack || e}`);
 	throw e;
 });
-
-
-			// .then(posts => Promise.all(posts.map(flattenPost)))
-			// .then(posts => posts.map(validate))
-			// .then(posts =>
-			// 	getHistoricValues(lastRun, now, posts)
-			// 		.then(historic => writeCsv(now, historic))
-			// 		.then(({localPath, filename}) =>
-			// 			// CSV has been generated, so this run has been a success even if file couldn't be uploaded (which can be done another time)
-			// 			saveLastRun(now, posts)
-			// 			.then(() => upload && uploadCsv({localPath, filename}))
-			// 		)
-			// )
-			// .then(() => (importStart = null));
