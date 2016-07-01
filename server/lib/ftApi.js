@@ -11,7 +11,7 @@ const index = 'v3_api_v2';
 const fetchByUuid = uuid => retry.fetch(
 	`https://${elasticSearchUrl}/${index}/item/${uuid}`,
 	{
-		signed: true,
+		signedAws: true,
 		errorFrom: 'FtApi.fetchByUuid',
 		errorExtra: {uuid},
 	}
@@ -23,7 +23,7 @@ const fetchByUuid = uuid => retry.fetch(
 const fetchByCanonical = canonical => retry.fetch(
 	`https://${elasticSearchUrl}/${index}/_search`,
 	{
-		signed: true,
+		signedAws: true,
 		errorFrom: 'FtApi.fetchByCanonical',
 		errorExtra: {canonical},
 		method: 'POST',
@@ -54,7 +54,7 @@ const fetchByCanonical = canonical => retry.fetch(
 const getCanonicalFromUuid = uuid => retry.fetch(
 	`https://${elasticSearchUrl}/${index}/item/_search`,
 	{
-		signed: true,
+		signedAws: true,
 		errorFrom: 'FtApi.getCanonicalFromUuid',
 		errorExtra: {uuid},
 		method: 'POST',
@@ -81,7 +81,7 @@ const getCanonicalFromUuid = uuid => retry.fetch(
 const verifyCanonical = canonical => retry.fetch(
 	`https://${elasticSearchUrl}/${index}/_search`,
 	{
-		signed: true,
+		signedAws: true,
 		errorFrom: 'FtApi.verifyCanonical',
 		errorExtra: {canonical},
 		method: 'POST',
