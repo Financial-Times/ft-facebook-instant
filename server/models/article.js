@@ -1,11 +1,11 @@
 'use strict';
 
-const fetch = require('node-fetch');
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 const {version} = require('../../package.json');
+const retry = require('../lib/retry');
 
 const mode = require('../lib/mode').get();
 
@@ -101,7 +101,7 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
 
-const resolveUrl = url => fetch(url)
+const resolveUrl = url => retry.fetch(url, {errorFrom: 'articles.resolveUrl', errorExtra: {url}})
 .then(res => res.url);
 
 // Follow redirects first

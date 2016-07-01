@@ -3,8 +3,8 @@
 const denodeify = require('denodeify');
 const Facebook = require('fb');
 const api = denodeify(Facebook.napi);
-const nodeFetch = require('node-fetch');
 const fetchres = require('fetchres');
+const retry = require('./retry');
 
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
@@ -105,7 +105,7 @@ const handlePagedResult = (result, limit) => Promise.resolve()
 	// TODO: Why do these 'lifetime' results contain useless paging links? Is this a Graph API bug?
 	if(Array.isArray(result.data) && result.data[0].period === 'lifetime') return result;
 
-	return nodeFetch(result.paging.next)
+	return retry.fetch(result.paging.next, {errorFrom: 'FbApi.handlePagedResult', errorExtra: {result}})
 		.then(fetchres.json)
 		.then(nextResult => {
 			nextResult.data = result.data.concat(nextResult.data);

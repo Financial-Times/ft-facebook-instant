@@ -1,7 +1,6 @@
 'use strict';
 
-const nodeFetch = require('node-fetch');
-const signedFetch = require('signed-aws-es-fetch');
+const retry = require('./retry');
 const fetchres = require('fetchres');
 const uuidRegex = require('./uuid');
 const FtApiContentMissingException = require('./ftApi/contentMissingException');
@@ -9,21 +8,34 @@ const FtApiContentMissingException = require('./ftApi/contentMissingException');
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
 
-const fetchByUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${index}/item/${uuid}`)
+const fetchByUuid = uuid => retry.fetch(
+	`https://${elasticSearchUrl}/${index}/item/${uuid}`,
+	{
+		signed: true,
+		errorFrom: 'FtApi.fetchByUuid',
+		errorExtra: {uuid},
+	}
+)
 .then(fetchres.json)
 .then(json => json._source || Promise.reject(Error('not found')))
 .catch(() => Promise.reject(new FtApiContentMissingException(`UUID [${uuid}] is not in Elastic Search`)));
 
-const fetchByCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${index}/_search`, {
-	method: 'POST',
-	body: JSON.stringify({
-		query: {
-			match: {
-				'item.webUrl': canonical,
+const fetchByCanonical = canonical => retry.fetch(
+	`https://${elasticSearchUrl}/${index}/_search`,
+	{
+		signed: true,
+		errorFrom: 'FtApi.fetchByCanonical',
+		errorExtra: {canonical},
+		method: 'POST',
+		body: JSON.stringify({
+			query: {
+				match: {
+					'item.webUrl': canonical,
+				},
 			},
-		},
-	}),
-})
+		}),
+	}
+)
 .then(fetchres.json)
 .then(json => {
 	try{
@@ -39,17 +51,23 @@ const fetchByCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/$
 })
 .catch(() => Promise.reject(new FtApiContentMissingException(`Canonical URL [${canonical}] is not in Elastic Search`)));
 
-const getCanonicalFromUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${index}/item/_search`, {
-	method: 'POST',
-	body: JSON.stringify({
-		query: {
-			match: {
-				'item.id': uuid,
+const getCanonicalFromUuid = uuid => retry.fetch(
+	`https://${elasticSearchUrl}/${index}/item/_search`,
+	{
+		signed: true,
+		errorFrom: 'FtApi.getCanonicalFromUuid',
+		errorExtra: {uuid},
+		method: 'POST',
+		body: JSON.stringify({
+			query: {
+				match: {
+					'item.id': uuid,
+				},
 			},
-		},
-		_source: 'webUrl',
-	}),
-})
+			_source: 'webUrl',
+		}),
+	}
+)
 .then(fetchres.json)
 .then(json => {
 	try{
@@ -60,17 +78,23 @@ const getCanonicalFromUuid = uuid => signedFetch(`https://${elasticSearchUrl}/${
 })
 .catch(() => Promise.reject(new FtApiContentMissingException(`UUID [${uuid}] is not in Elastic Search`)));
 
-const verifyCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${index}/_search`, {
-	method: 'POST',
-	body: JSON.stringify({
-		query: {
-			match: {
-				'item.webUrl': canonical,
+const verifyCanonical = canonical => retry.fetch(
+	`https://${elasticSearchUrl}/${index}/_search`,
+	{
+		signed: true,
+		errorFrom: 'FtApi.verifyCanonical',
+		errorExtra: {canonical},
+		method: 'POST',
+		body: JSON.stringify({
+			query: {
+				match: {
+					'item.webUrl': canonical,
+				},
 			},
-		},
-		_source: 'webUrl',
-	}),
-})
+			_source: 'webUrl',
+		}),
+	}
+)
 .then(fetchres.json)
 .then(json => {
 	try{
@@ -81,7 +105,7 @@ const verifyCanonical = canonical => signedFetch(`https://${elasticSearchUrl}/${
 })
 .catch(() => Promise.reject(new FtApiContentMissingException(`Key [${canonical}] is not a valid canonical URL`)));
 
-const updateEsRegion = (region, uuid) => nodeFetch(
+const updateEsRegion = (region, uuid) => retry.fetch(
 	`https://ft-next-es-interface-${region}.herokuapp.com/api/item?apiKey=${process.env.ES_INTERFACE_API_KEY}`,
 	{
 		method: 'PUT',
@@ -89,13 +113,18 @@ const updateEsRegion = (region, uuid) => nodeFetch(
 			'Content-Type': 'application/json',
 		},
 		body: JSON.stringify({id: uuid}),
+		errorFrom: 'FtApi.updateEsRegion',
+		errorExtra: {region, uuid},
 	}
 )
 .then(fetchres.json);
 
 const updateEs = uuid => Promise.all(['eu', 'us'].map(region => updateEsRegion(region, uuid)));
 
-const fetchAsset = uuid => nodeFetch(`https://api.ft.com/content/items/v1/${uuid}?apiKey=${process.env.API_V1_KEY}`)
+const fetchAsset = uuid => retry.fetch(
+	`https://api.ft.com/content/items/v1/${uuid}?apiKey=${process.env.API_V1_KEY}`,
+	{errorFrom: 'FtApi.fetchAsset', errorExtra: {uuid}}
+)
 .then(fetchres.json)
 .catch(() => Promise.reject(new FtApiContentMissingException(`Asset [${uuid}] is not in Elastic Search`)));
 
