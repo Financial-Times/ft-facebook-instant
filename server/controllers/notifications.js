@@ -131,7 +131,7 @@ const getKnownCanonical = uuid => articleModel.getCanonical(uuid)
 .catch(() => null);
 
 // For each UUID, get any cached canonical URL
-const getKnownUuids = uuids => Promise.all(uuids.map(getKnownCanonical))
+const getKnownArticles = uuids => Promise.all(uuids.map(getKnownCanonical))
 .then(cachedCanonicals =>
 
 	// For each known cached canonical, update it by calling the FT API directly
@@ -177,49 +177,47 @@ const getKnownUuids = uuids => Promise.all(uuids.map(getKnownCanonical))
 		console.log(`${Date()}: NOTIFICATIONS API: Handling canonical URL change for UUID ${article.uuid}, exists on Facebook: ${!!sentToFacebook}.`);
 
 		return handleCanonicalChange(article)
-		// If previously sent to Facebook, return this as a 'known UUID'.
-		.then(() => (sentToFacebook ? article.uuid : null));
+		.then(() => ({
+			uuid: article.uuid,
+			canonical: article.freshCanonical,
+			fbRecord: article.fbRecord,
+			sentToFacebook,
+		}));
 	}
 )));
 
-const updateArticles = uuids => Promise.all(
-	uuids.map(uuid => articleModel.get(uuid)
-		.then(staleArticle => articleModel.update(staleArticle))
-		.then(article => {
-			const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
-			const publishedOnFacebook = sentToFacebook && article.fbRecords[mode].published;
-			console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], ` +
-				`sentToFacebook [${sentToFacebook}], publishedOnFacebook [${publishedOnFacebook}]`);
-			if(sentToFacebook) {
-				return transform(article)
-					.then(({html, warnings}) =>
-						fbApi.post({
-							uuid: article.uuid,
-							html,
-							published: article.fbRecords[mode].published,
-							wait: true,
-						})
-						.then(({id}) => articleModel.setImportStatus({
-							article,
-							id,
-							warnings,
-							published: article.fbRecords[mode].published,
-							username: 'daemon',
-							type: 'notifications-api',
-						}))
-					);
-			}
-		})
-		.then(() => uuid)
-	)
-);
+const updateArticles = staleArticles => Promise.all(staleArticles.map(articleModel.update))
+.then(articles => articles.filter(article => article.sentToFacebook))
+.then(articles => Promise.all(articles.map(
+	article => {
+		const published = article.fbRecords[mode].published;
+		console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], ` +
+			`publishedOnFacebook [${published}]`);
+		return transform(article)
+			.then(({html, warnings}) =>
+				fbApi.post({
+					uuid: article.uuid,
+					html,
+					published,
+					wait: true,
+				})
+				.then(({id}) => articleModel.setImportStatus({
+					article,
+					id,
+					warnings,
+					published,
+					username: 'daemon',
+					type: 'notifications-api',
+				}))
+			)
+			.then(() => article.uuid);
+	}
+)));
 
-const deleteArticles = uuids => Promise.all(
-	uuids.map(uuid => articleModel.getCanonical(uuid)
-		.then(canonical => fbApi.delete({canonical})
-			.then(() => database.get(canonical))
-			.then(article => articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}))
-		)
+const deleteArticles = articles => Promise.all(
+	articles.map(({uuid, canonical, fbRecord}) => fbApi.delete({canonical})
+		.then(() => database.get(canonical))
+		.then(article => articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}))
 		.then(() => uuid)
 	)
 );
@@ -240,8 +238,8 @@ const poller = () => database.getLastNotificationCheck()
 .then(merged => {
 	console.log(`${Date()}: NOTIFICATIONS API: processing ${merged.updates.length} updates, ${merged.deletes.length} deletes.`);
 	return Promise.all([
-		getKnownUuids(merged.updates),
-		getKnownUuids(merged.deletes),
+		getKnownArticles(merged.updates),
+		getKnownArticles(merged.deletes),
 	]);
 })
 .then(([updates, deletes]) => Promise.all([
