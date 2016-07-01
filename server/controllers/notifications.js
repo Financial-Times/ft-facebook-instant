@@ -124,48 +124,63 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}
 });
 
 // Article might have been deleted, so catch any ES errors
-const refreshCanonical = uuid => ftApi.getCanonicalFromUuid(uuid)
+const refreshCanonical = uuid => uuid && ftApi.getCanonicalFromUuid(uuid) || null
 .catch(() => null);
 
-const checkUuid = uuid => articleModel.getCanonical(uuid)
-.catch(() => null)
-.then(cachedCanonical =>
-	cachedCanonical && Promise.all([
-		refreshCanonical(uuid),
-		fbApi.find({canonical: cachedCanonical}),
-	])
-	.then(([freshCanonical, fbRecord]) => {
-		const sentToFacebook = (fbRecord && fbRecord[mode] && !fbRecord[mode].nullRecord);
+const getKnownCanonical = uuid => articleModel.getCanonical(uuid)
+.catch(() => null);
 
-		return Promise.resolve()
-		.then(() => {
-			if(!freshCanonical) {
-				// No canonical URL, so no further work to do.
-				console.log(`${Date()}: NOTIFICATIONS API: Canonical URL for UUID ${uuid} is now null`);
-				return;
-			}
+// For each UUID, get any cached canonical URL
+const getKnownUuids = uuids => Promise.all(uuids.map(getKnownCanonical))
+.then(cachedCanonicals =>
 
-			if(cachedCanonical === freshCanonical) {
-				// Canonical URL has not changed, so no further work to do.
-				return;
-			}
-
-			console.log(`${Date()}: NOTIFICATIONS API: Canonical URL for UUID ${uuid} has changed from ${cachedCanonical} to ${freshCanonical}`);
-			return handleCanonicalChange({
+	// For each known cached canonical, update it by calling the FT API directly
+	Promise.all(cachedCanonicals.map(refreshCanonical))
+		.then(freshCanonicals => uuids.map(
+			(uuid, index) => ({
 				uuid,
-				cachedCanonical,
-				freshCanonical,
-				fbRecord,
-			});
-		})
+				cachedCanonical: cachedCanonicals[index],
+				freshCanonical: freshCanonicals[index],
+			})
+		))
+)
+.then(articles => {
+	// We now have a list of articles, some of which have cached and updated Canonicals
+	articles = articles.filter(article => {
+		if(!article.freshCanonical) {
+			// No current canonical URL, so no further work to do.
+			console.log(`${Date()}: NOTIFICATIONS API: No known canonical URL for UUID ${article.uuid} - will ignore`);
+			return false;
+		}
 
-		// If previously sent to Facebook, return this as a 'known UUID'.
-		.then(() => (sentToFacebook ? uuid : null));
+		if(article.cachedCanonical === article.freshCanonical) {
+			// Canonical URL has not changed, so no further work to do.
+			return false;
+		}
+
+		console.log(`${Date()}: NOTIFICATIONS API: Canonical URL for UUID ${article.uuid} ` +
+			`has changed from ${article.cachedCanonical} to ${article.freshCanonical}`);
+		return true;
+	});
+
+	return fbApi.findMany({
+		type: 'article',
+		ids: articles.map(article => article.cachedCanonical),
 	})
-);
+	.then(fbRecords => articles.map(
+		(article, index) => Object.assign(article, {fbRecord: fbRecords[index]})
+	));
+})
+.then(articles => Promise.all(articles.map(
+	article => {
+		const sentToFacebook = (article.fbRecord && article.fbRecord[mode] && !article.fbRecord[mode].nullRecord);
+		console.log(`${Date()}: NOTIFICATIONS API: Handling canonical URL change for UUID ${article.uuid}, exists on Facebook: ${!!sentToFacebook}.`);
 
-const getKnownUuids = uuids => Promise.all(uuids.map(checkUuid))
-.then(known => known.filter(uuid => !!uuid));
+		return handleCanonicalChange(article)
+		// If previously sent to Facebook, return this as a 'known UUID'.
+		.then(() => (sentToFacebook ? article.uuid : null));
+	}
+)));
 
 const updateArticles = uuids => Promise.all(
 	uuids.map(uuid => articleModel.get(uuid)
@@ -222,10 +237,13 @@ const poller = () => database.getLastNotificationCheck()
 	]);
 })
 .then(merge)
-.then(merged => Promise.all([
-	getKnownUuids(merged.updates),
-	getKnownUuids(merged.deletes),
-]))
+.then(merged => {
+	console.log(`${Date()}: NOTIFICATIONS API: processing ${merged.updates.length} updates, ${merged.deletes.length} deletes.`);
+	return Promise.all([
+		getKnownUuids(merged.updates),
+		getKnownUuids(merged.deletes),
+	]);
+})
 .then(([updates, deletes]) => Promise.all([
 	updateArticles(updates),
 	deleteArticles(deletes),
