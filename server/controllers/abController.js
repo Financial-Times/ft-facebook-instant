@@ -21,7 +21,10 @@ module.exports = async function abController() {
 	const newPosts = await posts.reduce(async function markDupe(seen, post) {
 		// remove new posts that are already in the AB test *or* are in the current batch multiple times
 		// (except not actually remove, but mark as removed so future runs can see them)
-		if(await postModel.get(post) || seen.has(post)) {
+		const alreadyInTest = await postModel.get(post);
+		const dupeInBatch = seen.has(post);
+		if(alreadyInTest || dupeInBatch) {
+			console.log(`${Date()}: A/B: removing post ${post}, ${JSON.stringify({alreadyInTest, dupeInBatch})}`);
 			await postModel.markRemoved(post);
 			seen.delete(post);
 		} else {
@@ -38,6 +41,7 @@ module.exports = async function abController() {
 			article.rendered = await transform(article);
 			return true;
 		} catch(e) {
+			console.log(`${Date()}: A/B: removing ${article.canonical} from test, could not render (${e})`);
 			return false;
 		}
 	});
