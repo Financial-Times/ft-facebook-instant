@@ -16,6 +16,9 @@ const requiredParams = [
 	'date_record_updated',
 ];
 
+const lightSignupProduct = 'Facebook Instant';
+const lightSignupMailinglist = 'facebook-instant';
+
 const transformArticleBody = (apiRecord, warnings) => {
 	if(!apiRecord.bodyHTML) {
 		return Promise.reject(Error('Missing required [bodyHTML] field'));
@@ -90,8 +93,8 @@ module.exports = article => {
 			cookieChecker: (process.env.NODE_ENV !== 'production'),
 			relatedArticles,
 			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
-			lightSignupProduct: 'Facebook Instant',
-			lightSignupMailinglist: 'facebook-instant',
+			lightSignupProduct: encodeURIComponent(lightSignupProduct),
+			lightSignupMailinglist: encodeURIComponent(lightSignupMailinglist),
 			enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
 		};
 
