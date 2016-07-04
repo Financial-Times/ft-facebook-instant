@@ -7,7 +7,6 @@ const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const getCanonical = require('./canonical');
 const {version} = require('../../package.json');
-const retry = require('../lib/retry');
 const RichError = require('../lib/richError');
 const ravenClient = require('../lib/raven').client;
 
@@ -164,6 +163,29 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		.then(() => get(article.canonical));
 };
 
+const postAndSetStatus = ({
+	article,
+	html = article.rendered.html,
+	warnings = article.rendered.warnings,
+	uuid = article.uuid,
+	published,
+	username,
+	type,
+	wait = false,
+}) => fbApi.post({
+	uuid,
+	html,
+	published,
+	wait,
+}).then(({id}) => setImportStatus({
+	article,
+	warnings,
+	username,
+	type,
+	published,
+	id,
+}));
+
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
 .then(() => database.get(canonical))
 .then(article => article && setImportStatus({article, type, username: 'system'}))
@@ -272,4 +294,5 @@ module.exports = {
 	clearCache,
 	setImportStatus,
 	removeFromFacebook,
+	postAndSetStatus,
 };

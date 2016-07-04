@@ -33,6 +33,7 @@
     "@quarterto/package-version-github-release": "^1.0.0",
     "@quarterto/package-version-jira-release": "^1.1.0",
     "@quarterto/package-version-sentry-release": "^1.2.0",
+    "@quarterto/partition-promise": "^1.0.0",
     "@quarterto/promise-loop-interval": "^1.0.0",
     "babel-cli": "^6.6.5",
     "babel-plugin-transform-async-to-generator": "^6.8.0",

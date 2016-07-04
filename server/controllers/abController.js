@@ -1,62 +1,31 @@
 'use strict';
 
-const fbApi = require('../lib/fbApi');
-const db = require('../lib/database');
-const filterPromise = require('@quarterto/filter-promise');
-const transform = require('../lib/transform');
-const articleModel = require('../models/article');
 const postModel = require('../models/post');
 const denodeify = require('denodeify');
 const csvStringify = denodeify(require('csv-stringify'));
 
+const logRemovedPost = (reason, getExtra = () => '') => post => {
+	console.log(`${Date()}: A/B: removed ${post.canonical} from test, because ${reason}${getExtra(post) ? `: ${getExtra(post)}` : ''}`);
+};
+
 module.exports = async function abController() {
-	const since = await db.getLastABCheck();
-	await db.setLastABCheck(Date.now()); // set this as soon as possible because this might take a while
-	const posts = since ? (await fbApi.posts({since})) : [];
+	const posts = await postModel.get();
 
 	if(!posts.length) {
-		return; // don't convert any posts on first ever run
+		return; // don't convert posts if there aren't any
 	}
 
-	const newPosts = await posts.reduce(async function markDupe(seen, post) {
-		// remove new posts that are already in the AB test *or* are in the current batch multiple times
-		// (except not actually remove, but mark as removed so future runs can see them)
-		const alreadyInTest = await postModel.get(post);
-		const dupeInBatch = seen.has(post);
-		if(alreadyInTest || dupeInBatch) {
-			console.log(`${Date()}: A/B: removing post ${post}, ${JSON.stringify({alreadyInTest, dupeInBatch})}`);
-			await postModel.markRemoved(post);
-			seen.delete(post);
-		} else {
-			seen.add(post);
-		}
+	const [newPosts, dupePosts] = await postModel.markDuplicates(posts);
+	dupePosts.forEach(logRemovedPost('we\'ve seen it already', post => JSON.stringify(post.status)));
 
-		return newPosts;
-	}, new Set());
+	const [renderablePosts, unrenderablePosts] = await postModel.partitionRenderable(newPosts);
+	unrenderablePosts.forEach(logRemovedPost('we couldn\'t render it', post => post.error));
 
-	const articles = await Promise.all(newPosts.map(articleModel.get));
+	await Promise.all(renderablePosts.map(postModel.bucketAndPublish));
 
-	const renderableArticles = await filterPromise(articles, async function isArticleRenderable(article) {
-		try {
-			article.rendered = await transform(article);
-			return true;
-		} catch(e) {
-			console.log(`${Date()}: A/B: removing ${article.canonical} from test, could not render (${e})`);
-			return false;
-		}
-	});
-
-	for(const article of renderableArticles) {
-		const bucket = await postModel.setWithBucket(article.canonical, article);
-		if(bucket === 'test') {
-			const {id} = await fbApi.post({uuid: article.uuid, html: article.rendered.html, published: true});
-			await articleModel.setImportStatus({article, id, warnings: article.rendered.warnings, username: 'daemon', type: 'ab'});
-		}
-	}
-
-	if(renderableArticles.length) {
-		const testUuids = renderableArticles.filter(({bucket}) => bucket === 'test').map(({uuid}) => uuid);
-		const controlUuids = renderableArticles.filter(({bucket}) => bucket === 'control').map(({uuid}) => uuid);
+	if(renderablePosts.length) {
+		const testUuids = renderablePosts.filter(({bucket}) => bucket === 'test').map(({uuid}) => uuid);
+		const controlUuids = renderablePosts.filter(({bucket}) => bucket === 'control').map(({uuid}) => uuid);
 		console.log(`${Date()}: A/B: testing posts, test: ${testUuids.join()}, control: ${controlUuids.join()}`);
 	} else {
 		console.log(`${Date()}: A/B: no new posts to A/B test`);
@@ -67,7 +36,6 @@ module.exports.route = (req, res, next) => {
 	const columns = ['canonical', 'bucket'];
 
 	postModel.getBuckets()
-		.then(posts => posts.filter(({bucket}) => bucket !== 'removed'))
 		.then(posts => csvStringify(posts, {columns, header: true}))
 		.then(csv => {
 			res.type('csv');

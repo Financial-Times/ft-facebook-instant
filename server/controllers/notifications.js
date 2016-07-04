@@ -118,19 +118,13 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords
 
 				return transform(article)
 					.then(({html, warnings}) =>
-						fbApi.post({
-							html,
-							uuid: article.uuid,
+						articleModel.postAndSetStatus({
+							article,
 							published: wasPublished,
 							wait: true,
-						})
-						.then(({id}) => articleModel.setImportStatus({
-							article,
-							id,
 							warnings,
 							type: 'notifications-api-canonical-change',
-							published: wasPublished,
-						}))
+						})
 					);
 			})
 		);
@@ -187,7 +181,7 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 			}
 
 			return articleModel.get(article.freshCanonical);
-		}
+			}
 	)
 ))
 // Only articles which have been sent to Facebook need updating on Facebook.
@@ -198,23 +192,18 @@ const updateArticle = stale => articleModel.update(stale)
 	const published = article.fbRecords[mode].published;
 	console.log(`${Date()}: NOTIFICATIONS API: updating known article: [${article.uuid}], mode: [${mode}], ` +
 		`was published: [${published}]`);
-	return transform(article)
-		.then(({html, warnings}) =>
-			fbApi.post({
-				uuid: article.uuid,
-				html,
+				return transform(article)
+					.then(({html, warnings}) =>
+	articleModel.postAndSetStatus({
+		article,
+							html,
+		warnings,
 				published,
-				wait: true,
-			})
-			.then(({id}) => articleModel.setImportStatus({
-				article,
-				id,
-				warnings,
-				published,
-				username: 'daemon',
-				type: 'notifications-api',
-			}))
-		);
+							wait: true,
+							username: 'daemon',
+							type: 'notifications-api',
+	})
+);
 });
 
 const updateArticles = articles => Promise.all(articles.map(updateArticle))
