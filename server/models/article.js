@@ -165,6 +165,11 @@ const addFbImportsScalar = article => addFbImports([article])
 .then(articles => articles[0]);
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
+	// TODO: fix this condition, remove debugging
+	if(!Array.isArray(article.import_meta)) {
+		console.log('setImportStatus Error. Invalid `article.import_meta` for article:', {article, id, warnings, type, username, published}, Error().stack);
+	}
+
 	// Delete FB ids from all previous imports
 	article.import_meta = article.import_meta.map(item => {
 		delete item.id;
