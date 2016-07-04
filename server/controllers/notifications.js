@@ -124,25 +124,24 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}
 });
 
 // Article might have been deleted, so catch any ES errors
-const refreshCanonical = uuid => uuid && ftApi.getCanonicalFromUuid(uuid) || null
+const refreshCanonical = uuid => ftApi.getCanonicalFromUuid(uuid)
 .catch(() => null);
 
 const getKnownCanonical = uuid => articleModel.getCanonical(uuid)
 .catch(() => null);
 
 // For each UUID, get any cached canonical URL
-const getKnownArticles = uuids => Promise.all(uuids.map(getKnownCanonical))
-.then(cachedCanonicals =>
-
-	// For each known cached canonical, update it by calling the FT API directly
-	Promise.all(cachedCanonicals.map(refreshCanonical))
-		.then(freshCanonicals => uuids.map(
-			(uuid, index) => ({
-				uuid,
-				cachedCanonical: cachedCanonicals[index],
-				freshCanonical: freshCanonicals[index],
-			})
-		))
+const getKnownArticles = uuids => Promise.all(uuids.map(
+	uuid => getKnownCanonical(uuid)
+		.then(cachedCanonical => ({uuid, cachedCanonical}))
+))
+// Only articles with a known, cached canonical URL are of interest
+.then(articles => articles.filter(article => article.cachedCanonical))
+.then(articles =>
+	Promise.all(articles.map(
+		article => refreshCanonical(article.uuid)
+			.then(freshCanonical => Object.assign(article, {freshCanonical}))
+	))
 )
 .then(articles => {
 	// We now have a list of articles, some of which have cached and updated Canonicals
