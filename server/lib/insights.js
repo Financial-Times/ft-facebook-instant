@@ -585,18 +585,6 @@ const diffIntegerValues = (newValues, oldValues) => {
 	integerColumns.forEach(column => {
 		const oldValue = oldValues && oldValues[column] || 0;
 		values[column] = newValues[column] - oldValue;
-
-		if(values[column] < 0) {
-			ravenClient.captureMessage('diffIntegerValues gave negative number', {
-				level: 'info',
-				extra: {
-					column,
-					oldValues,
-					newValues,
-				},
-				tags: {from: 'insights'},
-			});
-		}
 	});
 
 	return values;
