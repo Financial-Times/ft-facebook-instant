@@ -184,6 +184,9 @@ const getLastInsight = () => client.getAsync('lastinsight')
 
 const getFBLinkPost = url => client.getAsync(`linkpost:${url}`).then(post => format(types.linkpost, post));
 const setFBLinkPost = (url, data) => client.setAsync(`linkpost:${url}`, JSON.stringify(data));
+const getFBLinkPosts = () => client.keysAsync('linkpost:*').then(
+	keys => client.mgetAsync(keys)
+).then(posts => posts.map(post => format(types.linkpost, post)));
 
 module.exports = {
 	get(canonicals) {
@@ -210,5 +213,6 @@ module.exports = {
 	getLastInsight,
 	wipeLastInsight,
 	getFBLinkPost,
+	getFBLinkPosts,
 	setFBLinkPost,
 };

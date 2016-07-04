@@ -114,6 +114,7 @@ app.route('^/article/:url/api$').get(apiController);
 app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleController);
 
 app.route('^/republish$').post(republishController.route);
+app.route('^/ab/buckets$').get(abController.route);
 
 app.route('^/reload-s3o$').get((req, res, next) => {
 	res.render('reload-s30');

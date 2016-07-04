@@ -3,20 +3,22 @@
 const db = require('../lib/database');
 const getCanonical = require('./canonical');
 
-export async function get(url) {
+exports.get = async function get(url) {
 	const canonical = await getCanonical(url);
 	return db.getFBLinkPost(canonical);
-}
+};
 
-export async function set(url, article) {
+exports.getBuckets = () => db.getFBLinkPosts().then(posts => posts.filter(post => post.bucket !== 'removed'));
+
+exports.set = async function set(url, article) {
 	const canonical = await getCanonical(url);
 	return db.setFBLinkPost(canonical, article);
-}
+};
 
-export async function setWithBucket(url, article) {
+exports.setWithBucket = async function setWithBucket(url, article) {
 	article.bucket = Math.random() < 0.5 ? 'test' : 'control';
-	await set(url, article);
+	await exports.set(url, article);
 	return article.bucket;
-}
+};
 
-export const markRemoved = url => set(url, {bucket: 'removed'});
+exports.markRemoved = url => exports.set(url, {bucket: 'removed'});

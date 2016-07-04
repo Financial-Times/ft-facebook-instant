@@ -6,6 +6,8 @@ const filterPromise = require('@quarterto/filter-promise');
 const transform = require('../lib/transform');
 const articleModel = require('../models/article');
 const postModel = require('../models/post');
+const denodeify = require('denodeify');
+const csvStringify = denodeify(require('csv-stringify'));
 
 module.exports = async function abController() {
 	const since = await db.getLastABCheck();
@@ -55,4 +57,17 @@ module.exports = async function abController() {
 	} else {
 		console.log(`${Date()}: A/B: no new posts to A/B test`);
 	}
+};
+
+module.exports.route = (req, res, next) => {
+	const columns = ['canonical', 'bucket'];
+
+	postModel.getBuckets()
+		.then(posts => posts.filter(({bucket}) => bucket !== 'removed'))
+		.then(posts => csvStringify(posts, {columns, header: true}))
+		.then(csv => {
+			res.type('csv');
+			res.send(csv);
+		})
+		.catch(next);
 };
