@@ -539,14 +539,40 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 	return post;
 });
 
+const batchErrorHandler = ({previousResult, batchPart}) => {
+	switch(batchPart) {
+		case 1:
+			if(Object.keys(previousResult).every(postId => previousResult[postId].link)) {
+				throw Error(`All posts returned by batch part ${batchPart} have 'post.link' set, ` +
+					`so the JSONPath error for batch part ${batchPart + 1} is valid.`);
+			}
+			// The previous result had some posts with no 'link' value, so a JSONPath
+			// exception is expected and OK. Return an empty set for the 'links' batch
+			// part
+			return {};
+		case 2:
+			if(Object.keys(previousResult).every(linkId => previousResult[linkId].og_object && previousResult[linkId].og_object.url)) {
+				throw Error(`All links returned by batch part ${batchPart} have 'link.og_object.url' set, ` +
+					`so the JSONPath error for batch part ${batchPart + 1} is valid.`);
+			}
+			// The previous result had some links with no 'link.og_object.url' value, so a
+			// JSONPath exception is expected and OK. Return an empty set for the
+			// 'canonicals' batch part
+			return {};
+		default:
+			throw Error(`Unrecognised batchPart ${batchPart}`);
+	}
+};
+
 const getPostsData = ({ids}) => fbApi.many(
 	{ids},
 	(batch) =>
 		fbApi.call('', 'POST', {
 			batch: createQuery({ids: batch.ids}),
 			include_headers: false,
-			__dependent: true,
+			__dependent: [false, true, true],
 			__batched: true,
+			__errorHandler: batchErrorHandler,
 		})
 		.then(processResults),
 	'array'
