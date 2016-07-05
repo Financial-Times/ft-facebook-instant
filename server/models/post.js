@@ -56,7 +56,7 @@ exports.partitionRenderable = posts => partitionPromise(posts, post => transform
 	}
 ));
 
-exports.bucketAndPublish = async function bucketAndPost(post) {
+exports.bucketAndPublish = async function bucketAndPublish(post) {
 	const bucket = await exports.setWithBucket(post.canonical, post);
 	if(bucket === 'test') {
 		await articleModel.postAndSetStatus({
@@ -77,4 +77,4 @@ exports.setWithBucket = async function setWithBucket(post, testBucket = Math.ran
 	return post.bucket;
 };
 
-exports.markRemoved = url => exports.set(url, {bucket: 'removed'});
+exports.markRemoved = url => database.setFBLinkPost(url, {bucket: 'removed'});

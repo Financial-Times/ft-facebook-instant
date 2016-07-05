@@ -14,6 +14,12 @@ const articleModel = require('../../build/models/article');
 
 const postModel = require('../../build/models/post');
 
+const snakePeople = {
+	title: 'Why snake people go on holiday instead of saving for a pension',
+	canonical: 'http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377',
+	uuid: '94e97eee-ce9a-11e5-831d-09f7778e7377',
+};
+
 describe('Post model', () => {
 	after(async function test() {
 		await fakeRedisClient.flushdbAsync();
@@ -85,24 +91,125 @@ describe('Post model', () => {
 		});
 
 		it('should return article details for post canonicals', async function test() {
-			const article = {
-				title: 'Why snake people go on holiday instead of saving for a pension',
-				canonical: 'http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377',
-				uuid: '94e97eee-ce9a-11e5-831d-09f7778e7377',
-			};
-
 			database.getLastABCheck.returns(since);
 			fbApi.posts.returns([
 				'http://on.ft.com/test',
 			]);
 			database.getCanonical
 				.withArgs('http://on.ft.com/test')
-				.returns(Promise.resolve('http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377'));
+				.returns(Promise.resolve(snakePeople.canonical));
 			articleModel.get
-				.withArgs('http://www.ft.com/cms/s/2/94e97eee-ce9a-11e5-831d-09f7778e7377')
-				.returns(Promise.resolve(article));
+				.withArgs(snakePeople.canonical)
+				.returns(Promise.resolve(snakePeople));
 
-			expect(await postModel.get()).to.deep.equal([article]);
+			expect(await postModel.get()).to.deep.equal([snakePeople]);
+		});
+	});
+
+	describe('markDuplicates', () => {
+		const stubs = [];
+
+		before(() => {
+			stubs.push.apply(stubs, [
+			]);
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		xit('should', async function test() {});
+	});
+
+	describe('partitionRenderable', () => {
+		const stubs = [];
+
+		before(() => {
+			stubs.push.apply(stubs, [
+			]);
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		xit('should', async function test() {});
+	});
+
+	describe('bucketAndPublish', () => {
+		const stubs = [];
+
+		before(() => {
+			stubs.push.apply(stubs, [
+			]);
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		xit('should', async function test() {});
+	});
+
+	describe('getBuckets', () => {
+		const stubs = [];
+
+		before(() => {
+			stubs.push.apply(stubs, [
+			]);
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		xit('should', async function test() {});
+	});
+
+	describe('setWithBucket', () => {
+		const stubs = [];
+
+		before(() => {
+			stubs.push.apply(stubs, [
+			]);
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		xit('should', async function test() {});
+	});
+
+	describe('markRemoved', () => {
+		before(async function before() {
+			await database.setFBLinkPost(snakePeople.canonical, snakePeople);
+		});
+
+		it('should replace post record with removed flag', async function test() {
+			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal(snakePeople);
+			await postModel.markRemoved(snakePeople.canonical);
+			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal({bucket: 'removed'});
 		});
 	});
 });
