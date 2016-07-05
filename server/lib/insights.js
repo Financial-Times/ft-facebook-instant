@@ -440,16 +440,21 @@ const addUuid = flat => {
 		.then(uuid => (flat.uuid = uuid));
 };
 
-const addInstantArticleMetadata = flat => {
-	if(!flat.ia_published) return flat;
+// Refine the approximation with the actual time of publication
+const addInstantArticleMetadata = posts => {
+	const canonicalsWithIa = posts.filter(post => !!post.ia_published)
+		.map(post => post.canonical);
 
-	return articleModel.get(flat.canonical)
-		.then(article => {
+	const metadata = {};
+	return articleModel.getList(canonicalsWithIa)
+		.then(articles => articles.forEach(article => {
 			if(article.fbRecords[mode].initialImport && article.fbRecords[mode].initialImport.timestamp) {
-				// Refine the approximation with the actual time of publication
-				flat.ia_earliest_views = moment.utc(article.fbRecords[mode].initialImport.timestamp).format();
+				metadata[article.canonical] = {
+					ia_earliest_views: moment.utc(article.fbRecords[mode].initialImport.timestamp).format(),
+				};
 			}
-		});
+		}))
+		.then(() => posts.map(post => Object.assign(post, metadata[post.canonical])));
 };
 
 const flattenPost = post => Promise.resolve()
@@ -520,7 +525,6 @@ const flattenPost = post => Promise.resolve()
 .then(flat =>
 	Promise.all([
 		addUuid(flat),
-		addInstantArticleMetadata(flat),
 	])
 	.then(() => flat)
 );
@@ -806,6 +810,7 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 			})
 			.then(ids => getPostsData({ids}))
 			.then(posts => Promise.all(posts.map(flattenPost)))
+			.then(addInstantArticleMetadata)
 			.then(posts => posts.map(validate))
 			.then(posts =>
 				getHistoricValues(lastRun, now, posts)
