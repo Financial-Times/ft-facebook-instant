@@ -168,6 +168,7 @@ describe('Post model', () => {
 
 		before(() => {
 			stubs.push.apply(stubs, [
+				sinon.stub(database, 'getFBLinkPosts'),
 			]);
 		});
 
@@ -179,7 +180,14 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		xit('should', async function test() {});
+		it('should return known posts without removed', async function test() {
+			database.getFBLinkPosts.returns(Promise.resolve([
+				snakePeople,
+				{bucket: 'removed'},
+			]));
+
+			expect(await postModel.getBuckets()).to.deep.equal([snakePeople]);
+		});
 	});
 
 	describe('setWithBucket', () => {
