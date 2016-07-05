@@ -3,12 +3,15 @@
 const postModel = require('../models/post');
 const denodeify = require('denodeify');
 const csvStringify = denodeify(require('csv-stringify'));
+const promiseLoopInterval = require('@quarterto/promise-loop-interval');
+
+const AB_POLL_INTERVAL = 1 * 60 * 1000;
 
 const logRemovedPost = (reason, getExtra = () => '') => post => {
 	console.log(`${Date()}: A/B: removed ${post.canonical} from test, because ${reason}${getExtra(post) ? `: ${getExtra(post)}` : ''}`);
 };
 
-module.exports = async function abController() {
+module.exports = promiseLoopInterval(async function abController() {
 	const posts = await postModel.get();
 
 	if(!posts.length) {
@@ -30,7 +33,7 @@ module.exports = async function abController() {
 	} else {
 		console.log(`${Date()}: A/B: no new posts to A/B test`);
 	}
-};
+}, AB_POLL_INTERVAL);
 
 module.exports.route = (req, res, next) => {
 	const columns = ['canonical', 'bucket'];
