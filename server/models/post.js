@@ -3,13 +3,13 @@
 const partitionPromise = require('@quarterto/partition-promise');
 const transform = require('../lib/transform');
 const articleModel = require('./article');
-const db = require('../lib/database');
+const database = require('../lib/database');
 const getCanonical = require('./canonical');
 const fbApi = require('../lib/fbApi');
 
 exports.get = async function get() {
-	const since = await db.getLastABCheck();
-	await db.setLastABCheck(Date.now()); // set this as soon as possible because this might take a while
+	const since = await database.getLastABCheck();
+	await database.setLastABCheck(Date.now()); // set this as soon as possible because this might take a while
 	if(since) {
 		return Promise.all(
 			(await fbApi.posts({since}))
@@ -29,7 +29,7 @@ exports.markDuplicates = posts => {
 
 		// remove new posts that are already in the AB test *or* are in the current batch multiple times
 		// (except not actually remove, but mark as removed so future runs can see them)
-		const alreadyInTest = await db.getFBLinkPost(post.canonical);
+		const alreadyInTest = await database.getFBLinkPost(post.canonical);
 		const dupeInBatch = seen.has(post.canonical);
 
 		if(alreadyInTest || dupeInBatch) {
@@ -67,11 +67,11 @@ exports.bucketAndPublish = async function bucketAndPost(post) {
 	}
 };
 
-exports.getBuckets = () => db.getFBLinkPosts().then(postUrls => postUrls.filter(post => post.bucket !== 'removed'));
+exports.getBuckets = () => database.getFBLinkPosts().then(postUrls => postUrls.filter(post => post.bucket !== 'removed'));
 
 exports.setWithBucket = async function setWithBucket(post, testBucket = Math.random() < 0.5) {
 	post.bucket = testBucket ? 'test' : 'control';
-	await db.setFBLinkPost(post.canonical, post);
+	await database.setFBLinkPost(post.canonical, post);
 	return post.bucket;
 };
 

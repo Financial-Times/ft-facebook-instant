@@ -77,9 +77,13 @@
     "eslint": "^2.13.1",
     "eslint-config-airbnb": "^6.1.0",
     "eslint-plugin-babel": "^3.2.0",
+    "fakeredis": "^1.0.3",
     "lintspaces-cli": "^0.1.1",
     "mocha": "^2.4.5",
     "nodemon": "^1.9.1",
+    "proxyquire": "^1.7.9",
+    "sinon": "^1.17.4",
+    "sinon-chai": "^2.8.0",
     "watch-make": "^1.0.0"
   }
 }
