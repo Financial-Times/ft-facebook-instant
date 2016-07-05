@@ -11,6 +11,7 @@ const fakeRedisClient = proxyquire('../../build/lib/redisClient', moduleStubs);
 const fbApi = require('../../build/lib/fbApi');
 const database = require('../../build/lib/database');
 const articleModel = require('../../build/models/article');
+const mode = require('../../build/lib/mode');
 
 const postModel = require('../../build/models/post');
 
@@ -149,6 +150,9 @@ describe('Post model', () => {
 
 		before(() => {
 			stubs.push.apply(stubs, [
+				sinon.stub(postModel, 'setWithBucket'),
+				sinon.stub(articleModel, 'postAndSetStatus'),
+				sinon.stub(mode, 'get'),
 			]);
 		});
 
@@ -160,7 +164,56 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		xit('should', async function test() {});
+		it('should set post bucket', async function test() {
+			await postModel.bucketAndPublish(snakePeople);
+			expect(postModel.setWithBucket).to.have.been.calledWith(snakePeople);
+		});
+
+		it('should\'t post IA if the bucket is control', async function test() {
+			postModel.setWithBucket.returns('control');
+			await postModel.bucketAndPublish(snakePeople);
+			expect(articleModel.postAndSetStatus).not.to.have.been.called();
+		});
+
+		it('should post IA if the bucket is test', async function test() {
+			postModel.setWithBucket.returns('test');
+			await postModel.bucketAndPublish(snakePeople);
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+				article: snakePeople,
+				username: 'daemon',
+				type: 'ab',
+				wait: true,
+			});
+		});
+
+		it('should post IA if the bucket is test', async function test() {
+			postModel.setWithBucket.returns('test');
+			await postModel.bucketAndPublish(snakePeople);
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+				article: snakePeople,
+				username: 'daemon',
+				type: 'ab',
+				wait: true,
+			});
+		});
+
+		it('should publish if mode is production', async function test() {
+			mode.get.returns('production');
+			postModel.setWithBucket.returns('test');
+			await postModel.bucketAndPublish(snakePeople);
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+				published: true,
+			});
+		});
+
+		it('should not publish if mode is development', async function test() {
+			mode.get.returns('development');
+			postModel.setWithBucket.returns('test');
+			await postModel.bucketAndPublish(snakePeople);
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+				published: false,
+			});
+		});
 	});
 
 	describe('getBuckets', () => {

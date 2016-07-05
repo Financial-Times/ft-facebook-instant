@@ -6,6 +6,7 @@ const articleModel = require('./article');
 const database = require('../lib/database');
 const getCanonical = require('./canonical');
 const fbApi = require('../lib/fbApi');
+const mode = require('../lib/mode');
 
 exports.get = async function get() {
 	const since = await database.getLastABCheck();
@@ -57,11 +58,11 @@ exports.partitionRenderable = posts => partitionPromise(posts, post => transform
 ));
 
 exports.bucketAndPublish = async function bucketAndPublish(post) {
-	const bucket = await exports.setWithBucket(post.canonical, post);
+	const bucket = await exports.setWithBucket(post);
 	if(bucket === 'test') {
 		await articleModel.postAndSetStatus({
 			article: post,
-			published: true,
+			published: mode.get() === 'production',
 			wait: true,
 			username: 'daemon',
 			type: 'ab',
