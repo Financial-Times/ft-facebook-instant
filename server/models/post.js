@@ -13,8 +13,10 @@ exports.get = async function get() {
 	if(since) {
 		return Promise.all(
 			(await fbApi.posts({since}))
-				.map(getCanonical)
-				.map(articleModel.get)
+				.map(async function mapPosts(url) {
+					const canonical = await getCanonical(url);
+					return articleModel.get(canonical);
+				})
 		);
 	}
 
