@@ -183,22 +183,29 @@ describe('Post model', () => {
 	});
 
 	describe('setWithBucket', () => {
-		const stubs = [];
-
-		before(() => {
-			stubs.push.apply(stubs, [
-			]);
+		it('should save post to database', async function test() {
+			await postModel.setWithBucket(snakePeople);
+			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal(snakePeople);
 		});
 
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
+		it('should set bucket to random value', async function test() {
+			await postModel.setWithBucket(snakePeople);
+			expect(await database.getFBLinkPost(snakePeople.canonical)).property('bucket').to.be.oneOf(['test', 'control']);
 		});
 
-		after(() => {
-			stubs.forEach(stub => stub.restore());
+		it('should set bucket to test when second arg is true', async function test() {
+			await postModel.setWithBucket(snakePeople, true);
+			expect(await database.getFBLinkPost(snakePeople.canonical)).to.have.property('bucket', 'test');
 		});
 
-		xit('should', async function test() {});
+		it('should set bucket to control when second arg is false', async function test() {
+			await postModel.setWithBucket(snakePeople, false);
+			expect(await database.getFBLinkPost(snakePeople.canonical)).to.have.property('bucket', 'control');
+		});
+
+		it('should return set bucket', async function test() {
+			expect(await postModel.setWithBucket(snakePeople, true)).to.equal('test');
+		});
 	});
 
 	describe('markRemoved', () => {
