@@ -73,7 +73,6 @@ if(errorsToSentry) {
 	app.use(raven.requestHandler(ravenClient));
 }
 
-
 /* Middleware */
 
 // Pre-logging, any frequent requests for which we'll never need logs
@@ -192,8 +191,13 @@ if(process.env.DISABLE_REPUBLISH) {
 	republishController();
 }
 
-if(process.env.INSTANT_AB === 'true') {
-	console.log(`${Date()}: INSTANT_AB flag is set. Initialising abController`);
+if((mode === 'production' && process.env.INSTANT_AB === 'true') || process.env.INSTANT_AB === 'force') {
+	console.log(
+		process.env.INSTANT_AB === 'force' ?
+		`${Date()}: INSTANT_AB flag is set to "force". Initialising abController despite being in development mode` :
+		`${Date()}: INSTANT_AB flag is set. Initialising abController`
+	);
+
 	abController();
 } else {
 	console.log(`${Date()}: INSTANT_AB flag is not set. Will not initialise abController`);
