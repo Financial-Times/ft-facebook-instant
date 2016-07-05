@@ -198,6 +198,7 @@ if((mode === 'production' && process.env.INSTANT_AB === 'true') || process.env.I
 		`${Date()}: INSTANT_AB flag is set. Initialising abController`
 	);
 
+	app.locals.abTestInProgress = true;
 	abController();
 } else {
 	console.log(`${Date()}: INSTANT_AB flag is not set. Will not initialise abController`);
