@@ -15,6 +15,7 @@ module.exports = promiseLoopInterval(async function abController() {
 	const posts = await postModel.get();
 
 	if(!posts.length) {
+		console.log(`${Date()}: A/B: no new posts to A/B test`);
 		return; // don't convert posts if there aren't any
 	}
 
@@ -31,7 +32,7 @@ module.exports = promiseLoopInterval(async function abController() {
 		const controlUuids = renderablePosts.filter(({bucket}) => bucket === 'control').map(({uuid}) => uuid);
 		console.log(`${Date()}: A/B: testing posts, test: ${testUuids.join()}, control: ${controlUuids.join()}`);
 	} else {
-		console.log(`${Date()}: A/B: no new posts to A/B test`);
+		console.log(`${Date()}: A/B: none of the new posts could be added to the test`);
 	}
 }, AB_POLL_INTERVAL);
 
