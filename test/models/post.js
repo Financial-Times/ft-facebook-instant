@@ -115,6 +115,8 @@ describe('Post model', () => {
 
 		before(() => {
 			stubs.push.apply(stubs, [
+				sinon.stub(database, 'getFBLinkPost'),
+				sinon.stub(postModel, 'markRemoved'),
 			]);
 		});
 
@@ -126,7 +128,71 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		xit('should', async function test() {});
+		it('should return all never-seen-before posts', async function test() {
+			database.getFBLinkPost.returns(undefined);
+			const [newPosts] = await postModel.markDuplicates([
+				{canonical: 'test1'},
+				{canonical: 'test2'},
+				{canonical: 'test3'},
+			]);
+			expect(newPosts).to.deep.equal([
+				{canonical: 'test1'},
+				{canonical: 'test2'},
+				{canonical: 'test3'},
+			]);
+		});
+
+		it('should remove all dupe posts in batch and mark as removed in database', async function test() {
+			database.getFBLinkPost.returns(undefined);
+			const [newPosts, dupePosts] = await postModel.markDuplicates([
+				{canonical: 'test1'},
+				{canonical: 'test2'},
+				{canonical: 'test2'},
+			]);
+			expect(newPosts).to.deep.equal([
+				{canonical: 'test1'},
+			]);
+			expect(dupePosts).to.deep.equal([
+				{canonical: 'test2'},
+			]);
+			expect(postModel.markRemoved).to.have.been.calledWithMatch({canonical: 'test2'});
+		});
+
+		it('should remove all dupe posts of post already in database and mark as removed in database', async function test() {
+			const test2 = {canonical: 'test2'};
+			database.getFBLinkPost.withArgs('test2').returns(test2);
+			database.getFBLinkPost.returns(undefined);
+
+			const [newPosts, dupePosts] = await postModel.markDuplicates([
+				{canonical: 'test1'},
+				test2,
+				{canonical: 'test3'},
+			]);
+			expect(newPosts).to.deep.equal([
+				{canonical: 'test1'},
+				{canonical: 'test3'},
+			]);
+			expect(dupePosts).to.deep.equal([
+				test2,
+			]);
+			expect(postModel.markRemoved).to.have.been.calledWithMatch(test2);
+		});
+
+		it('should set status of removed post', async function test() {
+			const test2 = {canonical: 'test2'};
+			const test3 = {canonical: 'test3'};
+			database.getFBLinkPost.withArgs('test2').returns(test2);
+			database.getFBLinkPost.returns(undefined);
+
+			await postModel.markDuplicates([
+				{canonical: 'test1'},
+				test2,
+				test3,
+				test3,
+			]);
+			expect(test2).property('status').to.deep.equal({alreadyInTest: true, dupeInBatch: false});
+			expect(test3).property('status').to.deep.equal({alreadyInTest: false, dupeInBatch: true});
+		});
 	});
 
 	describe('partitionRenderable', () => {
