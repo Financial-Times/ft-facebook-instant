@@ -27,6 +27,7 @@ const setDb = apiRecord => database.set({
 .then(() => database.get(apiRecord.webUrl));
 
 const updateDb = article => database.set({
+	canonical: article.canonical,
 	uuid: article.uuid,
 	title: article.apiRecord ? article.apiRecord.title : article.title,
 	date_editorially_published: article.apiRecord ? new Date(article.apiRecord.publishedDate).getTime() : article.date_editorially_published,
