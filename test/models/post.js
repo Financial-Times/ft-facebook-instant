@@ -1,19 +1,22 @@
 'use strict';
 
-const moduleStubs = {redis: require('fakeredis')};
-process.env.REDIS_URL = 'http://unused:1337';
-
 const sinon = require('sinon');
 const proxyquire = require('proxyquire');
 const expect = require('../../test-utils/expect');
 
-const fakeRedisClient = proxyquire('../../build/lib/redisClient', moduleStubs);
+const redisStubs = {redis: require('fakeredis')};
+const transform = sinon.stub();
+const postModelStubs = {'../lib/transform': transform};
+process.env.REDIS_URL = 'http://unused:1337';
+
+
+const fakeRedisClient = proxyquire('../../build/lib/redisClient', redisStubs);
 const fbApi = require('../../build/lib/fbApi');
 const database = require('../../build/lib/database');
 const articleModel = require('../../build/models/article');
 const mode = require('../../build/lib/mode');
 
-const postModel = require('../../build/models/post');
+const postModel = proxyquire('../../build/models/post', postModelStubs);
 
 const snakePeople = {
 	title: 'Why snake people go on holiday instead of saving for a pension',
@@ -127,22 +130,37 @@ describe('Post model', () => {
 	});
 
 	describe('partitionRenderable', () => {
-		const stubs = [];
+		const broken = {};
+		const snakePeopleClone = Object.assign({}, snakePeople);
 
-		before(() => {
-			stubs.push.apply(stubs, [
-			]);
+		afterEach(() => {
+			transform.reset();
 		});
 
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
+		it('should split transformable and untransformable posts', async function test() {
+			transform.withArgs(snakePeopleClone).returns(Promise.resolve());
+			transform.withArgs(broken).returns(Promise.reject());
+
+			const [transformable, untransformable] = await postModel.partitionRenderable([snakePeopleClone, broken]);
+			expect(transformable).to.deep.equal([snakePeopleClone]);
+			expect(untransformable).to.deep.equal([broken]);
 		});
 
-		after(() => {
-			stubs.forEach(stub => stub.restore());
+		it('should save transform result to rendered on transformables', async function test() {
+			const rendered = {html: '', warnings: {}};
+			transform.withArgs(snakePeopleClone).returns(Promise.resolve(rendered));
+
+			await postModel.partitionRenderable([snakePeopleClone, broken]);
+			expect(snakePeopleClone).to.have.property('rendered', rendered);
 		});
 
-		xit('should', async function test() {});
+		it('should save transform error to error on untransformables', async function test() {
+			const error = new Error();
+			transform.withArgs(broken).returns(Promise.reject(error));
+
+			await postModel.partitionRenderable([snakePeopleClone, broken]);
+			expect(broken).to.have.property('error', error);
+		});
 	});
 
 	describe('bucketAndPublish', () => {
