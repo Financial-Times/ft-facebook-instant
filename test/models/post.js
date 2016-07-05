@@ -164,20 +164,12 @@ describe('Post model', () => {
 	});
 
 	describe('getBuckets', () => {
-		const stubs = [];
-
 		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(database, 'getFBLinkPosts'),
-			]);
-		});
-
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
+			sinon.stub(database, 'getFBLinkPosts');
 		});
 
 		after(() => {
-			stubs.forEach(stub => stub.restore());
+			database.getFBLinkPosts.restore();
 		});
 
 		it('should return known posts without removed', async function test() {
