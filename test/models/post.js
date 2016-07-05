@@ -152,10 +152,8 @@ describe('Post model', () => {
 			expect(newPosts).to.deep.equal([
 				{canonical: 'test1'},
 			]);
-			expect(dupePosts).to.deep.equal([
-				{canonical: 'test2'},
-			]);
-			expect(postModel.markRemoved).to.have.been.calledWithMatch({canonical: 'test2'});
+			expect(dupePosts).to.have.deep.property('[0].canonical', 'test2');
+			expect(postModel.markRemoved).to.have.been.calledWith('test2');
 		});
 
 		it('should remove all dupe posts of post already in database and mark as removed in database', async function test() {
@@ -175,7 +173,7 @@ describe('Post model', () => {
 			expect(dupePosts).to.deep.equal([
 				test2,
 			]);
-			expect(postModel.markRemoved).to.have.been.calledWithMatch(test2);
+			expect(postModel.markRemoved).to.have.been.calledWith('test2');
 		});
 
 		it('should set status of removed post', async function test() {
