@@ -20,12 +20,3 @@ exports.remove = userId => redisClient.hdelAsync('meta:access_tokens_hash', user
 
 exports.add(process.env.FB_INITIAL_USER_ID, process.env.FB_PAGE_ACCESS_TOKEN)
   .then(() => console.log(`${new Date()}:`, 'ACCESS TOKENS:', 'Added initial page token to Redis'));
-
-// TODO:MB:20160415 delete next week
-redisClient.existsAsync('meta:access_tokens').then(exists => {
-	if(exists) {
-		return redisClient.delAsync('meta:access_tokens').then(() => 'Removed old access tokens key');
-	}
-
-	return 'No old access tokens key to remove';
-}).then(msg => console.log(`${new Date()}:`, 'ACCESS TOKENS:', msg));
