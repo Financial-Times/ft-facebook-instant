@@ -24,7 +24,7 @@
   "dependencies": {
     "@quarterto/assert-env": "^1.1.0",
     "@quarterto/heroku-version-infer": "^1.0.0",
-    "@quarterto/package-version-jira-release": "^1.0.0",
+    "@quarterto/package-version-jira-release": "^1.1.0",
     "@quarterto/package-version-sentry-release": "^1.2.0",
     "@quarterto/promise-loop-interval": "^1.0.0",
     "babel-cli": "^6.6.5",
