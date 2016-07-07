@@ -17,10 +17,11 @@ const lightSignupMarkup = params => `<figure class="op-interactive">
 
 module.exports = async function addLightSignup($, {warnings, params}) {
 	if(params.enableLightSignup) {
-		const paras = $('p');
+		const paras = $.root().children('p');
 		const position = Math.max(3, Math.floor(paras.length / 2));
+		const sensibleParas = paras.filter((i, el) => $(el).next().is('p'));
 
-		paras.eq(position).after(lightSignupMarkup(params));
+		sensibleParas.eq(position).after(lightSignupMarkup(params));
 	}
 
 	return $;
