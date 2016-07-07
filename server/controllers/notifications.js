@@ -236,16 +236,16 @@ const poller = () => database.getLastNotificationCheck()
 .then(merge)
 .then(merged => {
 	console.log(`${Date()}: NOTIFICATIONS API: processing ${merged.updates.length} updates, ${merged.deletes.length} deletes.`);
-	console.log(`${Date()}: NOTIFICATIONS API: updates: ${merged.updates.join(', ')}.`);
-	console.log(`${Date()}: NOTIFICATIONS API: deletes: ${merged.deletes.join(', ')}.`);
+	if(merged.updates.length) console.log(`${Date()}: NOTIFICATIONS API: updates: ${merged.updates.join(', ')}.`);
+	if(merged.deletes.length) console.log(`${Date()}: NOTIFICATIONS API: deletes: ${merged.deletes.join(', ')}.`);
 	return Promise.all([
 		getKnownArticles(merged.updates),
 		getKnownArticles(merged.deletes),
 	]);
 })
 .then(([updates, deletes]) => {
-	console.log(`${Date()}: NOTIFICATIONS API: will update known articles: ${updates.join(', ')}.`);
-	console.log(`${Date()}: NOTIFICATIONS API: will delete known articles: ${deletes.join(', ')}.`);
+	if(updates.length) console.log(`${Date()}: NOTIFICATIONS API: will update known articles: ${updates.join(', ')}.`);
+	if(deletes.length) console.log(`${Date()}: NOTIFICATIONS API: will delete known articles: ${deletes.join(', ')}.`);
 	return [updates, deletes];
 })
 .then(([updates, deletes]) => Promise.all([
