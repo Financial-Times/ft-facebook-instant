@@ -49,7 +49,7 @@ const fetch = (url, options = {}) => {
 	return retry(
 		() => fn(url, options)
 			.catch(e => {
-				if(e.message.indexOf('timeout') > -1) {
+				if(e.message.toLowerCase().indexOf('timeout') > -1) {
 					throw new RetryableException(e);
 				}
 				throw e;
