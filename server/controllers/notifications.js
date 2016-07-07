@@ -246,6 +246,7 @@ const poller = () => database.getLastNotificationCheck()
 .then(([updates, deletes]) => {
 	console.log(`${Date()}: NOTIFICATIONS API: will update known articles: ${updates.join(', ')}.`);
 	console.log(`${Date()}: NOTIFICATIONS API: will delete known articles: ${deletes.join(', ')}.`);
+	return [updates, deletes];
 })
 .then(([updates, deletes]) => Promise.all([
 	updateArticles(updates),
