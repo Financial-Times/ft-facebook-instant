@@ -5,7 +5,7 @@ const checkLinks = require('../related/checkLinks');
 const relatedSelector = '.op-related-articles';
 const linkSelector = 'a';
 
-module.exports = ($, warnings) => Promise.resolve()
+module.exports = ($, {warnings}) => Promise.resolve()
 	.then(() => {
 		const related = [];
 		$(relatedSelector).each((index, el) => {
