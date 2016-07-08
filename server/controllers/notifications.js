@@ -3,7 +3,6 @@
 const notificationsApi = require('../lib/notifications');
 const database = require('../lib/database');
 const articleModel = require('../models/article');
-const getCanonical = require('../models/canonical');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
