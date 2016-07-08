@@ -19,7 +19,7 @@ const requiredParams = [
 const lightSignupProduct = 'Facebook Instant';
 const lightSignupMailinglist = 'facebook-instant';
 
-const transformArticleBody = (apiRecord, warnings) => {
+const transformArticleBody = (apiRecord, options) => {
 	if(!apiRecord.bodyHTML) {
 		return Promise.reject(Error('Missing required [bodyHTML] field'));
 	}
@@ -34,7 +34,7 @@ const transformArticleBody = (apiRecord, warnings) => {
 		`${process.cwd()}/server/stylesheets/main.xsl`,
 		xsltParams
 	)
-	.then(body => cheerioTransforms(body, warnings));
+	.then(body => cheerioTransforms(body, options));
 };
 
 const getAnnotations = apiRecord => (apiRecord.annotations || [])
@@ -66,39 +66,42 @@ const basicValidate = article => Promise.resolve()
 module.exports = article => {
 	const warnings = [];
 
+	const params = {
+		canonicalUrl: article.canonical,
+		uuid: article.uuid,
+		style: 'default',
+		date_published: article.date_editorially_published,
+		date_updated: article.date_record_updated,
+		cookieChecker: (process.env.NODE_ENV !== 'production'),
+		lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
+		lightSignupProduct: encodeURIComponent(lightSignupProduct),
+		lightSignupMailinglist: encodeURIComponent(lightSignupMailinglist),
+		enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
+	};
+
 	return basicValidate(article)
 	.then(() => Promise.all([
-		transformArticleBody(article.apiRecord, warnings),
+		transformArticleBody(article.apiRecord, {warnings, params}),
 		getRelatedArticles(article.apiRecord),
 	]))
 	.then(([transformed$, relatedArticles]) => {
-		validateArticleElements(transformed$, warnings);
+		validateArticleElements(transformed$, {warnings, params});
 
-		const mainImageHtml = extractMainImage(transformed$, warnings);
+		const mainImageHtml = extractMainImage(transformed$, {warnings, params});
 		const analyticsUrl = getAnalyticsUrl(article);
 		const body = transformed$.html();
-		const params = {
+		const fullParams = Object.assign(params, {
 			body,
 			mainImageHtml,
 			analyticsUrl,
-			canonicalUrl: article.canonical,
-			uuid: article.uuid,
-			style: 'default',
-			date_published: article.date_editorially_published,
-			date_updated: article.date_record_updated,
-			tags: getAnnotations(article.apiRecord, warnings),
-			title: getTitle(article.apiRecord, warnings),
-			subtitle: getSubtitle(article.apiRecord, warnings),
-			authors: getAuthors(article.apiRecord, warnings),
-			cookieChecker: (process.env.NODE_ENV !== 'production'),
 			relatedArticles,
-			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
-			lightSignupProduct: encodeURIComponent(lightSignupProduct),
-			lightSignupMailinglist: encodeURIComponent(lightSignupMailinglist),
-			enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
-		};
+			tags: getAnnotations(article.apiRecord, {warnings, params}),
+			title: getTitle(article.apiRecord, {warnings, params}),
+			subtitle: getSubtitle(article.apiRecord, {warnings, params}),
+			authors: getAuthors(article.apiRecord, {warnings, params}),
+		});
 
-		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
+		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, fullParams)
 			.then(html => ({html, warnings}));
 	});
 };
