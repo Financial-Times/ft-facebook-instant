@@ -165,8 +165,9 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 	articles.map(
 		article => {
 			if(article.cachedCanonical === article.freshCanonical) {
-				// The canonical URL has not changed; no further work to do here
-				return Object.assign(article, {canonical: article.freshCanonical});
+				// The canonical URL has not changed; no further work to do here. Return a
+				// full article to work with
+				return articleModel.get(article.freshCanonical);
 			}
 			return handleCanonicalChange(article);
 		}
