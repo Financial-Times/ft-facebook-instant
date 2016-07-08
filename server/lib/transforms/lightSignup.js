@@ -12,7 +12,7 @@ const formatLightSignupUrl = ({lightSignupUrl, lightSignupProduct, lightSignupMa
 });
 
 const lightSignupMarkup = params => `<figure class="op-interactive">
-	<iframe src="${formatLightSignupUrl(params)}" width="320" height="350"></iframe>
+	<iframe src="${formatLightSignupUrl(params)}" width="320" height="300"></iframe>
 </figure>`;
 
 module.exports = async function addLightSignup($, {warnings, params}) {
