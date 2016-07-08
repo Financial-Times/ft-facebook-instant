@@ -61,9 +61,11 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 	deletes: union([v1Deletes, v2Deletes]),
 });
 
+const existsOnFacebook = fbRecords => !!(fbRecords && fbRecords[mode] && !fbRecords[mode].nullRecord);
+
 const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords}) => database.get(cachedCanonical)
 .then(databaseRecord => {
-	const sentToFacebook = !!(fbRecords && fbRecords[mode] && !fbRecords[mode].nullRecord);
+	const sentToFacebook = existsOnFacebook(fbRecords);
 	const wasPublished = sentToFacebook && fbRecords[mode].published;
 
 	console.log(`${Date()}: NOTIFICATIONS API: handleCanonicalChange for UUID ${uuid} ` +
@@ -127,7 +129,7 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords
 const refreshCanonical = uuid => ftApi.getCanonicalFromUuid(uuid)
 .catch(() => null);
 
-const getKnownCanonical = uuid => articleModel.getCanonical(uuid)
+const getKnownCanonical = uuid => database.getCanonical(uuid)
 .catch(() => null);
 
 // For each UUID, get any cached canonical URL
@@ -135,40 +137,35 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 	uuid => getKnownCanonical(uuid)
 		.then(cachedCanonical => ({uuid, cachedCanonical}))
 ))
-// Only articles with a known, cached canonical URL are of interest
-.then(articles => articles.filter(article => article.cachedCanonical))
+// Then update to ensure the canonical URL is fresh
 .then(articles =>
 	Promise.all(articles.map(
 		article => refreshCanonical(article.uuid)
 			.then(freshCanonical => Object.assign(article, {freshCanonical}))
 	))
 )
-.then(articles => {
-	articles = articles.filter(article => {
-		if(!article.freshCanonical) {
-			// No current canonical URL, so no further work to do.
-			console.log(`${Date()}: NOTIFICATIONS API: No known canonical URL for UUID ${article.uuid} - will ignore`);
-			return false;
-		}
-		return true;
-	});
-
-	return fbApi.findMany({
+// Only articles with a fresh, current canonical URL are of interest
+.then(articles => articles.filter(article => article.freshCanonical))
+// Then search Facebook for any records matching either stale or fresh canonical
+.then(articles =>
+	fbApi.findMany({
 		type: 'article',
-		ids: articles.map(article => article.cachedCanonical),
+		ids: articles.map(article => article.cachedCanonical || article.freshCanonical),
 	})
 	.then(fbRecordsList => articles.map(
 		article => {
-			const fbRecords = fbRecordsList[article.cachedCanonical];
+			const fbRecords = fbRecordsList[article.cachedCanonical || article.freshCanonical];
 			return Object.assign(article, {fbRecords});
 		}
-	));
-})
+	))
+)
+// Only articles with either a cached canonical URL or a Facebook record are of interest
+.then(articles => articles.filter(article => article.cachedCanonical || existsOnFacebook(article.fbRecords)))
 .then(articles => Promise.all(
 	articles.map(
 		article => {
 			if(article.cachedCanonical === article.freshCanonical) {
-				// The canonical URL has not changed; no further work to do.
+				// The canonical URL has not changed; no further work to do here
 				return Object.assign(article, {canonical: article.freshCanonical});
 			}
 			return handleCanonicalChange(article);
@@ -203,7 +200,7 @@ const updateArticle = stale => articleModel.update(stale)
 const updateArticles = staleArticles => {
 	// Only articles which have been sent to Facebook need updating on Facebook.
 	const articles = staleArticles.filter(
-		article => (article.fbRecords && article.fbRecords[mode] && !article.fbRecords[mode].nullRecord)
+		article => existsOnFacebook(article.fbRecords)
 	);
 	return Promise.all(articles.map(updateArticle))
 		.then(updated => updated.map(article => article.uuid));
@@ -232,9 +229,14 @@ const poller = () => database.getLastNotificationCheck()
 })
 .then(merge)
 .then(merged => {
-	console.log(`${Date()}: NOTIFICATIONS API: processing ${merged.updates.length} updates, ${merged.deletes.length} deletes.`);
-	if(merged.updates.length) console.log(`${Date()}: NOTIFICATIONS API: updates: ${merged.updates.join(', ')}.`);
-	if(merged.deletes.length) console.log(`${Date()}: NOTIFICATIONS API: deletes: ${merged.deletes.join(', ')}.`);
+	if(merged.updates.length) {
+		console.log(`${Date()}: NOTIFICATIONS API: processing ${merged.updates.length} updates:` +
+		` ${merged.updates.join(', ')}.`);
+	}
+	if(merged.deletes.length) {
+		console.log(`${Date()}: NOTIFICATIONS API: processing ${merged.deletes.length} deletes:` +
+		` ${merged.deletes.join(', ')}.`);
+	}
 	return Promise.all([
 		getKnownArticles(merged.updates),
 		getKnownArticles(merged.deletes),
