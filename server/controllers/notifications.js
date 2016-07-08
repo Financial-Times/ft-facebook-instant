@@ -61,13 +61,13 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 	deletes: union([v1Deletes, v2Deletes]),
 });
 
-const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecord}) => database.get(cachedCanonical)
+const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords}) => database.get(cachedCanonical)
 .then(databaseRecord => {
-	const sentToFacebook = (fbRecord && fbRecord[mode] && !fbRecord[mode].nullRecord);
-	const wasPublished = sentToFacebook && fbRecord[mode].published;
+	const sentToFacebook = !!(fbRecords && fbRecords[mode] && !fbRecords[mode].nullRecord);
+	const wasPublished = sentToFacebook && fbRecords[mode].published;
 
-	console.log(`handleCanonicalChange from ${cachedCanonical} to ${freshCanonical} with uuid ${uuid}, ` +
-		`sentToFacebook: ${sentToFacebook}, wasPublished: ${wasPublished}`);
+	console.log(`${Date()}: NOTIFICATIONS API: handleCanonicalChange for UUID ${uuid} ` +
+		` from ${cachedCanonical} to ${freshCanonical}. Exists on Facebook: ${!!sentToFacebook}, wasPublished: ${wasPublished}.`);
 
 	const freshDatabaseRecord = Object.assign({}, databaseRecord, {
 		canonical: freshCanonical,
@@ -144,21 +144,12 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 	))
 )
 .then(articles => {
-	// We now have a list of articles, some of which have cached and updated Canonicals
 	articles = articles.filter(article => {
 		if(!article.freshCanonical) {
 			// No current canonical URL, so no further work to do.
 			console.log(`${Date()}: NOTIFICATIONS API: No known canonical URL for UUID ${article.uuid} - will ignore`);
 			return false;
 		}
-
-		if(article.cachedCanonical === article.freshCanonical) {
-			// Canonical URL has not changed, so no further work to do.
-			return false;
-		}
-
-		console.log(`${Date()}: NOTIFICATIONS API: Canonical URL for UUID ${article.uuid} ` +
-			`has changed from ${article.cachedCanonical} to ${article.freshCanonical}`);
 		return true;
 	});
 
@@ -166,60 +157,66 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 		type: 'article',
 		ids: articles.map(article => article.cachedCanonical),
 	})
-	.then(fbRecords => articles.map(
-		(article, index) => Object.assign(article, {fbRecord: fbRecords[index]})
+	.then(fbRecordsList => articles.map(
+		article => {
+			const fbRecords = fbRecordsList[article.cachedCanonical];
+			return Object.assign(article, {fbRecords});
+		}
 	));
 })
-.then(articles => Promise.all(articles.map(
-	article => {
-		const sentToFacebook = (article.fbRecord && article.fbRecord[mode] && !article.fbRecord[mode].nullRecord);
-		console.log(`${Date()}: NOTIFICATIONS API: Handling canonical URL change for UUID ${article.uuid}, exists on Facebook: ${!!sentToFacebook}.`);
+.then(articles => Promise.all(
+	articles.map(
+		article => {
+			if(article.cachedCanonical === article.freshCanonical) {
+				// The canonical URL has not changed; no further work to do.
+				return Object.assign(article, {canonical: article.freshCanonical});
+			}
+			return handleCanonicalChange(article);
+		}
+	)
+));
 
-		return handleCanonicalChange(article)
-		.then(() => ({
-			uuid: article.uuid,
-			canonical: article.freshCanonical,
-			fbRecord: article.fbRecord,
-			sentToFacebook,
-		}));
-	}
-)));
+const updateArticle = stale => articleModel.update(stale)
+.then(article => {
+	const published = article.fbRecords[mode].published;
+	console.log(`${Date()}: NOTIFICATIONS API: updating known article: [${article.uuid}], mode: [${mode}], ` +
+		`was published: [${published}]`);
+	return transform(article)
+		.then(({html, warnings}) =>
+			fbApi.post({
+				uuid: article.uuid,
+				html,
+				published,
+				wait: true,
+			})
+			.then(({id}) => articleModel.setImportStatus({
+				article,
+				id,
+				warnings,
+				published,
+				username: 'daemon',
+				type: 'notifications-api',
+			}))
+		);
+});
 
-const updateArticles = staleArticles => Promise.all(staleArticles.map(articleModel.update))
-.then(articles => articles.filter(article => article.sentToFacebook))
-.then(articles => Promise.all(articles.map(
-	article => {
-		const published = article.fbRecords[mode].published;
-		console.log(`${Date()}: NOTIFICATIONS API: processing known article [${article.uuid}], mode [${mode}], ` +
-			`publishedOnFacebook [${published}]`);
-		return transform(article)
-			.then(({html, warnings}) =>
-				fbApi.post({
-					uuid: article.uuid,
-					html,
-					published,
-					wait: true,
-				})
-				.then(({id}) => articleModel.setImportStatus({
-					article,
-					id,
-					warnings,
-					published,
-					username: 'daemon',
-					type: 'notifications-api',
-				}))
-			)
-			.then(() => article.uuid);
-	}
-)));
+const updateArticles = staleArticles => {
+	// Only articles which have been sent to Facebook need updating on Facebook.
+	const articles = staleArticles.filter(
+		article => (article.fbRecords && article.fbRecords[mode] && !article.fbRecords[mode].nullRecord)
+	);
+	return Promise.all(articles.map(updateArticle))
+		.then(updated => updated.map(article => article.uuid));
+};
+
+const deleteArticle = ({uuid, canonical, fbRecords}) => fbApi.delete({canonical})
+.then(() => database.get(canonical))
+.then(article => articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}));
 
 const deleteArticles = articles => Promise.all(
-	articles.map(({uuid, canonical, fbRecord}) => fbApi.delete({canonical})
-		.then(() => database.get(canonical))
-		.then(article => articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}))
-		.then(() => uuid)
-	)
-);
+	articles.map(deleteArticle)
+)
+.then(deleted => deleted.map(article => article.uuid));
 
 const poller = () => database.getLastNotificationCheck()
 .then(lastCheck => {
@@ -244,8 +241,8 @@ const poller = () => database.getLastNotificationCheck()
 	]);
 })
 .then(([updates, deletes]) => {
-	if(updates.length) console.log(`${Date()}: NOTIFICATIONS API: will update known articles: ${updates.join(', ')}.`);
-	if(deletes.length) console.log(`${Date()}: NOTIFICATIONS API: will delete known articles: ${deletes.join(', ')}.`);
+	if(updates.length) console.log(`${Date()}: NOTIFICATIONS API: will update known articles: ${updates.map(article => article.uuid).join(', ')}.`);
+	if(deletes.length) console.log(`${Date()}: NOTIFICATIONS API: will delete known articles: ${deletes.map(article => article.uuid).join(', ')}.`);
 	return [updates, deletes];
 })
 .then(([updates, deletes]) => Promise.all([
