@@ -204,7 +204,7 @@ const updateArticles = articles => Promise.all(articles.map(updateArticle))
 
 const deleteArticle = ({uuid, canonical, fbRecords}) => fbApi.delete({canonical})
 .then(() => database.get(canonical))
-.then(article => articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}));
+.then(article => article && articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}));
 
 const deleteArticles = articles => Promise.all(articles.map(deleteArticle))
 .then(deleted => deleted.map(article => article.uuid));
