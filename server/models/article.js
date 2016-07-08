@@ -1,5 +1,7 @@
 'use strict';
 
+/* eslint-disable no-use-before-define */
+
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
@@ -165,6 +167,15 @@ const addFbImportsScalar = article => addFbImports([article])
 .then(articles => articles[0]);
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
+	// TODO: fix this condition, remove debugging
+	if(!Array.isArray(article.import_meta)) {
+		console.log(
+			'setImportStatus Error. Invalid `article.import_meta` for article:',
+			{article, id, warnings, type, username, published},
+			Error().stack
+		);
+	}
+
 	// Delete FB ids from all previous imports
 	article.import_meta = article.import_meta.map(item => {
 		delete item.id;
@@ -183,7 +194,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		published,
 	});
 	return updateDb(article)
-		.then(() => {});
+		.then(() => get(article.canonical));
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
@@ -242,7 +253,10 @@ const get = key => getOwnData(key)
 // contents as part of the article JSON?
 const update = article => Promise.all([
 	clearCache(article.canonical),
-	ftApi.updateEs(article.uuid),
+
+	// Attempt to update ElasticSearch
+	ftApi.updateEs(article.uuid)
+		.catch(e => {}),
 ])
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))

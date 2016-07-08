@@ -54,7 +54,6 @@ module.exports = (req, res, next) => {
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui'}))
 						)
 					)
-					.then(() => articleModel.get(url))
 					.then(article => res.json(article));
 
 			case 'publish':
@@ -64,7 +63,6 @@ module.exports = (req, res, next) => {
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui', published: true}))
 						)
 					)
-					.then(() => articleModel.get(url))
 					.then(article => res.json(article));
 
 			case 'reingest':
@@ -78,7 +76,6 @@ module.exports = (req, res, next) => {
 				return fbApi.delete({canonical: url})
 					.then(() => articleModel.get(url))
 					.then(article => articleModel.setImportStatus({article, username, type: 'ui-delete'}))
-					.then(() => articleModel.get(url))
 					.then(article => res.json(article));
 
 			default:
