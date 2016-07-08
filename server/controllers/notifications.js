@@ -171,7 +171,9 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 			return handleCanonicalChange(article);
 		}
 	)
-));
+))
+// Only articles which have been sent to Facebook need updating on Facebook.
+.then(articles => articles.filter(article => existsOnFacebook(article.fbRecords)));
 
 const updateArticle = stale => articleModel.update(stale)
 .then(article => {
@@ -197,22 +199,14 @@ const updateArticle = stale => articleModel.update(stale)
 		);
 });
 
-const updateArticles = staleArticles => {
-	// Only articles which have been sent to Facebook need updating on Facebook.
-	const articles = staleArticles.filter(
-		article => existsOnFacebook(article.fbRecords)
-	);
-	return Promise.all(articles.map(updateArticle))
-		.then(updated => updated.map(article => article.uuid));
-};
+const updateArticles = articles => Promise.all(articles.map(updateArticle))
+.then(updated => updated.map(article => article.uuid));
 
 const deleteArticle = ({uuid, canonical, fbRecords}) => fbApi.delete({canonical})
 .then(() => database.get(canonical))
 .then(article => articleModel.setImportStatus({article, username: 'daemon', type: 'notifications-delete'}));
 
-const deleteArticles = articles => Promise.all(
-	articles.map(deleteArticle)
-)
+const deleteArticles = articles => Promise.all(articles.map(deleteArticle))
 .then(deleted => deleted.map(article => article.uuid));
 
 const poller = () => database.getLastNotificationCheck()
@@ -255,13 +249,13 @@ const poller = () => database.getLastNotificationCheck()
 	if(updated.length) {
 		console.log(`${Date()}: NOTIFICATIONS API: updated articles ${updated.join(', ')}`);
 	} else {
-		console.log(`${Date()}: NOTIFICATIONS API: no articles to update`);
+		console.log(`${Date()}: NOTIFICATIONS API: no articles were updated`);
 	}
 
 	if(deleted.length) {
 		console.log(`${Date()}: NOTIFICATIONS API: deleted articles ${deleted.join(', ')}`);
 	} else {
-		console.log(`${Date()}: NOTIFICATIONS API: no articles to delete`);
+		console.log(`${Date()}: NOTIFICATIONS API: no articles were deleted`);
 	}
 
 	return database.setLastNotificationCheck(Date.now());
