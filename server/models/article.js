@@ -253,7 +253,10 @@ const get = key => getOwnData(key)
 // contents as part of the article JSON?
 const update = article => Promise.all([
 	clearCache(article.canonical),
-	ftApi.updateEs(article.uuid),
+
+	// Attempt to update ElasticSearch
+	ftApi.updateEs(article.uuid)
+		.catch(e => {}),
 ])
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))

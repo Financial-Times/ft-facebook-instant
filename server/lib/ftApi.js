@@ -4,6 +4,8 @@ const retry = require('./retry');
 const fetchres = require('fetchres');
 const uuidRegex = require('./uuid');
 const FtApiContentMissingException = require('./ftApi/contentMissingException');
+const ravenClient = require('./raven');
+const mode = require('./mode').get();
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';
@@ -117,7 +119,18 @@ const updateEsRegion = (region, uuid) => retry.fetch(
 		errorExtra: {region, uuid},
 	}
 )
-.then(fetchres.json);
+.then(fetchres.json)
+.catch(e => {
+	if(mode === 'production') {
+		ravenClient.captureException(e, {
+			tags: {
+				from: 'updateEsRegion',
+			},
+			extra: {region, uuid},
+		});
+	}
+	throw e;
+});
 
 const updateEs = uuid => Promise.all(['eu', 'us'].map(region => updateEsRegion(region, uuid)));
 
