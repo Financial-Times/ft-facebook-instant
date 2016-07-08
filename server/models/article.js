@@ -168,7 +168,7 @@ const addFbImportsScalar = article => addFbImports([article])
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
 	// TODO: fix this condition, remove debugging
-	if(!Array.isArray(article.import_meta)) {
+	if(!article || !Array.isArray(article.import_meta)) {
 		console.log(
 			'setImportStatus Error. Invalid `article.import_meta` for article:',
 			{article, id, warnings, type, username, published},
@@ -199,7 +199,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
 .then(() => database.get(canonical))
-.then(article => setImportStatus({article, type, username: 'system'}))
+.then(article => article && setImportStatus({article, type, username: 'system'}))
 .then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
 
 const getApi = canonical => database.getCapi(canonical)
