@@ -1,5 +1,7 @@
 'use strict';
 
+/* eslint-disable no-use-before-define */
+
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
@@ -167,7 +169,11 @@ const addFbImportsScalar = article => addFbImports([article])
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
 	// TODO: fix this condition, remove debugging
 	if(!Array.isArray(article.import_meta)) {
-		console.log('setImportStatus Error. Invalid `article.import_meta` for article:', {article, id, warnings, type, username, published}, Error().stack);
+		console.log(
+			'setImportStatus Error. Invalid `article.import_meta` for article:',
+			{article, id, warnings, type, username, published},
+			Error().stack
+		);
 	}
 
 	// Delete FB ids from all previous imports
@@ -188,7 +194,7 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		published,
 	});
 	return updateDb(article)
-		.then(() => {});
+		.then(() => get(article.canonical));
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
