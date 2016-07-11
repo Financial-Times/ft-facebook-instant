@@ -12,6 +12,7 @@ const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
 const FbApiImportException = require('./fbApi/importException');
 const FbApiTimeoutException = require('./fbApi/timeoutException');
+const ravenClient = require('./raven');
 
 const BATCH_SIZE = 50;
 
@@ -175,9 +176,24 @@ const callApi = (params, {batched, dependent, limit, errorHandler, attempts = 0}
 		return callApi(params, {batched, dependent, limit, errorHandler, attempts});
 	}
 
-	if(e.name === 'FacebookApiException' && e.response) {
-		e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
-		throw new Facebook.FacebookApiException(e.response);
+	if(e.name === 'FacebookApiException' && e.response && e.response.error) {
+		// Rather than hash the error response object as the Exception message, use the
+		// plain text message from FB
+		e.message = e.response.error.message;
+
+		ravenClient.captureException(e, {
+			tags: {
+				from: 'fbApi.callApi',
+			},
+			extra: {response: e.response, params, batched, dependent, limit, attempts},
+		});
+	} else {
+		ravenClient.captureException(e, {
+			tags: {
+				from: 'fbApi.callApi',
+			},
+			extra: {params, batched, dependent, limit, attempts},
+		});
 	}
 
 	throw e;
