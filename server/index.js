@@ -100,6 +100,11 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 /*  Routes */
 
+app.get('/robots.txt', (req, res) => {
+	res.type('text/plain');
+	res.send('User-agent: *\nDisallow: /');
+});
+
 app.route('/:all(all)?').get(noCache).get(handlebars.exposeTemplates, indexController);
 
 app.route('^/article/:url$').get(noCache).get(handlebars.exposeTemplates).get(articleController);
