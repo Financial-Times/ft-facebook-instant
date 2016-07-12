@@ -78,14 +78,17 @@ if(app.get('env') !== 'development') {
 
 /* Middleware */
 
-// __about, __gtg, etc.
+// Pre-logging, any frequent requests for which we'll never need logs
 ftwebservice(app, require('./controllers/ftWebService'));
-
 app.use(favicon(path.resolve(process.cwd(), 'resources/public/favicon.ico')));
+app.use(express.static(path.resolve(process.cwd(), 'resources/public')));
 
+// Then the logging middleware: requests which get this far will appear in Heroku logs
+app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'dev' : 'combined')));
+
+// Cookies, form body parsing, Handlebars
 app.use(cookieParser());
-
-// Handlebars middleware
+app.use(bodyParser.urlencoded({extended: true}));
 handlebars(app);
 
 // S30, but not in dev
@@ -93,10 +96,6 @@ if(app.get('env') !== 'development') {
 	app.use(authS3O);
 }
 
-// Other
-app.use(logger(process.env.LOG_FORMAT || (app.get('env') === 'development' ? 'dev' : 'combined')));
-app.use(express.static(path.resolve(process.cwd(), 'resources/public')));
-app.use(bodyParser.urlencoded({extended: true}));
 
 /*  Routes */
 
