@@ -18,10 +18,31 @@ const lightSignupMarkup = params => `<figure class="op-interactive">
 module.exports = async function addLightSignup($, {warnings, params}) {
 	if(params.enableLightSignup) {
 		const paras = $.root().children('p');
-		const position = Math.max(3, Math.floor(paras.length / 2));
-		const sensibleParas = paras.filter((i, el) => $(el).next().is('p'));
+		// Zero-indexed position
+		const idealPosition = Math.max(3, Math.floor(paras.length / 2)) - 1;
 
-		sensibleParas.eq(position).after(lightSignupMarkup(params));
+		// Try to position in the middle of the article, working forwards until a suitable
+		// place can be found
+		let position = idealPosition;
+		let prev = $(paras[position]).prev();
+		while(prev && !prev.is('p') && position >= 3) {
+			position--;
+			prev = $(paras[position]).prev();
+		}
+
+		// If no place can be found after the 3rd paragraph, place at some point after the
+		// middle
+		if(position < 3) {
+			position = idealPosition;
+			let next = $(paras[position]).next();
+			// Careful: `!next.is('p')` is true even for the last element!
+			while(next.is('*') && !next.is('p')) {
+				position++;
+				next = $(paras[position]).next();
+			}
+		}
+
+		paras.eq(position).after(lightSignupMarkup(params));
 	}
 
 	return $;
