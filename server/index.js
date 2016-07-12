@@ -2,22 +2,38 @@
 
 const express = require('express');
 const app = express();
+const assertEnv = require('@quarterto/assert-env');
+const raven = require('./lib/raven');
 
+// Set publishing mode
 const mode = (app.get('env') === 'production') ?
 	'production' :
 	'development';
 require('./lib/mode').set(mode);
 
+// Initialise Sentry
+const errorsToSentry = app.get('env') !== 'development';
+const ravenClient = raven.init(errorsToSentry);
+
+if(errorsToSentry) {
+	assertEnv(['SENTRY_DSN']);
+	ravenClient.patchGlobal(() => process.exit(1));
+} else {
+	process.on('uncaughtException', error => {
+		console.error(`${Date()}: uncaughtException`);
+		console.error(error.stack);
+		process.exit(1);
+	});
+}
+
 const cookieParser = require('cookie-parser');
 const handlebars = require('./lib/handlebars');
 const ftwebservice = require('express-ftwebservice');
 const authS3O = require('s3o-middleware');
-const assertEnv = require('@quarterto/assert-env');
 const logger = require('morgan');
 const favicon = require('serve-favicon');
 const path = require('path');
 const bodyParser = require('body-parser');
-const raven = require('raven');
 const noCache = require('./lib/nocache');
 const devController = require('./controllers/dev');
 const indexController = require('./controllers/index');
@@ -28,22 +44,6 @@ const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
 
 const port = process.env.PORT || 6247;
-
-const initRaven = app.get('env') !== 'development';
-let ravenClient;
-
-if(initRaven) {
-	assertEnv(['SENTRY_DSN']);
-	ravenClient = require('./lib/raven').init(true);
-	ravenClient.patchGlobal(() => process.exit(1));
-} else {
-	ravenClient = require('./lib/raven').init(false);
-	process.on('uncaughtException', error => {
-		console.error(`${Date()}: uncaughtException`);
-		console.error(error.stack);
-		process.exit(1);
-	});
-}
 
 assertEnv([
 	'AWS_ACCESS_KEY',
@@ -68,11 +68,9 @@ assertEnv([
 	'ENABLE_INSIGHTS_FETCH',
 ]);
 
-if(initRaven) {
-	app.use(raven.middleware.express.requestHandler(ravenClient));
+if(errorsToSentry) {
+	app.use(raven.requestHandler(ravenClient));
 	app.use((req, res, next) => {
-		ravenClient.setExtraContext(raven.parsers.parseRequest(req));
-		req.raven = ravenClient;
 		next();
 	});
 }
@@ -128,13 +126,13 @@ app.route('^/dev/:action').get(noCache).get(devController);
 
 /* Errors */
 
-if(initRaven) {
-	app.use(raven.middleware.express.errorHandler(ravenClient));
+if(errorsToSentry) {
+	app.use(raven.errorHandler(ravenClient));
 }
 
 const logErrors = (error, req, res, next) => {
 	let message = `${Date()}: LOGERRORS: ${error.stack || error}.`;
-	if(ravenClient) message += ` Sentry error code: ${res.sentry}.`;
+	if(res.sentry) message += `\nSentry error code: ${res.sentry}.`;
 	console.error(message);
 	next(error);
 };
@@ -145,7 +143,7 @@ const clientErrorHandler = (error, req, res, next) => {
 		stack: (app.get('env') === 'development') && error.stack,
 	};
 
-	if(ravenClient) message.error += ` Sentry error code: ${res.sentry}.`;
+	if(res.sentry) message.error += `\nSentry error code: ${res.sentry}.`;
 
 	res.status(400);
 

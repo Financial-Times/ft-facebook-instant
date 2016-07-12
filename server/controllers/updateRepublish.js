@@ -3,7 +3,7 @@
 const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
-const ravenClient = require('../lib/raven');
+const ravenClient = require('../lib/raven').client;
 const {version} = require('../../package.json');
 
 const mode = require('../lib/mode').get();
@@ -38,9 +38,7 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 
 const handleError = e => {
 	console.error(`${Date()}: UPDATE/REPUBLISH error: ${e.stack || e}`);
-	if(mode === 'production') {
-		ravenClient.captureException(e, {tags: {from: 'republish'}});
-	}
+	ravenClient.captureException(e, {tags: {from: 'republish'}});
 };
 
 const republish = options => fbApi.list({fields: ['canonical_url'], __limit: 0})
