@@ -61,7 +61,7 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 	deletes: union([v1Deletes, v2Deletes]),
 });
 
-const existsOnFacebook = fbRecords => !!(fbRecords && fbRecords[mode] && !fbRecords[mode].nullRecord);
+const existsOnFacebook = article => !!(article.fbRecords && article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 
 const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords}) => database.get(cachedCanonical)
 .then(databaseRecord => {
@@ -161,7 +161,7 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 )
 // Adjust articles which exist on FB but which don't have a locally cached canonical URL
 .then(articles => articles.map(article => {
-	if(!article.cachedCanonical && existsOnFacebook(article.fbRecords)) {
+	if(!article.cachedCanonical && existsOnFacebook(article)) {
 		article.cachedCanonical = article.fbRecords[mode].canonical_url;
 	}
 	return article;
@@ -180,7 +180,7 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 	)
 ))
 // Only articles which have been sent to Facebook need updating on Facebook.
-.then(articles => articles.filter(article => existsOnFacebook(article.fbRecords)));
+.then(articles => articles.filter(article => existsOnFacebook(article)));
 
 const updateArticle = stale => articleModel.update(stale)
 .then(article => {
