@@ -70,9 +70,6 @@ assertEnv([
 
 if(errorsToSentry) {
 	app.use(raven.requestHandler(ravenClient));
-	app.use((req, res, next) => {
-		next();
-	});
 }
 
 
