@@ -107,6 +107,8 @@ const extractUuid = string => (uuidRegex.exec(string) || [])[0];
 const resolveUrl = url => retry.fetch(url, {errorFrom: 'articles.resolveUrl', errorExtra: {url}})
 .then(res => res.url);
 
+const isAbsoluteUrl = url => /^(?:\w+:)\/\//.test(url);
+
 // Follow redirects first
 const deriveCanonical = key => {
 	let uuid = extractUuid(key);
@@ -114,14 +116,18 @@ const deriveCanonical = key => {
 		return ftApi.getCanonicalFromUuid(uuid);
 	}
 
-	return resolveUrl(key)
-	.then(resolved => {
-		uuid = extractUuid(resolved);
-		if(uuid) {
-			return ftApi.getCanonicalFromUuid(uuid);
-		}
-		return ftApi.verifyCanonical(key);
-	});
+	if(isAbsoluteUrl(key)) {
+		return resolveUrl(key)
+		.then(resolved => {
+			uuid = extractUuid(resolved);
+			if(uuid) {
+				return ftApi.getCanonicalFromUuid(uuid);
+			}
+			return ftApi.verifyCanonical(key);
+		});
+	}
+
+	throw Error(`Can't derive canonical URL from string [${key}]`);
 };
 
 const getCanonical = key => database.getCanonical(key)
