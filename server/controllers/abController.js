@@ -7,32 +7,36 @@ const promiseLoopInterval = require('@quarterto/promise-loop-interval');
 
 const AB_POLL_INTERVAL = 1 * 60 * 1000;
 
-const logRemovedPost = (reason, getExtra = () => '') => post => {
-	console.log(`${Date()}: A/B: removed ${post.canonical} from test, because ${reason}${getExtra(post) ? `: ${getExtra(post)}` : ''}`);
+const getExtra = post => (post.status ? JSON.stringify(post.status) : post.error);
+
+const logRemovedPost = post => {
+	console.log(`${Date()}: A/B: removed ${post.canonical} from test, because ${post.reason}${getExtra(post) ? `: ${getExtra(post)}` : ''}`);
 };
 
 module.exports = promiseLoopInterval(async function abController() {
-	const posts = await postModel.get();
+	try {
+		const posts = await postModel.get();
 
-	if(!posts.length) {
-		console.log(`${Date()}: A/B: no new posts to A/B test`);
-		return; // don't convert posts if there aren't any
-	}
+		if(!posts.length) {
+			console.log(`${Date()}: A/B: no new posts to A/B test`);
+			return; // don't convert posts if there aren't any
+		}
 
-	const [newPosts, dupePosts] = await postModel.markDuplicates(posts);
-	dupePosts.forEach(logRemovedPost('we\'ve seen it already', post => JSON.stringify(post.status)));
+		const {testable, untestable} = await postModel.partitionTestable(posts);
+		untestable.forEach(logRemovedPost);
+		console.log(1);
+		await Promise.all(testable.map(postModel.bucketAndPublish));
 
-	const [renderablePosts, unrenderablePosts] = await postModel.partitionRenderable(newPosts);
-	unrenderablePosts.forEach(logRemovedPost('we couldn\'t render it', post => post.error));
-
-	await Promise.all(renderablePosts.map(postModel.bucketAndPublish));
-
-	if(renderablePosts.length) {
-		const testUuids = renderablePosts.filter(({bucket}) => bucket === 'test').map(({uuid}) => uuid);
-		const controlUuids = renderablePosts.filter(({bucket}) => bucket === 'control').map(({uuid}) => uuid);
-		console.log(`${Date()}: A/B: testing posts, test: ${testUuids.join()}, control: ${controlUuids.join()}`);
-	} else {
-		console.log(`${Date()}: A/B: none of the new posts could be added to the test`);
+		console.log(2);
+		if(testable.length) {
+			const testUuids = testable.filter(({bucket}) => bucket === 'test').map(({uuid}) => uuid);
+			const controlUuids = testable.filter(({bucket}) => bucket === 'control').map(({uuid}) => uuid);
+			console.log(`${Date()}: A/B: testing posts, test: ${testUuids.join()}, control: ${controlUuids.join()}`);
+		} else {
+			console.log(`${Date()}: A/B: none of the new posts could be added to the test`);
+		}
+	} catch(e) {
+		console.error(e.stack);
 	}
 }, AB_POLL_INTERVAL);
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const partitionPromise = require('@quarterto/partition-promise');
+const partitionPromiseParallel = require('@quarterto/partition-promise-parallel');
 const transform = require('../lib/transform');
 const articleModel = require('./article');
 const database = require('../lib/database');
@@ -11,49 +11,87 @@ const mode = require('../lib/mode');
 exports.get = async function get() {
 	const since = await database.getLastABCheck();
 	const current = Date.now(); // get this as soon as possible because this might take a while
-
-	// Don't do anything for the first run
-	const results = !since ? [] : Promise.all(
-		(await fbApi.posts({since}))
-			.map(async function mapPosts(url) {
-				const canonical = await getCanonical(url);
-				return articleModel.get(canonical);
-			})
-	);
+	const results = !since ? [] : await fbApi.posts({since}); // don't do anything for the first run
 
 	await database.setLastABCheck(current);
-	return results;
+	return results.map(origUrl => ({origUrl}));
 };
 
-exports.markDuplicates = posts => posts.reduce(async function markDupe(previous, post) {
-	const [newPosts, dupePosts] = await previous;
-	// remove new posts that are already in the AB test *or* are in the current batch multiple times
-	// (except not actually remove, but mark as removed so future runs can see them)
-	const alreadyInTest = !!(await database.getFBLinkPost(post.canonical));
-	const dupeInBatch = newPosts.has(post.canonical);
+exports.getPostCanonical = post => (console.log(post), getCanonical(post.origUrl).then(
+	canonical => Object.assign(post, {canonical}),
+	err => {
+		if(err.type === 'FtApiContentMissingException') {
+			return null; // ignore things not in elastic search, i.e. non-articles or old articles
+		}
 
-	if(alreadyInTest || dupeInBatch) {
-		await exports.markRemoved(post.canonical);
-		post.status = {alreadyInTest, dupeInBatch};
-		newPosts.delete(post.canonical);
-		dupePosts.set(post.canonical, post);
-		return [newPosts, dupePosts];
+		throw err;
 	}
+));
 
-	newPosts.set(post.canonical, post);
-	return [newPosts, dupePosts];
-}, [new Map(), new Map()]).then(results => results.map(map => Array.from(map.values())));
+exports.hydratePostWithArticle = post => articleModel
+	.get(post.canonical)
+	.then(article => Object.assign(post, article));
 
-exports.partitionRenderable = posts => partitionPromise(posts, post => transform(post).then(
+exports.canRenderPost = post => transform(post).then(
 	rendered => {
 		post.rendered = rendered;
 		return true;
 	},
 	error => {
-		post.error = error;
+		post.errors = Object.assign({
+			render: error
+		}, post.errors);
+
 		return false;
 	}
-));
+);
+
+exports.isDupeFactory = (seenPosts = new Map(), dupePosts = new Map()) => async function isDupe(post) {
+	// remove new posts that are already in the AB test *or* are in the current batch multiple times
+	// (except not actually remove, but mark as removed so future runs can see them)
+	const alreadyInTest = !!(await database.getFBLinkPost(post.canonical));
+	const dupeInBatch = seenPosts.has(post.canonical);
+
+	if(alreadyInTest || dupeInBatch) {
+		await exports.markRemoved(post.canonical);
+		post.status = {alreadyInTest, dupeInBatch};
+		seenPosts.delete(post.canonical);
+		dupePosts.set(post.canonical, post);
+
+		return true;
+	}
+
+	seenPosts.set(post.canonical, post);
+	return false;
+};
+
+exports.partitionTestable = async function partitionTestable(posts) {
+	const isDupe = exports.isDupeFactory();
+
+	console.log('a1');
+	const [testable, untestable] = await partitionPromiseParallel(posts, async function isTestable(post) {
+		if(!await exports.getPostCanonical(post)) {
+			post.reason = 'it\'s not an article';
+			return false;
+		}
+
+		if(await isDupe(post)) {
+			post.reason = 'we\'ve seen it already';
+			return false;
+		}
+
+		await exports.hydratePostWithArticle(post);
+
+		if(!(await exports.canRenderPost(post))) {
+			post.reason = 'we couldn\'t render it';
+			return false;
+		}
+
+		return true;
+	});
+
+	return {testable, untestable};
+};
 
 exports.bucketAndPublish = async function bucketAndPublish(post) {
 	const bucket = await exports.setWithBucket(post);
@@ -76,4 +114,4 @@ exports.setWithBucket = async function setWithBucket(post, testBucket = Math.ran
 	return post.bucket;
 };
 
-exports.markRemoved = url => database.setFBLinkPost(url, {bucket: 'removed'});
+exports.markRemoved = canonical => database.setFBLinkPost(canonical, {canonical, bucket: 'removed'});
