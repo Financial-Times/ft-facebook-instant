@@ -6,7 +6,7 @@ const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
-const ravenClient = require('../lib/raven');
+const ravenClient = require('../lib/raven').client;
 const promiseLoopInterval = require('@quarterto/promise-loop-interval');
 
 const mode = require('../lib/mode').get();
@@ -269,9 +269,7 @@ const poller = () => database.getLastNotificationCheck()
 })
 .catch(e => {
 	console.error(`${Date()}: NOTIFICATIONS API error: ${e.stack || e}`);
-	if(mode === 'production') {
-		ravenClient.captureException(e, {tags: {from: 'notifications'}});
-	}
+	ravenClient.captureException(e, {tags: {from: 'notifications'}});
 });
 
 const loop = promiseLoopInterval(poller, UPDATE_INTERVAL);

@@ -8,7 +8,7 @@ const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 const {version} = require('../../package.json');
 const retry = require('../lib/retry');
-const ravenClient = require('../lib/raven');
+const ravenClient = require('../lib/raven').client;
 
 const mode = require('../lib/mode').get();
 
@@ -169,12 +169,10 @@ const addFbImportsScalar = article => addFbImports([article])
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
 	if(!article || !Array.isArray(article.import_meta)) {
-		if(mode === 'production') {
-			ravenClient.captureMessage('setImportStatus Error. Invalid `article.import_meta` for article', {
-				extra: {article, id, warnings, type, username, published},
-				tags: {from: 'articleModel'},
-			});
-		}
+		ravenClient.captureMessage('setImportStatus Error. Invalid `article.import_meta` for article', {
+			extra: {article, id, warnings, type, username, published},
+			tags: {from: 'articleModel'},
+		});
 	}
 
 	// Delete FB ids from all previous imports

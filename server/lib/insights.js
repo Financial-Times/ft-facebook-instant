@@ -15,7 +15,7 @@ const readDir = denodeify(fs.readdir);
 const csvStringify = denodeify(require('csv-stringify'));
 const path = require('path');
 const mode = require('./mode').get();
-const ravenClient = require('./raven');
+const ravenClient = require('./raven').client;
 
 const pageId = process.env.FB_PAGE_ID;
 const VERBOSE_AGGREGATIONS = false;
@@ -802,17 +802,15 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 					return;
 				} else if(age > 1) {
 					console.log(`Warning: last run was ${age} hours ago (should be run every hour).`);
-					if(mode === 'production') {
-						ravenClient.captureMessage('Last insights import > 1 hour', {
-							level: 'info',
-							extra: {
-								lastRunAge: `${age} hours`,
-								lastRun: moment.utc(lastRun.timestamp).format(),
-								now: now.format(),
-							},
-							tags: {from: 'insights'},
-						});
-					}
+					ravenClient.captureMessage('Last insights import > 1 hour', {
+						level: 'info',
+						extra: {
+							lastRunAge: `${age} hours`,
+							lastRun: moment.utc(lastRun.timestamp).format(),
+							now: now.format(),
+						},
+						tags: {from: 'insights'},
+					});
 				}
 
 				console.log(`Fetching data for posts from ${since.format()} to ${now.format()}. Last run was ${age} hour(s) ago.`);

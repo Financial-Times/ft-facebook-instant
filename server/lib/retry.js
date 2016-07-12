@@ -4,8 +4,6 @@ const util = require('util');
 const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
 const DEFAULT_ITERATIONS = 3;
-const mode = require('./mode').get();
-const ravenClient = require('./raven');
 
 function RetryableException(actualException) {
 	this.message = actualException.message;
@@ -57,14 +55,9 @@ const fetch = (url, options = {}) => {
 		maxIterations
 	)
 	.catch(e => {
-		if(mode === 'production') {
-			ravenClient.captureException(e, {
-				tags: {
-					from,
-				},
-				extra: Object.assign({maxIterations, url, options}, extra),
-			});
-		}
+		// Add extra detail to error object for Sentry
+		e.tags = {from};
+		e.extra = Object.assign({maxIterations, url, options}, extra);
 		throw e;
 	});
 };
