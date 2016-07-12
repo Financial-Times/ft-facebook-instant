@@ -1,10 +1,9 @@
 {
   "presets": [
-    "es2015",
-    "stage-3"
+    "node6"
   ],
   "plugins": [
-    "transform-runtime",
-    "transform-object-rest-spread"
+    "transform-object-rest-spread",
+    "transform-async-to-generator"
   ]
 }
