@@ -131,7 +131,9 @@ if(app.get('env') !== 'development') {
 }
 
 const logErrors = (error, req, res, next) => {
-	console.error(`${Date()}: LOGERRORS: ${error.stack || error}`);
+	let message = `${Date()}: LOGERRORS: ${error.stack || error}.`;
+	if(ravenClient) message += ` Sentry error code: ${res.sentry}.`;
+	console.error(message);
 	next(error);
 };
 
@@ -140,6 +142,8 @@ const clientErrorHandler = (error, req, res, next) => {
 		error: error.toString(),
 		stack: (app.get('env') === 'development') && error.stack,
 	};
+
+	if(ravenClient) message.error += ` Sentry error code: ${res.sentry}.`;
 
 	res.status(400);
 
