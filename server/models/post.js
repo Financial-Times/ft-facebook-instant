@@ -10,18 +10,19 @@ const mode = require('../lib/mode');
 
 exports.get = async function get() {
 	const since = await database.getLastABCheck();
-	await database.setLastABCheck(Date.now()); // set this as soon as possible because this might take a while
+	const current = Date.now(); // get this as soon as possible because this might take a while
 
 	// Don't do anything for the first run
-	if(!since) return [];
-
-	return Promise.all(
+	const results = !since ? [] : Promise.all(
 		(await fbApi.posts({since}))
 			.map(async function mapPosts(url) {
 				const canonical = await getCanonical(url);
 				return articleModel.get(canonical);
 			})
 	);
+
+	await database.setLastABCheck(current);
+	return results;
 };
 
 exports.markDuplicates = posts => posts.reduce(async function markDupe(previous, post) {
