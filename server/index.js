@@ -29,18 +29,20 @@ const apiController = require('./controllers/api');
 
 const port = process.env.PORT || 6247;
 
+const initRaven = app.get('env') !== 'development';
 let ravenClient;
 
-if(app.get('env') === 'development') {
+if(initRaven) {
+	assertEnv(['SENTRY_DSN']);
+	ravenClient = require('./lib/raven').init(true);
+	ravenClient.patchGlobal(() => process.exit(1));
+} else {
+	ravenClient = require('./lib/raven').init(false);
 	process.on('uncaughtException', error => {
 		console.error(`${Date()}: uncaughtException`);
 		console.error(error.stack);
 		process.exit(1);
 	});
-} else {
-	assertEnv(['SENTRY_DSN']);
-	ravenClient = require('./lib/raven');
-	ravenClient.patchGlobal(() => process.exit(1));
 }
 
 assertEnv([
@@ -66,7 +68,7 @@ assertEnv([
 	'ENABLE_INSIGHTS_FETCH',
 ]);
 
-if(app.get('env') !== 'development') {
+if(initRaven) {
 	app.use(raven.middleware.express.requestHandler(ravenClient));
 	app.use((req, res, next) => {
 		ravenClient.setExtraContext(raven.parsers.parseRequest(req));
@@ -126,7 +128,7 @@ app.route('^/dev/:action').get(noCache).get(devController);
 
 /* Errors */
 
-if(app.get('env') !== 'development') {
+if(initRaven) {
 	app.use(raven.middleware.express.errorHandler(ravenClient));
 }
 
