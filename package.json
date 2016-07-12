@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Financial-Times/ft-facebook-instant#readme",
   "dependencies": {
+    "@georgecrawford/raven-express-context-errorhandler": "^1.1.0",
     "@quarterto/assert-env": "^1.1.0",
     "@quarterto/enforce-node-version": "^1.1.0",
     "@quarterto/heroku-version-infer": "^3.2.3",
