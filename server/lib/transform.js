@@ -74,8 +74,8 @@ module.exports = article => {
 		date_updated: article.date_record_updated,
 		cookieChecker: (process.env.NODE_ENV !== 'production'),
 		lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
-		lightSignupProduct: encodeURIComponent(lightSignupProduct),
-		lightSignupMailinglist: encodeURIComponent(lightSignupMailinglist),
+		lightSignupProduct,
+		lightSignupMailinglist,
 		enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
 	};
 
