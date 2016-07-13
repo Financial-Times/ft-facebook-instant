@@ -90,6 +90,8 @@ handlebars(app);
 
 // S30, but not in dev
 if(app.get('env') !== 'development') {
+	// TTL of one day
+	app.set('s3o-cookie-ttl', 86400000);
 	app.use(authS3O);
 }
 
