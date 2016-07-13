@@ -1,6 +1,9 @@
 'use strict';
 
-const {version} = require('../../package.json');
+let {version} = require('../../package.json');
+if(version.indexOf('heroku') && process.env.HEROKU_RELEASE_VERSION) {
+	version = version.split('heroku').join(`heroku-${process.env.HEROKU_RELEASE_VERSION}`);
+}
 
 module.exports = article => {
 	const prod = process.env.NODE_ENV === 'production';
