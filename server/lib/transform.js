@@ -51,8 +51,14 @@ const getAuthors = apiRecord => {
 		.filter(item => !!(item.taxonomy && item.taxonomy === 'authors'))
 		.map(item => item.prefLabel);
 
+	if(authors.length) return authors;
+
 	// Somtimes there are no authors in the taxonomy. It's very sad but it's true.
-	return authors.length ? authors : [(apiRecord.byline || '').replace(/^by\s+/i, '')];
+	if(apiRecord.byline) {
+		return [apiRecord.byline.replace(/^by\s+/i, '')];
+	}
+
+	return [];
 };
 
 const basicValidate = article => Promise.resolve()
