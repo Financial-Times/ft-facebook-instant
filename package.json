@@ -4,13 +4,16 @@
   "description": "Facebook Instant Articles",
   "main": "build/index.js",
   "scripts": {
-    "prestart": "wmake babel &",
+    "prestart": "enforce-node-version && wmake babel &",
     "start": "source scripts/env.sh && nodemon",
     "postinstall": "make",
     "test": "make test",
     "heroku-config": "heroku-config-to-env -i HEROKU_ -i REDIS_URL -i NODE_ENV -l REDIS_URL=redis://localhost:6379/ -l NODE_ENV=development ft-facebook-instant-staging scripts/env.sh",
     "watch": "wmake",
-    "heroku-postbuild": "heroku-version-infer && package-version-sentry-release"
+    "heroku-postbuild": "heroku-version-infer && package-version-sentry-release && package-version-jira-release && package-version-github-release"
+  },
+  "engines": {
+    "node": "^6.0.0"
   },
   "repository": {
     "type": "git",
@@ -22,15 +25,18 @@
   },
   "homepage": "https://github.com/Financial-Times/ft-facebook-instant#readme",
   "dependencies": {
+    "@georgecrawford/raven-express-context-errorhandler": "^1.1.0",
     "@quarterto/assert-env": "^1.1.0",
-    "@quarterto/heroku-version-infer": "^1.0.0",
+    "@quarterto/enforce-node-version": "^1.1.0",
+    "@quarterto/heroku-version-infer": "^3.2.3",
+    "@quarterto/package-version-github-release": "^1.0.0",
+    "@quarterto/package-version-jira-release": "^1.1.0",
     "@quarterto/package-version-sentry-release": "^1.2.0",
     "@quarterto/promise-loop-interval": "^1.0.0",
     "babel-cli": "^6.6.5",
-    "babel-plugin-transform-runtime": "^6.7.5",
-    "babel-preset-es2015": "^6.6.0",
-    "babel-preset-stage-3": "^6.5.0",
-    "babel-runtime": "^6.6.1",
+    "babel-plugin-transform-async-to-generator": "^6.8.0",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babel-preset-node6": "^11.0.0",
     "basic-auth": "^1.0.3",
     "body-parser": "^1.15.0",
     "cheerio": "^0.20.0",
@@ -54,7 +60,7 @@
     "raven": "^0.10.0",
     "redis": "^2.5.1",
     "request": "^2.69.0",
-    "s3o-middleware": "^1.4.0",
+    "s3o-middleware": "^1.7.0",
     "serve-favicon": "^2.3.0",
     "signed-aws-es-fetch": "^1.1.0"
   },

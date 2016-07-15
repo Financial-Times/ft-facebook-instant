@@ -16,7 +16,10 @@ const requiredParams = [
 	'date_record_updated',
 ];
 
-const transformArticleBody = (apiRecord, warnings) => {
+const lightSignupProduct = 'Facebook Instant';
+const lightSignupMailinglist = 'facebook-instant';
+
+const transformArticleBody = (apiRecord, options) => {
 	if(!apiRecord.bodyHTML) {
 		return Promise.reject(Error('Missing required [bodyHTML] field'));
 	}
@@ -31,7 +34,7 @@ const transformArticleBody = (apiRecord, warnings) => {
 		`${process.cwd()}/server/stylesheets/main.xsl`,
 		xsltParams
 	)
-	.then(body => cheerioTransforms(body, warnings));
+	.then(body => cheerioTransforms(body, options));
 };
 
 const getAnnotations = apiRecord => (apiRecord.annotations || [])
@@ -48,8 +51,14 @@ const getAuthors = apiRecord => {
 		.filter(item => !!(item.taxonomy && item.taxonomy === 'authors'))
 		.map(item => item.prefLabel);
 
+	if(authors.length) return authors;
+
 	// Somtimes there are no authors in the taxonomy. It's very sad but it's true.
-	return authors.length ? authors : [(apiRecord.byline || '').replace(/^by\s+/i, '')];
+	if(apiRecord.byline) {
+		return [apiRecord.byline.replace(/^by\s+/i, '')];
+	}
+
+	return [];
 };
 
 const basicValidate = article => Promise.resolve()
@@ -63,39 +72,42 @@ const basicValidate = article => Promise.resolve()
 module.exports = article => {
 	const warnings = [];
 
+	const params = {
+		canonicalUrl: article.canonical,
+		uuid: article.uuid,
+		style: 'default',
+		date_published: article.date_editorially_published,
+		date_updated: article.date_record_updated,
+		cookieChecker: (process.env.SHOW_COOKIE_CHECKER && process.env.NODE_ENV !== 'production'),
+		lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
+		lightSignupProduct,
+		lightSignupMailinglist,
+		enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
+	};
+
 	return basicValidate(article)
 	.then(() => Promise.all([
-		transformArticleBody(article.apiRecord, warnings),
+		transformArticleBody(article.apiRecord, {warnings, params}),
 		getRelatedArticles(article.apiRecord),
 	]))
 	.then(([transformed$, relatedArticles]) => {
-		validateArticleElements(transformed$, warnings);
+		validateArticleElements(transformed$, {warnings, params});
 
-		const mainImageHtml = extractMainImage(transformed$, warnings);
+		const mainImageHtml = extractMainImage(transformed$, {warnings, params});
 		const analyticsUrl = getAnalyticsUrl(article);
 		const body = transformed$.html();
-		const params = {
+		const fullParams = Object.assign(params, {
 			body,
 			mainImageHtml,
 			analyticsUrl,
-			canonicalUrl: article.canonical,
-			uuid: article.uuid,
-			style: 'default',
-			date_published: article.date_editorially_published,
-			date_updated: article.date_record_updated,
-			tags: getAnnotations(article.apiRecord, warnings),
-			title: getTitle(article.apiRecord, warnings),
-			subtitle: getSubtitle(article.apiRecord, warnings),
-			authors: getAuthors(article.apiRecord, warnings),
-			cookieChecker: (process.env.NODE_ENV !== 'production'),
 			relatedArticles,
-			lightSignupUrl: process.env.LIGHT_SIGNUP_URL || 'https://distro-light-signup-prod.herokuapp.com',
-			lightSignupProduct: 'Facebook Instant',
-			lightSignupMailinglist: 'facebook-instant',
-			enableLightSignup: (process.env.ENABLE_LIGHT_SIGNUP === 'true'),
-		};
+			tags: getAnnotations(article.apiRecord, {warnings, params}),
+			title: getTitle(article.apiRecord, {warnings, params}),
+			subtitle: getSubtitle(article.apiRecord, {warnings, params}),
+			authors: getAuthors(article.apiRecord, {warnings, params}),
+		});
 
-		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, params)
+		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, fullParams)
 			.then(html => ({html, warnings}));
 	});
 };

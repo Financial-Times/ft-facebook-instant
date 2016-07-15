@@ -15,7 +15,7 @@ const readDir = denodeify(fs.readdir);
 const csvStringify = denodeify(require('csv-stringify'));
 const path = require('path');
 const mode = require('./mode').get();
-const ravenClient = require('./raven');
+const ravenClient = require('./raven').client;
 
 const pageId = process.env.FB_PAGE_ID;
 const VERBOSE_AGGREGATIONS = false;
@@ -329,10 +329,10 @@ const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_objec
 
 const createCanonicalsQuery = () => {
 	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
-		// The importer script went live at 2016-06-09T10:00 (1465466400), and didn't know
+		// The importer script went live at 2016-06-09 (1465430400), and didn't know
 		// about posts published before then. Limit historic data to this cut-off, in case
 		// a pre-existing IA is re-promoted with a new post.
-		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1465466400).until(now).as(metrics_${key})`
+		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1465430400).until(now).as(metrics_${key})`
 	);
 	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
@@ -440,16 +440,21 @@ const addUuid = flat => {
 		.then(uuid => (flat.uuid = uuid));
 };
 
-const addInstantArticleMetadata = flat => {
-	if(!flat.ia_published) return flat;
+// Refine the approximation with the actual time of publication
+const addInstantArticleMetadata = posts => {
+	const canonicalsWithIa = posts.filter(post => !!post.ia_published)
+		.map(post => post.canonical);
 
-	return articleModel.get(flat.canonical)
-		.then(article => {
+	const metadata = {};
+	return articleModel.getList(canonicalsWithIa)
+		.then(articles => articles.forEach(article => {
 			if(article.fbRecords[mode].initialImport && article.fbRecords[mode].initialImport.timestamp) {
-				// Refine the approximation with the actual time of publication
-				flat.ia_earliest_views = moment.utc(article.fbRecords[mode].initialImport.timestamp).format();
+				metadata[article.canonical] = {
+					ia_earliest_views: moment.utc(article.fbRecords[mode].initialImport.timestamp).format(),
+				};
 			}
-		});
+		}))
+		.then(() => posts.map(post => Object.assign(post, metadata[post.canonical])));
 };
 
 const flattenPost = post => Promise.resolve()
@@ -520,7 +525,6 @@ const flattenPost = post => Promise.resolve()
 .then(flat =>
 	Promise.all([
 		addUuid(flat),
-		addInstantArticleMetadata(flat),
 	])
 	.then(() => flat)
 );
@@ -539,14 +543,40 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 	return post;
 });
 
+const batchErrorHandler = ({previousResult, batchPart}) => {
+	switch(batchPart) {
+		case 1:
+			if(Object.keys(previousResult).every(postId => previousResult[postId].link)) {
+				throw Error(`All posts returned by batch part ${batchPart} have 'post.link' set, ` +
+					`so the JSONPath error for batch part ${batchPart + 1} is valid.`);
+			}
+			// The previous result had some posts with no 'link' value, so a JSONPath
+			// exception is expected and OK. Return an empty set for the 'links' batch
+			// part
+			return {};
+		case 2:
+			if(Object.keys(previousResult).every(linkId => previousResult[linkId].og_object && previousResult[linkId].og_object.url)) {
+				throw Error(`All links returned by batch part ${batchPart} have 'link.og_object.url' set, ` +
+					`so the JSONPath error for batch part ${batchPart + 1} is valid.`);
+			}
+			// The previous result had some links with no 'link.og_object.url' value, so a
+			// JSONPath exception is expected and OK. Return an empty set for the
+			// 'canonicals' batch part
+			return {};
+		default:
+			throw Error(`Unrecognised batchPart ${batchPart}`);
+	}
+};
+
 const getPostsData = ({ids}) => fbApi.many(
 	{ids},
 	(batch) =>
 		fbApi.call('', 'POST', {
 			batch: createQuery({ids: batch.ids}),
 			include_headers: false,
-			__dependent: true,
+			__dependent: [false, true, true],
 			__batched: true,
+			__errorHandler: batchErrorHandler,
 		})
 		.then(processResults),
 	'array'
@@ -585,18 +615,6 @@ const diffIntegerValues = (newValues, oldValues) => {
 	integerColumns.forEach(column => {
 		const oldValue = oldValues && oldValues[column] || 0;
 		values[column] = newValues[column] - oldValue;
-
-		if(values[column] < 0) {
-			ravenClient.captureMessage('diffIntegerValues gave negative number', {
-				level: 'info',
-				extra: {
-					column,
-					oldValues,
-					newValues,
-				},
-				tags: {from: 'insights'},
-			});
-		}
 	});
 
 	return values;
@@ -784,17 +802,15 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 					return;
 				} else if(age > 1) {
 					console.log(`Warning: last run was ${age} hours ago (should be run every hour).`);
-					if(mode === 'production') {
-						ravenClient.captureMessage('Last insights import > 1 hour', {
-							level: 'info',
-							extra: {
-								lastRunAge: `${age} hours`,
-								lastRun: moment.utc(lastRun.timestamp).format(),
-								now: now.format(),
-							},
-							tags: {from: 'insights'},
-						});
-					}
+					ravenClient.captureMessage('Last insights import > 1 hour', {
+						level: 'info',
+						extra: {
+							lastRunAge: `${age} hours`,
+							lastRun: moment.utc(lastRun.timestamp).format(),
+							now: now.format(),
+						},
+						tags: {from: 'insights'},
+					});
 				}
 
 				console.log(`Fetching data for posts from ${since.format()} to ${now.format()}. Last run was ${age} hour(s) ago.`);
@@ -818,6 +834,7 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 			})
 			.then(ids => getPostsData({ids}))
 			.then(posts => Promise.all(posts.map(flattenPost)))
+			.then(addInstantArticleMetadata)
 			.then(posts => posts.map(validate))
 			.then(posts =>
 				getHistoricValues(lastRun, now, posts)

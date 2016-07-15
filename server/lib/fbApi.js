@@ -3,8 +3,8 @@
 const denodeify = require('denodeify');
 const Facebook = require('fb');
 const api = denodeify(Facebook.napi);
-const nodeFetch = require('node-fetch');
 const fetchres = require('fetchres');
+const retry = require('./retry');
 
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
@@ -70,27 +70,71 @@ const parseBatchResult = result => {
 	try{
 		return JSON.parse(result.body);
 	} catch(e) {
-		throw Error(`Failed to parse JSON from result: ${result}`);
+		throw Error(`Failed to parse JSON from result: ${e.message}`);
 	}
 };
 
-const handleBatchedResults = (results, [path, verb, params], dependent) => Promise.resolve()
+const handleBatchedResults = (results, [path, verb, params], dependent, errorHandler) => Promise.resolve()
 .then(() => {
-	const statuses = results.map((result, index) => (result && result.code === 200 ? 'ok' : {result, query: params.batch[index]}));
-	const errors = results.filter(result => (result.code !== 200));
-	const nulls = results.filter(result => (result === null));
+	const errors = [];
+	results.forEach((result, batchPart) => {
+		const isDependent = dependent[batchPart];
+
+		// Null results which are not dependent on a previous result are probably
+		// timeouts, so retry the whole batch. Ideally, we'd retry only the failing batch
+		// parts here.
+		if(result === null && !isDependent) {
+			throw new FbApiTimeoutException();
+		}
+
+		let parsed;
+		try{
+			parsed = parseBatchResult(result);
+		} catch(e) {
+			return errors.push({
+				result,
+				batchPart,
+				error: e.toString(),
+			});
+		}
+
+		const status = result.code;
+		if(status === 400 && isDependent && parsed && parsed.error && parsed.error.message === 'Cannot specify an empty identifier') {
+			// This result, which depended on the previous one, is complaining that the
+			// JSONPath identifier in the request doesn't match the data returned by the
+			// previous result. Verify the data from the previous result is OK, replacing
+			// this result with a more appropriate alternative if it's not actually an
+			// error state.
+			try{
+				const replacement = errorHandler({previousResult: results[batchPart - 1], batchPart});
+				results[batchPart] = replacement;
+				return;
+			} catch(e) {
+				return errors.push({
+					result,
+					batchPart,
+					previousResult: results[batchPart - 1],
+					error: e.toString(),
+				});
+			}
+		}
+
+		if(status !== 200) {
+			return errors.push({
+				result,
+				batchPart,
+				error: parsed && parsed.error,
+			});
+		}
+
+		results[batchPart] = parsed;
+	});
 
 	if(errors.length) {
-		throw Error(`Batch failed with ${errors.length} error(s). Results: ${JSON.stringify(statuses)}. Params: ${JSON.stringify(params)}`);
+		throw Error(`Batch failed with ${errors.length} error(s): ${JSON.stringify(errors)}`);
 	}
 
-	if(nulls.length) {
-		// Null batch responses where there are no errors are probably timeouts, so retry the
-		// whole batch. Ideally, we'd retry only the failing batch parts here.
-		throw new FbApiTimeoutException();
-	}
-
-	return results.map(parseBatchResult);
+	return results;
 });
 
 const handlePagedResult = (result, limit) => Promise.resolve()
@@ -105,7 +149,7 @@ const handlePagedResult = (result, limit) => Promise.resolve()
 	// TODO: Why do these 'lifetime' results contain useless paging links? Is this a Graph API bug?
 	if(Array.isArray(result.data) && result.data[0].period === 'lifetime') return result;
 
-	return nodeFetch(result.paging.next)
+	return retry.fetch(result.paging.next, {errorFrom: 'FbApi.handlePagedResult', errorExtra: {result}})
 		.then(fetchres.json)
 		.then(nextResult => {
 			nextResult.data = result.data.concat(nextResult.data);
@@ -117,8 +161,8 @@ const handlePagedResult = (result, limit) => Promise.resolve()
 	return finalResult;
 });
 
-const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...params)
-.then(result => (batched ? handleBatchedResults(result, params, dependent) : handlePagedResult(result, limit)))
+const callApi = (params, {batched, dependent, limit, errorHandler, attempts = 0}) => api(...params)
+.then(result => (batched ? handleBatchedResults(result, params, dependent, errorHandler) : handlePagedResult(result, limit)))
 .catch(e => {
 	if(e.type === 'FbApiTimeoutException' ||
 		(e.name === 'FacebookApiException' && e.response && e.response.error && e.response.error.code === 'ETIMEDOUT')
@@ -127,14 +171,19 @@ const callApi = (params, {batched, dependent, limit, attempts = 0}) => api(...pa
 			throw Error('Facebook API call timed-out');
 		}
 		attempts++;
-		console.log('Retrying timed-out Facebook call', params, {batched, dependent, limit, attempts});
-		return callApi(params, {batched, dependent, limit, attempts});
+		console.log('Retrying timed-out Facebook call', params, {batched, dependent, limit, errorHandler, attempts});
+		return callApi(params, {batched, dependent, limit, errorHandler, attempts});
 	}
 
-	if(e.name === 'FacebookApiException' && e.response) {
-		e.response.fbtrace_id = undefined; // ensure consistent message for sentry aggregation
-		throw new Facebook.FacebookApiException(e.response);
+	if(e.name === 'FacebookApiException' && e.response && e.response.error) {
+		// Rather than hash the error response object as the Exception message, use the
+		// plain text message from FB
+		e.message = e.response.error.message;
 	}
+
+	// Add extra detail to error object for Sentry
+	e.tags = {from: 'fbApi.callApi'};
+	e.extra = {response: e.response, params, batched, dependent, limit, attempts};
 
 	throw e;
 });
@@ -162,14 +211,16 @@ const call = (...params) => {
 
 	const dependent = options.__dependent;
 	const batched = options.__batched;
+	const errorHandler = options.__errorHandler;
 
 	delete options.__limit;
 	delete options.__dependent;
 	delete options.__batched;
+	delete options.__errorHandler;
 
 	console.log(`${Date()}: FACEBOOK API: ${params.map(truncate).map(JSON.stringify).join(' ')}`);
 	return addAccessToken(params)
-		.then(newParams => callApi(newParams, {batched, dependent, limit}));
+		.then(newParams => callApi(newParams, {batched, dependent, limit, errorHandler}));
 };
 
 const chunkIdList = ids => {

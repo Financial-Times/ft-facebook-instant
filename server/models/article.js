@@ -1,11 +1,14 @@
 'use strict';
 
-const fetch = require('node-fetch');
+/* eslint-disable no-use-before-define */
+
 const database = require('../lib/database');
 const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 const {version} = require('../../package.json');
+const retry = require('../lib/retry');
+const ravenClient = require('../lib/raven').client;
 
 const mode = require('../lib/mode').get();
 
@@ -101,8 +104,10 @@ const mergeRecords = ({databaseRecord, apiRecord, fbRecords, fbImports = []}) =>
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
 
-const resolveUrl = url => fetch(url)
+const resolveUrl = url => retry.fetch(url, {errorFrom: 'articles.resolveUrl', errorExtra: {url}})
 .then(res => res.url);
+
+const isAbsoluteUrl = url => /^(?:\w+:)\/\//.test(url);
 
 // Follow redirects first
 const deriveCanonical = key => {
@@ -111,14 +116,18 @@ const deriveCanonical = key => {
 		return ftApi.getCanonicalFromUuid(uuid);
 	}
 
-	return resolveUrl(key)
-	.then(resolved => {
-		uuid = extractUuid(resolved);
-		if(uuid) {
-			return ftApi.getCanonicalFromUuid(uuid);
-		}
-		return ftApi.verifyCanonical(key);
-	});
+	if(isAbsoluteUrl(key)) {
+		return resolveUrl(key)
+		.then(resolved => {
+			uuid = extractUuid(resolved);
+			if(uuid) {
+				return ftApi.getCanonicalFromUuid(uuid);
+			}
+			return ftApi.verifyCanonical(key);
+		});
+	}
+
+	throw Error(`Can't derive canonical URL from string [${key}]`);
 };
 
 const getCanonical = key => database.getCanonical(key)
@@ -165,6 +174,13 @@ const addFbImportsScalar = article => addFbImports([article])
 .then(articles => articles[0]);
 
 const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', username = 'unknown', published = false}) => {
+	if(!article || !Array.isArray(article.import_meta)) {
+		ravenClient.captureMessage('setImportStatus Error. Invalid `article.import_meta` for article', {
+			extra: {article, id, warnings, type, username, published},
+			tags: {from: 'articleModel'},
+		});
+	}
+
 	// Delete FB ids from all previous imports
 	article.import_meta = article.import_meta.map(item => {
 		delete item.id;
@@ -183,12 +199,12 @@ const setImportStatus = ({article, id = null, warnings = [], type = 'unknown', u
 		published,
 	});
 	return updateDb(article)
-		.then(() => {});
+		.then(() => get(article.canonical));
 };
 
 const removeFromFacebook = (canonical, type = 'article-model') => fbApi.delete({canonical})
 .then(() => database.get(canonical))
-.then(article => setImportStatus({article, type, username: 'system'}))
+.then(article => article && setImportStatus({article, type, username: 'system'}))
 .then(() => console.log(`${Date()}: Article model: Removed article from Facebook: ${canonical}`));
 
 const getApi = canonical => database.getCapi(canonical)
@@ -242,7 +258,10 @@ const get = key => getOwnData(key)
 // contents as part of the article JSON?
 const update = article => Promise.all([
 	clearCache(article.canonical),
-	ftApi.updateEs(article.uuid),
+
+	// Attempt to update ElasticSearch
+	ftApi.updateEs(article.uuid)
+		.catch(e => {}),
 ])
 .then(() => getApi(article.canonical))
 .then(apiRecord => (article.apiRecord = apiRecord))
