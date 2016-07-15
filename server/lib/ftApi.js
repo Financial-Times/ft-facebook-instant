@@ -3,7 +3,7 @@
 const retry = require('./retry');
 const fetchres = require('fetchres');
 const uuidRegex = require('./uuid');
-const RichError = require('./RichError');
+const RichError = require('./richError');
 
 const elasticSearchUrl = process.env.ELASTIC_SEARCH_DOMAIN;
 const index = 'v3_api_v2';

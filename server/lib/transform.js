@@ -7,7 +7,7 @@ const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
 const getRelatedArticles = require('./related');
-const RichError = require('./RichError');
+const RichError = require('./richError');
 
 const requiredParams = [
 	'apiRecord',

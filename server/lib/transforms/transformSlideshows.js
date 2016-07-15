@@ -3,7 +3,7 @@
 const handlebarsTransform = require('../handlebars').render;
 const ftApi = require('../ftApi');
 const database = require('../database');
-const RichError = require('../RichError');
+const RichError = require('../richError');
 
 const fetchSlideshow = uuid => database.getCapi(uuid)
 .then(cached => {

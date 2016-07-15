@@ -8,7 +8,7 @@ const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 const {version} = require('../../package.json');
 const retry = require('../lib/retry');
-const RichError = require('../lib/RichError');
+const RichError = require('../lib/richError');
 const ravenClient = require('../lib/raven').client;
 
 const mode = require('../lib/mode').get();

@@ -3,7 +3,7 @@
 const util = require('util');
 const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
-const RichError = require('./RichError');
+const RichError = require('./richError');
 const DEFAULT_ITERATIONS = 3;
 
 function RetryableException(actualException) {

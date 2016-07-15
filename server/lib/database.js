@@ -1,7 +1,7 @@
 'use strict';
 
 const client = require('./redisClient');
-const RichError = require('./RichError');
+const RichError = require('./richError');
 
 const KEY_COUNT = 1; // See extractDetails()
 const CAPI_TTL = 60 * 60 * 24;

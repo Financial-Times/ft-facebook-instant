@@ -16,7 +16,7 @@ const csvStringify = denodeify(require('csv-stringify'));
 const path = require('path');
 const mode = require('./mode').get();
 const ravenClient = require('./raven').client;
-const RichError = require('./RichError');
+const RichError = require('./richError');
 
 const pageId = process.env.FB_PAGE_ID;
 const VERBOSE_AGGREGATIONS = false;
