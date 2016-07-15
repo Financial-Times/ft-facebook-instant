@@ -7,6 +7,16 @@ const {version} = require('../../package.json');
 
 let ravenClient;
 
+raven.Client.prototype.captureRichException = (err, kwargs = {}, cb) => {
+	// Merge any Sentry-like fields from the Error to the raven args
+	['tags', 'extra', 'user'].forEach(field => {
+		if(err[field] && (typeof err[field] === 'object')) {
+			kwargs[field] = Object.assign(err[field], kwargs[field]);
+		}
+	});
+	return ravenClient.captureException.call(ravenClient, err, kwargs, cb);
+};
+
 const init = (sendToSentry = false) => {
 	// A falsy value for the DSN disables sending events upstream
 	ravenClient = new raven.Client((sendToSentry && process.env.SENTRY_DSN), {

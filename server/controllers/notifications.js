@@ -269,7 +269,7 @@ const poller = () => database.getLastNotificationCheck()
 })
 .catch(e => {
 	console.error(`${Date()}: NOTIFICATIONS API error: ${e.stack || e}`);
-	ravenClient.captureException(e, {tags: {from: 'notifications'}});
+	ravenClient.captureRichException(e, {tags: {from: 'notifications'}});
 });
 
 const loop = promiseLoopInterval(poller, UPDATE_INTERVAL);
