@@ -7,6 +7,7 @@ const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
 const ftApi = require('../lib/ftApi');
 const ravenClient = require('../lib/raven').client;
+const RichError = require('../lib/richError');
 const promiseLoopInterval = require('@quarterto/promise-loop-interval');
 
 const mode = require('../lib/mode').get();
@@ -26,7 +27,7 @@ const groupNotifications = (notificationsList = []) => {
 				deletes.push(item.data['content-item'].id);
 				break;
 			default:
-				throw Error(`Unrecognised notification type: ${item.type}`);
+				throw new RichError('Unrecognised notification type', {extra: {notificationType: item.type}});
 		}
 	});
 

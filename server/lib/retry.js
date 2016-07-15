@@ -3,6 +3,7 @@
 const util = require('util');
 const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
+const RichError = require('./RichError');
 const DEFAULT_ITERATIONS = 3;
 
 function RetryableException(actualException) {
@@ -25,7 +26,7 @@ function retry(f, maxIterations = DEFAULT_ITERATIONS, iteration = 0) {
 					// Recurse
 					return retry(f, maxIterations, iteration);
 				}
-				e.actualException.message = `Retry failed after ${iteration} attempts with error: ${e.actualException.message}`;
+				e.actualException.type = 'RetryMaxIterationsError';
 				throw e.actualException;
 			}
 			// Rethrow
@@ -54,12 +55,13 @@ const fetch = (url, options = {}) => {
 			}),
 		maxIterations
 	)
-	.catch(e => {
-		// Add extra detail to error object for Sentry
-		e.tags = {from};
-		e.extra = Object.assign({maxIterations, url, options}, extra);
-		throw e;
-	});
+	.catch(e => Promise.reject(
+		new RichError(e.message || 'retry.fetch failed', {
+			tags: {from},
+			type: e.type,
+			extra: Object.assign({maxIterations, url, options, e}, extra),
+		})
+	));
 };
 
 module.exports = (fn, maxIterations) => retry(fn, maxIterations);

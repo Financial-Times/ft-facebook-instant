@@ -7,6 +7,7 @@ const extractMainImage = require('./transforms/extractMainImage');
 const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
 const getRelatedArticles = require('./related');
+const RichError = require('./RichError');
 
 const requiredParams = [
 	'apiRecord',
@@ -21,7 +22,12 @@ const lightSignupMailinglist = 'facebook-instant';
 
 const transformArticleBody = (apiRecord, options) => {
 	if(!apiRecord.bodyHTML) {
-		return Promise.reject(Error('Missing required [bodyHTML] field'));
+		return Promise.reject(
+			new RichError('Missing required [bodyHTML] field', {
+				tags: {from: 'transformArticleBody'},
+				extra: {apiRecord, options},
+			})
+		);
 	}
 
 	const xsltParams = {
@@ -65,7 +71,9 @@ const basicValidate = article => Promise.resolve()
 .then(() => {
 	const missing = requiredParams.filter(key => !article[key]);
 	if(missing.length) {
-		throw Error(`Article [${article.canonical}] is missing required keys: [${missing.join(', ')}]`);
+		throw new RichError('Article is missing required keys', {
+			extra: {article, missing},
+		});
 	}
 });
 

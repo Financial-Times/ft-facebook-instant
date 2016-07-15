@@ -3,6 +3,7 @@
 const handlebarsTransform = require('../handlebars').render;
 const ftApi = require('../ftApi');
 const database = require('../database');
+const RichError = require('../RichError');
 
 const fetchSlideshow = uuid => database.getCapi(uuid)
 .then(cached => {
@@ -24,10 +25,12 @@ const fetchSlideshow = uuid => database.getCapi(uuid)
 				};
 			}
 
-			throw Error(`No slideshow asset found for UUID ${uuid}`);
+			throw new RichError('No slideshow asset found', {
+				tags: {from: 'fetchSlideshow'},
+				extra: {uuid, data},
+			});
 		})
-		.then(asset => database.setCapi(uuid, asset))
-		.catch(e => Promise.reject(new Error(`Failed to fetch slideshow for UUID ${uuid}. Error: [${e.toString()}]`)));
+		.then(asset => database.setCapi(uuid, asset));
 });
 
 module.exports = function externalImages($, options) {
