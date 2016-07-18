@@ -107,7 +107,7 @@ module.exports = article => {
 				extra: {article, transformed$, warnings, params},
 				// Setting statusCode < 500 prevents sending this error to Sentry when
 				// running in the UI
-				statusCode: 403,
+				statusCode: 422,
 			});
 		}
 
