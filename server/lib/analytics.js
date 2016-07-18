@@ -29,6 +29,16 @@ module.exports = article => {
 			},
 			product: 'Facebook Instant',
 			url: article.canonical,
+
+			// These should be in system, but those keys aren't automatically mapped to
+			// Redshift. This should ideally be resolved, as context isn't the right place
+			// for this data.
+			system: {
+				package_version: packageVersion,
+				slug,
+				release,
+				server,
+			},
 		},
 		system: {
 			api_key: process.env.SPOOR_API_KEY,
@@ -38,10 +48,6 @@ module.exports = article => {
 			is_live: !!prod,
 
 			version,
-			package_version: packageVersion,
-			slug,
-			release,
-			server,
 		},
 	};
 
