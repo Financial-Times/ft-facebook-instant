@@ -99,7 +99,17 @@ module.exports = article => {
 		getRelatedArticles(article.apiRecord),
 	]))
 	.then(([transformed$, relatedArticles]) => {
-		validateArticleElements(transformed$, {warnings, params});
+		try{
+			validateArticleElements(transformed$, {warnings, params});
+		} catch(e) {
+			throw new RichError(e.message, {
+				tags: {from: 'transform'},
+				extra: {article, transformed$, warnings, params},
+				// Setting statusCode < 500 prevents sending this error to Sentry when
+				// running in the UI
+				statusCode: 403,
+			});
+		}
 
 		const mainImageHtml = extractMainImage(transformed$, {warnings, params});
 		const analyticsUrl = getAnalyticsUrl(article);
