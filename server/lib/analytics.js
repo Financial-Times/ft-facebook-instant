@@ -1,8 +1,18 @@
 'use strict';
 
-let {version} = require('../../package.json');
-if(version.indexOf('heroku') && process.env.HEROKU_RELEASE_VERSION) {
-	version = version.split('heroku').join(`heroku-${process.env.HEROKU_RELEASE_VERSION}`);
+const {packageVersion = 'dev'} = require('../../package.json');
+let version;
+let slug;
+let release;
+
+const matches = packageVersion.match(/^(\d+\.\d+\.\d+)(.*?)(\b[a-z0-9]{7}\b)$/);
+if(matches) {
+	version = matches[1];
+	slug = matches[3];
+}
+
+if(process.env.HEROKU_RELEASE_VERSION) {
+	release = process.env.HEROKU_RELEASE_VERSION;
 }
 
 module.exports = article => {
@@ -26,6 +36,9 @@ module.exports = article => {
 			is_live: !!prod,
 
 			version,
+			packageVersion,
+			slug,
+			release,
 		},
 	};
 
