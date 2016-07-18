@@ -1,6 +1,21 @@
 'use strict';
 
-const {version} = require('../../package.json');
+const {version: packageVersion} = require('../../package.json');
+let version;
+let slug;
+let server;
+let release;
+
+const matches = packageVersion.match(/^(\d+\.\d+\.\d+)-(.*?)-?([a-z0-9]{7})?$/);
+if(matches) {
+	version = matches[1];
+	server = matches[2];
+	slug = matches[3];
+}
+
+if(process.env.HEROKU_RELEASE_VERSION) {
+	release = process.env.HEROKU_RELEASE_VERSION;
+}
 
 module.exports = article => {
 	const prod = process.env.NODE_ENV === 'production';
@@ -23,6 +38,10 @@ module.exports = article => {
 			is_live: !!prod,
 
 			version,
+			packageVersion,
+			slug,
+			release,
+			server,
 		},
 	};
 
