@@ -38,7 +38,7 @@ module.exports = article => {
 			is_live: !!prod,
 
 			version,
-			packageVersion,
+			package_version: packageVersion,
 			slug,
 			release,
 			server,
