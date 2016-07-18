@@ -38,7 +38,7 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 
 const handleError = e => {
 	console.error(`${Date()}: UPDATE/REPUBLISH error: ${e.stack || e}`);
-	ravenClient.captureException(e, {tags: {from: 'republish'}});
+	ravenClient.captureRichException(e, {tags: {from: 'republish'}});
 };
 
 const republish = options => fbApi.list({fields: ['canonical_url'], __limit: 0})

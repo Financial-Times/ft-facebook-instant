@@ -16,6 +16,7 @@ const csvStringify = denodeify(require('csv-stringify'));
 const path = require('path');
 const mode = require('./mode').get();
 const ravenClient = require('./raven').client;
+const RichError = require('./richError');
 
 const pageId = process.env.FB_PAGE_ID;
 const VERBOSE_AGGREGATIONS = false;
@@ -294,7 +295,9 @@ Object.keys(iaMetricTypes).forEach(key => {
 			});
 			break;
 		default:
-			throw Error(`Unexpected Instant Article metric aggregation [${iaMetricTypes[key].aggregation}] for key [${key}]`);
+			throw new RichError('Unexpected Instant Article metric aggregation', {
+				extra: {key, aggregation: iaMetricTypes[key].aggregation},
+			});
 	}
 });
 
@@ -411,7 +414,9 @@ const flattenIaMetrics = (post, flat) => {
 				});
 				break;
 			default:
-				throw Error(`Unexpected Instant Article metric aggregation [${iaMetricTypes[key].aggregation}] for key [${key}]`);
+				throw new RichError('Unexpected Instant Article metric aggregation', {
+					extra: {key, aggregation: iaMetricTypes[key].aggregation},
+				});
 		}
 	});
 };
@@ -547,8 +552,10 @@ const batchErrorHandler = ({previousResult, batchPart}) => {
 	switch(batchPart) {
 		case 1:
 			if(Object.keys(previousResult).every(postId => previousResult[postId].link)) {
-				throw Error(`All posts returned by batch part ${batchPart} have 'post.link' set, ` +
-					`so the JSONPath error for batch part ${batchPart + 1} is valid.`);
+				throw new RichError('All posts returned by batch part 1 have `post.link` set, so the JSONPath error for batch part 2 is valid.', {
+					tags: {from: 'batchErrorHandler'},
+					extra: {previousResult},
+				});
 			}
 			// The previous result had some posts with no 'link' value, so a JSONPath
 			// exception is expected and OK. Return an empty set for the 'links' batch
@@ -556,15 +563,20 @@ const batchErrorHandler = ({previousResult, batchPart}) => {
 			return {};
 		case 2:
 			if(Object.keys(previousResult).every(linkId => previousResult[linkId].og_object && previousResult[linkId].og_object.url)) {
-				throw Error(`All links returned by batch part ${batchPart} have 'link.og_object.url' set, ` +
-					`so the JSONPath error for batch part ${batchPart + 1} is valid.`);
+				throw new RichError('All posts returned by batch part 2 have `link.og_object.url` set, so the JSONPath error for batch part 3 is valid.', {
+					tags: {from: 'batchErrorHandler'},
+					extra: {previousResult},
+				});
 			}
 			// The previous result had some links with no 'link.og_object.url' value, so a
 			// JSONPath exception is expected and OK. Return an empty set for the
 			// 'canonicals' batch part
 			return {};
 		default:
-			throw Error(`Unrecognised batchPart ${batchPart}`);
+			throw new RichError('Unrecognised batchPart', {
+				tags: {from: 'batchErrorHandler'},
+				extra: {batchPart, previousResult},
+			});
 	}
 };
 
@@ -661,7 +673,10 @@ const validate = post => {
 				},
 				tags: {from: 'insights'},
 			});
-			throw Error(`Empty value for required field ${column}`);
+			throw new RichError('Empty value for required field', {
+				tags: {from: 'validate'},
+				extra: {post, column},
+			});
 		}
 	});
 
@@ -776,7 +791,9 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 	if(importStart) {
 		const seconds = Math.round((Date.now() - importStart) / 1000);
 		if(seconds > (60 * 10)) {
-			throw Error('Insights import has been running for more than 10 minutes.');
+			throw new RichError('Insights import has been running for more than 10 minutes.', {
+				extra: {seconds, importStart},
+			});
 		}
 		console.log(`Insights import is already running (process is ${seconds} old). No further work to do`);
 		return;

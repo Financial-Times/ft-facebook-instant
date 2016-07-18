@@ -1,7 +1,7 @@
 'use strict';
 
 const client = require('./redisClient');
-const DbParseException = require('./database/parseException');
+const RichError = require('./richError');
 
 const KEY_COUNT = 1; // See extractDetails()
 const CAPI_TTL = 60 * 60 * 24;
@@ -26,10 +26,10 @@ const format = (type, val) => {
 			try{
 				return JSON.parse(val);
 			} catch(e) {
-				throw new DbParseException(e.message);
+				throw new RichError(e.message, {type: 'FbApiTimeoutException'});
 			}
 		default:
-			throw Error(`Can't format unrecognised type [${type}]`);
+			throw new RichError('Can\'t format unrecognised type', {extra: {formatType: type}});
 	}
 };
 
@@ -38,7 +38,7 @@ const formatObj = obj => {
 	for(key in obj) {
 		if(obj.hasOwnProperty(key)) {
 			const type = types[key];
-			if(!type) throw Error(`Can't format unrecognised key [${key}]`);
+			if(!type) throw new RichError('Can\'t format unrecognised key', {extra: {formatKey: key}});
 			obj[key] = format(type, obj[key]);
 		}
 	}
@@ -162,7 +162,7 @@ const getCapi = id => client.getAsync(`capi:${id}`)
 	try{
 		return JSON.parse(capi);
 	} catch(e) {
-		throw Error(`Failed to parse JSON from CAPI blob: [${capi}]`);
+		throw new RichError('Failed to parse JSON from CAPI blob', {extra: {capi}});
 	}
 });
 

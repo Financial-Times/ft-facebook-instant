@@ -15,7 +15,7 @@ const fetch = () => {
 	})
 	.catch(e => {
 		console.error(`${Date()}: INSIGHTS_FETCH periodic fetch failed with error: ${e.stack || e}`);
-		ravenClient.captureException(e, {tags: {from: 'insights'}});
+		ravenClient.captureRichException(e, {tags: {from: 'insights'}});
 	});
 };
 

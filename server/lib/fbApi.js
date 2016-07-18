@@ -5,13 +5,12 @@ const Facebook = require('fb');
 const api = denodeify(Facebook.napi);
 const fetchres = require('fetchres');
 const retry = require('./retry');
+const RichError = require('./richError');
 
 const accessToken = process.env.FB_PAGE_ACCESS_TOKEN;
 const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
-const FbApiImportException = require('./fbApi/importException');
-const FbApiTimeoutException = require('./fbApi/timeoutException');
 
 const BATCH_SIZE = 50;
 
@@ -70,7 +69,7 @@ const parseBatchResult = result => {
 	try{
 		return JSON.parse(result.body);
 	} catch(e) {
-		throw Error(`Failed to parse JSON from result: ${e.message}`);
+		throw new RichError('Failed to parse JSON from result', {extra: {result, e}});
 	}
 };
 
@@ -84,7 +83,7 @@ const handleBatchedResults = (results, [path, verb, params], dependent, errorHan
 		// timeouts, so retry the whole batch. Ideally, we'd retry only the failing batch
 		// parts here.
 		if(result === null && !isDependent) {
-			throw new FbApiTimeoutException();
+			throw new RichError('timeout', {type: 'FbApiTimeoutException'});
 		}
 
 		let parsed;
@@ -131,7 +130,7 @@ const handleBatchedResults = (results, [path, verb, params], dependent, errorHan
 	});
 
 	if(errors.length) {
-		throw Error(`Batch failed with ${errors.length} error(s): ${JSON.stringify(errors)}`);
+		throw new RichError('fbApi Batch failed', {extra: {errors}});
 	}
 
 	return results;
@@ -168,10 +167,12 @@ const callApi = (params, {batched, dependent, limit, errorHandler, attempts = 0}
 		(e.name === 'FacebookApiException' && e.response && e.response.error && e.response.error.code === 'ETIMEDOUT')
 		) {
 		if(attempts >= MAX_ATTEMPTS) {
-			throw Error('Facebook API call timed-out');
+			throw new RichError('Facebook API call timed-out', {
+				tags: {from: 'fbApi.callApi'},
+				extra: {type: (e.type || e.name), params, batched, dependent, limit, attempts},
+			});
 		}
 		attempts++;
-		console.log('Retrying timed-out Facebook call', params, {batched, dependent, limit, errorHandler, attempts});
 		return callApi(params, {batched, dependent, limit, errorHandler, attempts});
 	}
 
@@ -302,7 +303,7 @@ const many = ({ids, type, fields}, fn, returnType) => Promise.all(
 		case 'object':
 			return chunkedResults.reduce((previous, current) => Object.assign(previous, current), {});
 		default:
-			throw Error(`unrecognised returnType ${returnType}`);
+			throw new RichError('fbApi.many: unrecognised returnType', {extra: {returnType}});
 	}
 });
 
@@ -339,16 +340,21 @@ const waitForSuccess = importResult => new Promise((resolve, reject) => {
 
 		if(result.status !== 'IN_PROGRESS') {
 			return reject(
-				new FbApiImportException(`Unexpected import status ${result.status} for import ${importResult.id}. Errors: ${JSON.stringify(result.errors)}`)
+				new RichError('Unexpected import status', {
+					type: 'FbApiImportException',
+					tags: {from: 'waitForSuccess'},
+					extra: {result, importResult},
+				})
 			);
 		}
 
 		if(Date.now() > (start + MAX_IMPORT_WAIT)) {
 			return reject(
-				new FbApiImportException(
-					`Timeout after ${MAX_IMPORT_WAIT / 60} seconds for import ${importResult.id} with status ${result.status}.` +
-					`Errors: ${JSON.stringify(result.errors)}`
-				)
+				new RichError('Timeout waiting for import success', {
+					type: 'FbApiImportException',
+					tags: {from: 'waitForSuccess'},
+					extra: {result, importResult, duration: (Date.now() - start)},
+				})
 			);
 		}
 
@@ -384,7 +390,10 @@ const post = ({uuid, html, published = false, wait = false} = {}) => {
 	.then(result => (console.log(`Facebook API post result: ${JSON.stringify({uuid, development_mode: devMode, published, result})}`), result))
 	.catch(e => {
 		if(e.type === 'FbApiImportException') {
-			throw Error(`Import error encountered posting UUID ${uuid} to Facebook: ${e.message}`);
+			throw new RichError('Import error encountered posting to Facebook', {
+				tags: {from: 'fbApi.post'},
+				extra: {uuid, e, html, published, wait, devMode},
+			});
 		}
 		throw e;
 	});

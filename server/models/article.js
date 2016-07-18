@@ -8,6 +8,7 @@ const fbApi = require('../lib/fbApi');
 const uuidRegex = require('../lib/uuid');
 const {version} = require('../../package.json');
 const retry = require('../lib/retry');
+const RichError = require('../lib/richError');
 const ravenClient = require('../lib/raven').client;
 
 const mode = require('../lib/mode').get();
@@ -127,7 +128,9 @@ const deriveCanonical = key => {
 		});
 	}
 
-	throw Error(`Can't derive canonical URL from string [${key}]`);
+	throw new RichError('Can\'t derive canonical URL from string', {
+		extra: {key},
+	});
 };
 
 const getCanonical = key => database.getCanonical(key)
@@ -276,6 +279,7 @@ const getOwnDataList = canonicals => Promise.all(canonicals.map(
 		.catch(e => {
 			if(e.type === 'FtApiContentMissingException') {
 				console.log(`Canonical ${canonical} is not available in ES, so deleting any existing FB record.`);
+				ravenClient.captureRichException(e);
 				return removeFromFacebook(canonical, 'article-model-get-list');
 			}
 			throw e;
