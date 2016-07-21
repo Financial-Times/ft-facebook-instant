@@ -82,6 +82,15 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords
 		// update the canonical URL cache
 		.then(() => database.setCanonical(uuid, freshCanonical))
 
+		// skip article processing if no article record
+		.then(() => {
+			if(!databaseRecord) {
+				const err = new Error();
+				err.canonicalOnly = true;
+				throw err;
+			}
+		})
+
 		// Replace the database record with a fresh copy
 		.then(() => Promise.all([
 			database.delete(cachedCanonical),
@@ -123,7 +132,14 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords
 						}))
 					);
 			})
-		);
+		)
+		.catch(e => {
+			if(e.canonicalOnly) {
+				return {};
+			}
+
+			throw e;
+		});
 });
 
 // Article might have been deleted, so catch any ES errors
