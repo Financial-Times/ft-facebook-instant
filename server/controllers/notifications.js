@@ -64,6 +64,12 @@ const merge = ([{updates: v1Updates, deletes: v1Deletes}, {updates: v2Updates, d
 
 const existsOnFacebook = article => !!(article.fbRecords && article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
 
+const moveCanonical = ({uuid, cachedCanonical, freshCanonical}) =>
+	// Purge the old canonical store
+	database.purgeCanonical(cachedCanonical)
+		// update the canonical URL cache
+		.then(() => database.setCanonical(uuid, freshCanonical));
+
 const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords}) => database.get(cachedCanonical)
 .then(databaseRecord => {
 	const sentToFacebook = existsOnFacebook(fbRecords);
@@ -72,20 +78,23 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords
 	console.log(`${Date()}: NOTIFICATIONS API: handleCanonicalChange for UUID ${uuid} ` +
 		` from ${cachedCanonical} to ${freshCanonical}. Exists on Facebook: ${!!sentToFacebook}, wasPublished: ${wasPublished}.`);
 
-	const freshDatabaseRecord = Object.assign({}, databaseRecord, {
-		canonical: freshCanonical,
-	});
+	const movePromise = moveCanonical({uuid, freshCanonical, cachedCanonical});
 
-	// Purge the old canonical store
-	return database.purgeCanonical(cachedCanonical)
+	if(!databaseRecord) {
+		// Some articles have canonical records but no article record in the database (if
+		// they've only been seen previously as related content, for example). In this case,
+		// there's nothing more to do
+		return movePromise.then(() => {});
+	}
 
-		// update the canonical URL cache
-		.then(() => database.setCanonical(uuid, freshCanonical))
+	return movePromise
 
 		// Replace the database record with a fresh copy
 		.then(() => Promise.all([
 			database.delete(cachedCanonical),
-			database.set(freshDatabaseRecord),
+			database.set(Object.assign({}, databaseRecord, {
+				canonical: freshCanonical,
+			})),
 		]))
 
 		// Remove any old Facebook IA
