@@ -13,7 +13,7 @@ const logRemovedPost = post => {
 	console.log(`${Date()}: A/B: removed ${post.canonical} from test, because ${post.reason}${getExtra(post) ? `: ${getExtra(post)}` : ''}`);
 };
 
-module.exports = promiseLoopInterval(async function abController() {
+async function abController() {
 	try {
 		const posts = await postModel.get();
 
@@ -38,7 +38,11 @@ module.exports = promiseLoopInterval(async function abController() {
 	} catch(e) {
 		console.error(e.stack);
 	}
-}, AB_POLL_INTERVAL);
+}
+
+module.exports = promiseLoopInterval(abController, AB_POLL_INTERVAL);
+
+module.exports.abController = abController;
 
 module.exports.route = (req, res, next) => {
 	const columns = ['canonical', 'bucket'];
