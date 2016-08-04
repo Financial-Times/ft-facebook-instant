@@ -68,7 +68,6 @@ exports.isDupeFactory = (seenPosts = new Map(), dupePosts = new Map()) => async 
 exports.partitionTestable = async function partitionTestable(posts) {
 	const isDupe = exports.isDupeFactory();
 
-	console.log('a1');
 	const [testable, untestable] = await partitionPromiseParallel(posts, async function isTestable(post) {
 		if(!await exports.getPostCanonical(post)) {
 			post.reason = 'it\'s not an article';
