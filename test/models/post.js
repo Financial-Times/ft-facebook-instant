@@ -82,7 +82,18 @@ describe('Post model', () => {
 			expect(database.setLastABCheck.lastCall.args[0]).to.be.above(since);
 		});
 
-		it('should get canonical urls for returned links', async function test() {
+		it('should return a dummy object representing the article', async function test() {
+			database.getLastABCheck.returns(since);
+			fbApi.posts.returns([
+				'http://on.ft.com/test',
+			]);
+
+			expect(await postModel.get()).to.deep.equal([{origUrl: 'http://on.ft.com/test'}]);
+		});
+	});
+
+	describe('getPostCanonical', () => {
+		xit('should get canonical urls for returned links', async function test() {
 			database.getLastABCheck.returns(since);
 			fbApi.posts.returns([
 				'http://on.ft.com/test1',
@@ -93,8 +104,10 @@ describe('Post model', () => {
 			expect(database.getCanonical).to.have.been.calledWith('http://on.ft.com/test1');
 			expect(database.getCanonical).to.have.been.calledWith('http://on.ft.com/test2');
 		});
+	});
 
-		it('should return article details for post canonicals', async function test() {
+	describe('hydratePostWithArticle', () => {
+		xit('should return article details for post canonicals', async function test() {
 			database.getLastABCheck.returns(since);
 			fbApi.posts.returns([
 				'http://on.ft.com/test',
