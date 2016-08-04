@@ -110,7 +110,7 @@ describe('Post model', () => {
 		});
 	});
 
-	describe('markDuplicates', () => {
+	describe('isDupe', () => {
 		const stubs = [];
 
 		before(() => {
@@ -128,72 +128,60 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		it('should return all never-seen-before posts', async function test() {
+		it('should be false for never-seen-before posts', async function test() {
 			database.getFBLinkPost.returns(undefined);
-			const [newPosts] = await postModel.markDuplicates([
+			const isDupe = postModel.isDupeFactory();
+			const results = await Promise.all([
 				{canonical: 'test1'},
 				{canonical: 'test2'},
 				{canonical: 'test3'},
-			]);
-			expect(newPosts).to.deep.equal([
-				{canonical: 'test1'},
-				{canonical: 'test2'},
-				{canonical: 'test3'},
-			]);
+			].map(isDupe));
+
+			results.forEach(result => expect(result).to.be.false());
 		});
 
-		it('should remove all dupe posts in batch and mark as removed in database', async function test() {
+		it('should return true for already seen post and mark as removed in database', async function test() {
 			database.getFBLinkPost.returns(undefined);
-			const [newPosts, dupePosts] = await postModel.markDuplicates([
-				{canonical: 'test1'},
-				{canonical: 'test2'},
-				{canonical: 'test2'},
-			]);
-			expect(newPosts).to.deep.equal([
-				{canonical: 'test1'},
-			]);
-			expect(dupePosts).to.have.deep.property('[0].canonical', 'test2');
-			expect(postModel.markRemoved).to.have.been.calledWith('test2');
+			const isDupe = postModel.isDupeFactory(
+				new Map([
+					['test', {canonical: 'test'}],
+				])
+			);
+			expect(await isDupe({canonical: 'test'})).to.be.true();
+			expect(postModel.markRemoved).to.have.been.calledWith('test');
 		});
 
-		it('should remove all dupe posts of post already in database and mark as removed in database', async function test() {
-			const test2 = {canonical: 'test2'};
-			database.getFBLinkPost.withArgs('test2').returns(test2);
+		it('should return true for post already in database and mark as removed in database', async function test() {
+			database.getFBLinkPost.withArgs('test').returns({canonical: 'test'});
 			database.getFBLinkPost.returns(undefined);
 
-			const [newPosts, dupePosts] = await postModel.markDuplicates([
-				{canonical: 'test1'},
-				test2,
-				{canonical: 'test3'},
-			]);
-			expect(newPosts).to.deep.equal([
-				{canonical: 'test1'},
-				{canonical: 'test3'},
-			]);
-			expect(dupePosts).to.deep.equal([
-				test2,
-			]);
-			expect(postModel.markRemoved).to.have.been.calledWith('test2');
+			const isDupe = postModel.isDupeFactory();
+			expect(
+				await isDupe({canonical: 'test'})
+			).to.be.true();
+			expect(postModel.markRemoved).to.have.been.calledWith('test');
 		});
 
-		it('should set status of removed post', async function test() {
+		it('should set status of removed posts', async function test() {
 			const test2 = {canonical: 'test2'};
 			const test3 = {canonical: 'test3'};
 			database.getFBLinkPost.withArgs('test2').returns(test2);
 			database.getFBLinkPost.returns(undefined);
 
-			await postModel.markDuplicates([
+			const isDupe = postModel.isDupeFactory();
+			await Promise.all([
 				{canonical: 'test1'},
 				test2,
 				test3,
 				test3,
-			]);
+			].map(isDupe));
+
 			expect(test2).property('status').to.deep.equal({alreadyInTest: true, dupeInBatch: false});
 			expect(test3).property('status').to.deep.equal({alreadyInTest: false, dupeInBatch: true});
 		});
 	});
 
-	describe('partitionRenderable', () => {
+	describe('partitionTestable', () => {
 		const broken = {};
 		const snakePeopleClone = Object.assign({}, snakePeople);
 
@@ -205,7 +193,7 @@ describe('Post model', () => {
 			transform.withArgs(snakePeopleClone).returns(Promise.resolve());
 			transform.withArgs(broken).returns(Promise.reject());
 
-			const [transformable, untransformable] = await postModel.partitionRenderable([snakePeopleClone, broken]);
+			const [transformable, untransformable] = await postModel.partitionTestable([snakePeopleClone, broken]);
 			expect(transformable).to.deep.equal([snakePeopleClone]);
 			expect(untransformable).to.deep.equal([broken]);
 		});
@@ -214,7 +202,7 @@ describe('Post model', () => {
 			const rendered = {html: '', warnings: {}};
 			transform.withArgs(snakePeopleClone).returns(Promise.resolve(rendered));
 
-			await postModel.partitionRenderable([snakePeopleClone, broken]);
+			await postModel.partitionTestable([snakePeopleClone, broken]);
 			expect(snakePeopleClone).to.have.property('rendered', rendered);
 		});
 
@@ -222,7 +210,7 @@ describe('Post model', () => {
 			const error = new Error();
 			transform.withArgs(broken).returns(Promise.reject(error));
 
-			await postModel.partitionRenderable([snakePeopleClone, broken]);
+			await postModel.partitionTestable([snakePeopleClone, broken]);
 			expect(broken).to.have.property('error', error);
 		});
 	});
