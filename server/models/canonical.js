@@ -29,7 +29,7 @@ const deriveCanonical = key => {
 	}
 
 	if(isAbsoluteUrl(sanitised)) {
-	return resolveUrl(sanitised)
+		return resolveUrl(sanitised)
 	.then(resolved => {
 		uuid = extractUuid(resolved);
 		if(uuid) {

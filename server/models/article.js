@@ -7,7 +7,6 @@ const ftApi = require('../lib/ftApi');
 const fbApi = require('../lib/fbApi');
 const getCanonical = require('./canonical');
 const {version} = require('../../package.json');
-const RichError = require('../lib/richError');
 const ravenClient = require('../lib/raven').client;
 
 const mode = require('../lib/mode').get();

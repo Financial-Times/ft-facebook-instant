@@ -180,7 +180,7 @@ const getKnownArticles = uuids => Promise.all(uuids.map(
 			}
 
 			return articleModel.get(article.freshCanonical);
-			}
+		}
 	)
 ))
 // Only articles which have been sent to Facebook need updating on Facebook.
@@ -191,16 +191,16 @@ const updateArticle = stale => articleModel.update(stale)
 	const published = article.fbRecords[mode].published;
 	console.log(`${Date()}: NOTIFICATIONS API: updating known article: [${article.uuid}], mode: [${mode}], ` +
 		`was published: [${published}]`);
-				return transform(article)
+	return transform(article)
 					.then(({html, warnings}) =>
 	articleModel.postAndSetStatus({
 		article,
-							html,
+		html,
 		warnings,
-				published,
-							wait: true,
-							username: 'daemon',
-							type: 'notifications-api',
+		published,
+		wait: true,
+		username: 'daemon',
+		type: 'notifications-api',
 	})
 );
 });
