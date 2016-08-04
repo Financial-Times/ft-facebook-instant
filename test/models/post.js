@@ -145,19 +145,33 @@ describe('Post model', () => {
 	});
 
 	describe('hydratePostWithArticle', () => {
-		xit('should return article details for post canonicals', async function test() {
-			// database.getsLastABCheck.returns(since);
-			fbApi.posts.returns([
-				'http://on.ft.com/test',
+		const stubs = [];
+
+		before(() => {
+			stubs.push.apply(stubs, [
+				sinon.stub(articleModel, 'get'),
 			]);
-			database.getCanonical
-				.withArgs('http://on.ft.com/test')
-				.returns(Promise.resolve(snakePeople.canonical));
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		it('should assign article details for post canonicals', async function test() {
+			const snakePeopleDummy = {
+				canonical: snakePeople.canonical,
+			};
+
 			articleModel.get
 				.withArgs(snakePeople.canonical)
 				.returns(Promise.resolve(snakePeople));
 
-			expect(await postModel.get()).to.deep.equal([snakePeople]);
+			await postModel.hydratePostWithArticle(snakePeopleDummy);
+			expect(snakePeopleDummy).to.deep.equal(snakePeople);
 		});
 	});
 
