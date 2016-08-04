@@ -281,6 +281,8 @@ describe('Post model', () => {
 		});
 	});
 
+	xdescribe('partitiontestable', () => {});
+
 	describe('bucketAndPublish', () => {
 		const stubs = [];
 
@@ -405,7 +407,10 @@ describe('Post model', () => {
 		it('should replace post record with removed flag', async function test() {
 			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal(snakePeople);
 			await postModel.markRemoved(snakePeople.canonical);
-			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal({bucket: 'removed'});
+			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal({
+				bucket: 'removed',
+				canonical: snakePeople.canonical,
+			});
 		});
 	});
 });
