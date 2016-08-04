@@ -246,11 +246,13 @@ describe('Post model', () => {
 		});
 	});
 
-	describe('partitionTestable', () => {
-		const broken = {};
-		const snakePeopleClone = Object.assign({}, snakePeople);
+	describe('canRenderPost', () => {
+		let snakePeopleClone;
+		let broken;
 
-		afterEach(() => {
+		beforeEach(() => {
+			snakePeopleClone = Object.assign({}, snakePeople);
+			broken = {};
 			transform.reset();
 		});
 
@@ -258,16 +260,15 @@ describe('Post model', () => {
 			transform.withArgs(snakePeopleClone).returns(Promise.resolve());
 			transform.withArgs(broken).returns(Promise.reject());
 
-			const [transformable, untransformable] = await postModel.partitionTestable([snakePeopleClone, broken]);
-			expect(transformable).to.deep.equal([snakePeopleClone]);
-			expect(untransformable).to.deep.equal([broken]);
+			expect(await postModel.canRenderPost(snakePeopleClone)).to.be.true();
+			expect(await postModel.canRenderPost(broken)).to.be.false();
 		});
 
 		it('should save transform result to rendered on transformables', async function test() {
 			const rendered = {html: '', warnings: {}};
 			transform.withArgs(snakePeopleClone).returns(Promise.resolve(rendered));
 
-			await postModel.partitionTestable([snakePeopleClone, broken]);
+			await postModel.canRenderPost(snakePeopleClone);
 			expect(snakePeopleClone).to.have.property('rendered', rendered);
 		});
 
@@ -275,8 +276,8 @@ describe('Post model', () => {
 			const error = new Error();
 			transform.withArgs(broken).returns(Promise.reject(error));
 
-			await postModel.partitionTestable([snakePeopleClone, broken]);
-			expect(broken).to.have.property('error', error);
+			await postModel.canRenderPost(broken);
+			expect(broken).to.have.deep.property('errors.render', error);
 		});
 	});
 
