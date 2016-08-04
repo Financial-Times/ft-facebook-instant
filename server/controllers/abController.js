@@ -24,14 +24,14 @@ async function abController() {
 
 		const {testable, untestable} = await postModel.partitionTestable(posts);
 		untestable.forEach(logRemovedPost);
-		console.log(1);
 		await Promise.all(testable.map(postModel.bucketAndPublish));
 
-		console.log(2);
 		if(testable.length) {
 			const testUuids = testable.filter(({bucket}) => bucket === 'test').map(({uuid}) => uuid);
 			const controlUuids = testable.filter(({bucket}) => bucket === 'control').map(({uuid}) => uuid);
-			console.log(`${Date()}: A/B: testing posts, test: ${testUuids.join()}, control: ${controlUuids.join()}`);
+			console.log(`${Date()}: A/B: post buckets
+test: ${testUuids.join()}
+control: ${controlUuids.join()}`);
 		} else {
 			console.log(`${Date()}: A/B: none of the new posts could be added to the test`);
 		}

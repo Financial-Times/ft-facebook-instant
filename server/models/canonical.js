@@ -4,15 +4,14 @@ const retry = require('../lib/retry');
 const ftApi = require('../lib/ftApi');
 const uuidRegex = require('../lib/uuid');
 const database = require('../lib/database');
-const url = require('url');
+const {format: urlFormat, parse: urlParse} = require('url');
 const RichError = require('../lib/richError');
 
 const extractUuid = string => (uuidRegex.exec(string) || [])[0];
 const removeQuerystring = key => {
-	console.log('rqs', key);
-	const parsed = url.parse(key);
+	const parsed = urlParse(key);
 	delete parsed.query;
-	return url.format(parsed);
+	return urlFormat(parsed);
 };
 
 const isAbsoluteUrl = url => /^(?:\w+:)\/\//.test(url);
@@ -30,7 +29,7 @@ const deriveCanonical = key => {
 	}
 
 	if(isAbsoluteUrl(sanitised)) {
-		return resolveUrl(sanitised)
+	return resolveUrl(sanitised)
 	.then(resolved => {
 		uuid = extractUuid(resolved);
 		if(uuid) {

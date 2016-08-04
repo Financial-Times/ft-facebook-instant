@@ -17,7 +17,7 @@ exports.get = async function get() {
 	return results.map(origUrl => ({origUrl}));
 };
 
-exports.getPostCanonical = post => (console.log(post), getCanonical(post.origUrl).then(
+exports.getPostCanonical = post => getCanonical(post.origUrl).then(
 	canonical => Object.assign(post, {canonical}),
 	err => {
 		if(err.type === 'FtApiContentMissingException') {
@@ -26,7 +26,7 @@ exports.getPostCanonical = post => (console.log(post), getCanonical(post.origUrl
 
 		throw err;
 	}
-));
+);
 
 exports.hydratePostWithArticle = post => articleModel
 	.get(post.canonical)
@@ -39,7 +39,7 @@ exports.canRenderPost = post => transform(post).then(
 	},
 	error => {
 		post.errors = Object.assign({
-			render: error
+			render: error,
 		}, post.errors);
 
 		return false;
