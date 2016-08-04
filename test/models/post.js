@@ -38,12 +38,10 @@ describe('Post model', () => {
 				sinon.stub(fbApi, 'posts'),
 				sinon.stub(database, 'getLastABCheck'),
 				sinon.stub(database, 'setLastABCheck'),
-				sinon.stub(database, 'getCanonical'),
 				sinon.stub(articleModel, 'get'),
 			]);
 
 			fbApi.posts.returns([]);
-			database.getCanonical.returns(Promise.resolve(true));
 		});
 
 		beforeEach(() => {
@@ -93,22 +91,62 @@ describe('Post model', () => {
 	});
 
 	describe('getPostCanonical', () => {
-		xit('should get canonical urls for returned links', async function test() {
-			database.getLastABCheck.returns(since);
-			fbApi.posts.returns([
-				'http://on.ft.com/test1',
-				'http://on.ft.com/test2',
-			]);
+		const stubs = [];
 
-			await postModel.get();
-			expect(database.getCanonical).to.have.been.calledWith('http://on.ft.com/test1');
-			expect(database.getCanonical).to.have.been.calledWith('http://on.ft.com/test2');
+		before(() => {
+			stubs.push.apply(stubs, [
+				sinon.stub(database, 'getCanonical'),
+			]);
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		it('should get canonical urls and attach to objects', async function test() {
+			const post = {origUrl: 'http://on.ft.com/test'};
+			const canonical = 'http://www.ft.com/cms/s/0/00000000-0000-0000-0000-000000000000.html';
+			database.getCanonical
+				.withArgs(post.origUrl)
+				.returns(Promise.resolve(canonical));
+
+			await postModel.getPostCanonical(post);
+			expect(database.getCanonical).to.have.been.calledWith(post.origUrl);
+			expect(post).to.have.property('canonical', canonical);
+		});
+
+		it('should ignore elastic search errors and return null', async function test() {
+			const post = {origUrl: 'http://on.ft.com/test'};
+			const err = new Error();
+			err.type = 'FtApiContentMissingException';
+			database.getCanonical
+				.withArgs(post.origUrl)
+				.returns(Promise.reject(err));
+
+			expect(await postModel.getPostCanonical(post)).to.be.null();
+			expect(database.getCanonical).to.have.been.calledWith(post.origUrl);
+			expect(post).not.to.have.property('canonical');
+		});
+
+		it('should pass on other classes of error', async function test() {
+			const post = {origUrl: 'http://on.ft.com/test'};
+			const err = new Error();
+			database.getCanonical
+				.withArgs(post.origUrl)
+				.returns(Promise.reject(err));
+
+			await expect(postModel.getPostCanonical(post)).to.be.rejected();
+			expect(database.getCanonical).to.have.been.calledWith(post.origUrl);
 		});
 	});
 
 	describe('hydratePostWithArticle', () => {
 		xit('should return article details for post canonicals', async function test() {
-			database.getLastABCheck.returns(since);
+			// database.getsLastABCheck.returns(since);
 			fbApi.posts.returns([
 				'http://on.ft.com/test',
 			]);
