@@ -30,27 +30,35 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 	const publishedByOldVersion = !isDevelopment && article.import_meta[0] && article.import_meta[0].appVersion !== version;
 	const shouldRepublish = !onlyAfterRedeploy || publishedByOldVersion;
 	const sentToFacebook = (article.fbRecords[mode] && !article.fbRecords[mode].nullRecord);
-	if(sentToFacebook && shouldRepublish) {
-		return transform(article)
-			.then(({html, warnings}) =>
-				fbApi.post({
-					uuid: article.uuid,
-					html,
-					published: article.fbRecords[mode].published,
-					wait: true,
-				})
-				.then(({id}) => articleModel.setImportStatus({
+	const wasPublished = (article.fbRecords[mode] && article.fbRecords[mode].published);
+
+	if(!sentToFacebook || !shouldRepublish) {
+		return Promise.resolve(null);
+	}
+
+	console.log(`${Date()}: UPDATE/REPUBLISH: updating ${article.uuid}`, {sentToFacebook, shouldRepublish});
+	return transform(article)
+		.then(({html, warnings}) =>
+			fbApi.post({
+				uuid: article.uuid,
+				html,
+				published: wasPublished,
+				wait: true,
+			})
+			.then(({id}) =>
+				articleModel.setImportStatus({
 					article,
 					id,
 					warnings,
-					published: article.fbRecords[mode].published,
+					published: wasPublished,
 					username: 'daemon',
 					type: 'update-redeploy',
-				}))
-			);
-	}
-
-	return Promise.resolve(null);
+				})
+				.then(() => {
+					console.log(`${Date()}: UPDATE/REPUBLISH: updated ${article.uuid}`, {wasPublished, warnings, importId: id});
+				})
+			)
+		);
 };
 
 const handleError = e => {
@@ -61,6 +69,14 @@ const handleError = e => {
 const republish = options => fbApi.list({fields: ['canonical_url'], __limit: 0})
 .then(articles => articles.map(article => article.canonical_url))
 .then(canonicals => articleModel.getList(canonicals))
+.then(articles => {
+	if(articles.length) {
+		console.log(`${Date()}: UPDATE/REPUBLISH: will update articles ${articles.map(({uuid}) => uuid)}`);
+	} else {
+		console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
+	}
+	return articles;
+})
 .then(articles => batch(articles, article => update(article, options).catch(handleError)))
 .then(articles => articles.filter(article => !!article));
 
@@ -69,7 +85,7 @@ module.exports = (options) => republish(options)
 		if(updatedArticles.length) {
 			console.log(`${Date()}: UPDATE/REPUBLISH: updated articles ${updatedArticles.map(({uuid}) => uuid)}`);
 		} else {
-			console.log(`${Date()}: UPDATE/REPUBLISH: no articles to update`);
+			console.log(`${Date()}: UPDATE/REPUBLISH: no articles updated`);
 		}
 	}).catch(handleError);
 
