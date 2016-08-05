@@ -47,7 +47,7 @@ const normaliseNotifications = notifications => {
 const getNotifications = (url, notifications, cb) => {
 	request(url, (error, response, body) => {
 		if(!error && response.statusCode === 200) {
-			try{
+			try {
 				const data = JSON.parse(body);
 
 				// Normalise the notification format

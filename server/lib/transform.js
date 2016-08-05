@@ -99,7 +99,7 @@ module.exports = article => {
 		getRelatedArticles(article.apiRecord),
 	]))
 	.then(([transformed$, relatedArticles]) => {
-		try{
+		try {
 			validateArticleElements(transformed$, {warnings, params});
 		} catch(e) {
 			throw new RichError(e.message, {

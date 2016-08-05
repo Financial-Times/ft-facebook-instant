@@ -44,7 +44,7 @@ const fetchByCanonical = canonical => retry.fetch(
 )
 .then(fetchres.json)
 .then(json => {
-	try{
+	try {
 		return json.hits.hits[0]._source;
 	} catch(e) {
 		const uuid = (uuidRegex.exec(canonical) || [])[0];
@@ -82,7 +82,7 @@ const getCanonicalFromUuid = uuid => retry.fetch(
 )
 .then(fetchres.json)
 .then(json => {
-	try{
+	try {
 		return json.hits.hits[0]._source.webUrl;
 	} catch(e) {
 		throw Error('No result');
@@ -115,7 +115,7 @@ const verifyCanonical = canonical => retry.fetch(
 )
 .then(fetchres.json)
 .then(json => {
-	try{
+	try {
 		return json.hits.hits[0]._source.webUrl;
 	} catch(e) {
 		throw Error('No result');
