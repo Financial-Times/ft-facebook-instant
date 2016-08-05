@@ -281,7 +281,108 @@ describe('Post model', () => {
 		});
 	});
 
-	xdescribe('partitiontestable', () => {});
+	describe('partitionTestable', () => {
+		const stubs = [];
+		const isDupe = sinon.stub();
+
+		before(() => {
+			stubs.push.apply(stubs, [
+				sinon.stub(postModel, 'isDupeFactory'),
+				sinon.stub(postModel, 'getPostCanonical'),
+				sinon.stub(postModel, 'hydratePostWithArticle'),
+				sinon.stub(postModel, 'canRenderPost'),
+			]);
+
+			postModel.isDupeFactory.returns(isDupe);
+		});
+
+		beforeEach(() => {
+			[...stubs, isDupe].forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		it('should remove posts that do not have a canonical url', async function test() {
+			const test1 = {origUrl: 'http://on.ft.com/test1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3'};
+
+			isDupe.returns(false);
+			postModel.canRenderPost.returns(true);
+
+			postModel.getPostCanonical
+				.withArgs(test1)
+				.returns(Promise.resolve(Object.assign({
+					canonical: 'http://www.ft.com/cms/s/0/00000000-0000-0000-0000-000000000000.html',
+				}, test1)));
+			postModel.getPostCanonical
+				.withArgs(test2)
+				.returns(Promise.resolve(Object.assign({
+					canonical: 'http://www.ft.com/cms/s/0/00000000-0000-0000-0000-000000000001.html',
+				}, test1)));
+			postModel.getPostCanonical
+				.withArgs(test3)
+				.returns(Promise.resolve(null));
+
+			const {testable, untestable} = await postModel.partitionTestable([test1, test2, test3]);
+			expect(testable).to.deep.equal([test1, test2]);
+			expect(untestable).to.deep.equal([test3]);
+			expect(test3).to.have.property('reason', 'it\'s not an article');
+		});
+
+		it('should remove posts that are dupes', async function test() {
+			const test1 = {origUrl: 'http://on.ft.com/test1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3'};
+
+			isDupe.returns(false);
+			isDupe.withArgs(test3).returns(true);
+			postModel.canRenderPost.returns(true);
+			postModel.getPostCanonical.returnsArg(0);
+
+			const {testable, untestable} = await postModel.partitionTestable([test1, test2, test3]);
+			expect(testable).to.deep.equal([test1, test2]);
+			expect(untestable).to.deep.equal([test3]);
+			expect(test3).to.have.property('reason', 'we\'ve seen it already');
+		});
+
+		it('should remove posts that can\'t be rendered', async function test() {
+			const test1 = {origUrl: 'http://on.ft.com/test1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3'};
+
+			isDupe.returns(false);
+			postModel.getPostCanonical.returnsArg(0);
+			postModel.canRenderPost.returns(true);
+			postModel.canRenderPost
+				.withArgs(test3)
+				.returns(false);
+
+			await postModel.partitionTestable([test1, test2, test3]);
+			const {testable, untestable} = await postModel.partitionTestable([test1, test2, test3]);
+			expect(testable).to.deep.equal([test1, test2]);
+			expect(untestable).to.deep.equal([test3]);
+			expect(test3).to.have.property('reason', 'we couldn\'t render it');
+		});
+
+		it('should hydrate posts with article details', async function test() {
+			const test1 = {origUrl: 'http://on.ft.com/test1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3'};
+
+			isDupe.returns(false);
+			postModel.canRenderPost.returns(true);
+			postModel.getPostCanonical.returnsArg(0);
+
+			await postModel.partitionTestable([test1, test2, test3]);
+			expect(postModel.hydratePostWithArticle).to.have.been.calledThrice();
+			expect(postModel.hydratePostWithArticle).to.have.been.calledWith(test1);
+			expect(postModel.hydratePostWithArticle).to.have.been.calledWith(test2);
+			expect(postModel.hydratePostWithArticle).to.have.been.calledWith(test3);
+		});
+	});
 
 	describe('bucketAndPublish', () => {
 		const stubs = [];
