@@ -302,7 +302,6 @@ Object.keys(iaMetricTypes).forEach(key => {
 });
 
 const postsResultPath = 'posts:$.*.link';
-const linksResultPath = 'links:$.*.og_object.url';
 
 const getPostIds = params => {
 	params.fields = 'id';
@@ -328,9 +327,7 @@ const createPostsQuery = ids => {
 	return `?${paramsQuery}`;
 };
 
-const createLinksQuery = () => `?ids={result=${postsResultPath}}&fields=og_object{type,url}`;
-
-const createCanonicalsQuery = () => {
+const createIasQuery = () => {
 	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
 		// The importer script went live at 2016-06-09 (1465430400), and didn't know
 		// about posts published before then. Limit historic data to this cut-off, in case
@@ -341,14 +338,13 @@ const createCanonicalsQuery = () => {
 	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
 	const canonicalAttributesQuery = canonicalKeys.concat(iaQuery).join(',');
 
-	return `?ids={result=${linksResultPath}}&fields=${canonicalAttributesQuery}`;
+	return `?ids={result=${postsResultPath}}&fields=${canonicalAttributesQuery}`;
 };
 
 const createQuery = ({ids}) => {
 	const queries = {
 		posts: createPostsQuery(ids),
-		links: createLinksQuery(),
-		canonicals: createCanonicalsQuery(),
+		canonicals: createIasQuery(),
 	};
 
 	return Object.keys(queries).map(key => ({
@@ -510,7 +506,7 @@ const flattenPost = post => Promise.resolve()
 	});
 
 	if(post.canonical) {
-		flat.canonical = post.canonical.id;
+		flat.canonical = post.canonical.canonical_url;
 		flat.canonical_share = post.canonical.share.share_count;
 
 		if(post.canonical.instant_article) {
@@ -534,11 +530,12 @@ const flattenPost = post => Promise.resolve()
 	.then(() => flat)
 );
 
-const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id => {
+const mergeResults = ({posts, canonicals, resolvedCanonicals}) => Object.keys(posts).map(id => {
 	const post = posts[id];
 
-	if(post.link && links[post.link] && links[post.link].og_object && links[post.link].og_object.url) {
-		post.canonical = canonicals[links[post.link].og_object.url];
+	if(post.link && canonicals[post.link] && resolvedCanonicals[post.link]) {
+		post.canonical = canonicals[post.link];
+		post.canonical.canonical_url = resolvedCanonicals[post.link];
 	}
 
 	const insights = post.insights.data;
@@ -547,6 +544,39 @@ const processResults = ([posts, links, canonicals]) => Object.keys(posts).map(id
 
 	return post;
 });
+
+const createCanonicalsQuery = ({ids}) => ids.map(id => ({
+	method: 'POST',
+	relative_url: `${id}`,
+}));
+
+const resolveCanonicals = posts => {
+	const ids = Object.keys(posts)
+		.map(id => posts[id])
+		.filter(post => post.type === 'link')
+		.map(post => post.link);
+
+	const canonicals = {};
+
+	return fbApi.many(
+		{ids},
+		(batch) =>
+			fbApi.call('', 'POST', {
+				batch: createCanonicalsQuery({ids: batch.ids}),
+				include_headers: false,
+				__dependent: [false, true, true],
+				__batched: true,
+			})
+			.then(objects => batch.ids.forEach((url, index) => {
+				canonicals[url] = objects[index].url;
+			})),
+		'array'
+	)
+	.then(() => canonicals);
+};
+
+const processResults = ([posts, canonicals]) => resolveCanonicals(posts)
+.then(resolvedCanonicals => mergeResults({posts, canonicals, resolvedCanonicals}));
 
 const batchErrorHandler = ({previousResult, batchPart}) => {
 	switch(batchPart) {
@@ -560,17 +590,6 @@ const batchErrorHandler = ({previousResult, batchPart}) => {
 			// The previous result had some posts with no 'link' value, so a JSONPath
 			// exception is expected and OK. Return an empty set for the 'links' batch
 			// part
-			return {};
-		case 2:
-			if(Object.keys(previousResult).every(linkId => previousResult[linkId].og_object && previousResult[linkId].og_object.url)) {
-				throw new RichError('All posts returned by batch part 2 have `link.og_object.url` set, so the JSONPath error for batch part 3 is valid.', {
-					tags: {from: 'batchErrorHandler'},
-					extra: {previousResult},
-				});
-			}
-			// The previous result had some links with no 'link.og_object.url' value, so a
-			// JSONPath exception is expected and OK. Return an empty set for the
-			// 'canonicals' batch part
 			return {};
 		default:
 			throw new RichError('Unrecognised batchPart', {
@@ -843,7 +862,6 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 				until: now.unix(),
 			})
 			.then(newPostIds => {
-				// MAX_POST_AGE_MONTHS
 				const knownPostIds = lastRun && Object.keys(lastRun.data) || [];
 				console.log(`Found ${newPostIds.length} new posts and ${knownPostIds.length} known old posts`);
 				// Unique list of known posts plus new posts.
