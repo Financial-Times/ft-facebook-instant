@@ -66,7 +66,7 @@ function addAccessToken(params) {
 }
 
 const parseBatchResult = result => {
-	try{
+	try {
 		return JSON.parse(result.body);
 	} catch(e) {
 		throw new RichError('Failed to parse JSON from result', {extra: {result, e}});
@@ -87,7 +87,7 @@ const handleBatchedResults = (results, [path, verb, params], dependent, errorHan
 		}
 
 		let parsed;
-		try{
+		try {
 			parsed = parseBatchResult(result);
 		} catch(e) {
 			return errors.push({
@@ -104,7 +104,7 @@ const handleBatchedResults = (results, [path, verb, params], dependent, errorHan
 			// previous result. Verify the data from the previous result is OK, replacing
 			// this result with a more appropriate alternative if it's not actually an
 			// error state.
-			try{
+			try {
 				const replacement = errorHandler({previousResult: results[batchPart - 1], batchPart});
 				results[batchPart] = replacement;
 				return;

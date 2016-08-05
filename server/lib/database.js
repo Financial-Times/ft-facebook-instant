@@ -23,7 +23,7 @@ const format = (type, val) => {
 		case 'integer':
 			return val ? parseInt(val, 10) : 0;
 		case 'json':
-			try{
+			try {
 				return JSON.parse(val);
 			} catch(e) {
 				throw new RichError(e.message, {type: 'FbApiTimeoutException'});
@@ -62,7 +62,7 @@ const extractDetails = replies => {
 const extractAllDetails = (replies) => {
 	const articles = [];
 	while(replies.length) {
-		try{
+		try {
 			articles.push(extractDetails(replies.splice(0, KEY_COUNT)));
 		} catch(e) {
 			if(e.type === 'DbParseException') {
@@ -159,7 +159,7 @@ const setCapi = (id, capi) => client.setAsync(`capi:${id}`, JSON.stringify(capi)
 
 const getCapi = id => client.getAsync(`capi:${id}`)
 .then(capi => {
-	try{
+	try {
 		return JSON.parse(capi);
 	} catch(e) {
 		throw new RichError('Failed to parse JSON from CAPI blob', {extra: {capi}});

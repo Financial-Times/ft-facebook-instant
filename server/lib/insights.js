@@ -721,7 +721,7 @@ const writeCsv = (now, posts) => {
 		.reduce((promise, age, index) => promise.then(() => {
 			const historicTimestamp = moment.utc(now).subtract(age + 1, 'hours');
 			return getCsvRows(posts, age, historicTimestamp)
-				.then(data => (rows += data.length, data))
+				.then(data => ((rows += data.length), data))
 				.then(data => generateCsv({data, header: (index === 0)}))
 				.then(csv => writeFile(localPath, csv, {flag: 'a'}));
 		}), Promise.resolve())
