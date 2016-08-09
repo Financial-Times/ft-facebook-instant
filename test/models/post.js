@@ -245,7 +245,7 @@ describe('Post model', () => {
 			transform.withArgs(broken).returns(Promise.reject(error));
 
 			await postModel.canRenderPost(broken);
-			expect(broken).to.have.deep.property('errors.render', error);
+			expect(broken).to.have.property('error', error);
 		});
 	});
 
