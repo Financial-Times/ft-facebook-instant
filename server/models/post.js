@@ -21,6 +21,7 @@ exports.getPostCanonical = post => getCanonical(post.origUrl).then(
 	canonical => Object.assign(post, {canonical}),
 	err => {
 		if(err.type === 'FtApiContentMissingException') {
+			post.error = err;
 			return null; // ignore things not in elastic search, i.e. non-articles or old articles
 		}
 
