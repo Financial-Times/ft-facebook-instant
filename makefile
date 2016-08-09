@@ -55,6 +55,9 @@ lint: $(SRC_FILES) $(TEST_FILES) $(TEST_UTILS)
 test: lint lintspace babel $(TEST_DIRS) $(TEST_FILES) $(TEST_UTILS)
 	$(MOCHA) $(MOCHA_OPTS) test/**/*.js
 
+ab-integration-test: babel
+	scripts/ab-integration-test.sh
+
 $(TEST)/stylesheets/%.js: $(SRC)/stylesheets/%.xsl
 	@: # dummy target just to inform watch-make
 
