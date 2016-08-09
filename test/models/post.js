@@ -25,7 +25,7 @@ const snakePeople = {
 };
 
 describe('Post model', () => {
-	after(async function test() {
+	after(async () => {
 		await fakeRedisClient.flushdbAsync();
 	});
 
@@ -52,27 +52,27 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		it('should get posts since timestamp', async function test() {
+		it('should get posts since timestamp', async () => {
 			database.getLastABCheck.returns(since);
 
 			await postModel.get();
 			expect(fbApi.posts).to.have.been.calledWithMatch({since});
 		});
 
-		it('shouldn\'t get posts if it\'s never been called before', async function test() {
+		it('shouldn\'t get posts if it\'s never been called before', async () => {
 			database.getLastABCheck.returns(0);
 
 			await postModel.get();
 			expect(fbApi.posts).not.to.have.been.called();
 		});
 
-		it('should return empty if it\'s never been called before', async function test() {
+		it('should return empty if it\'s never been called before', async () => {
 			database.getLastABCheck.returns(0);
 
 			expect(await postModel.get()).to.be.empty();
 		});
 
-		it('should set last ab run flag to current date', async function test() {
+		it('should set last ab run flag to current date', async () => {
 			database.getLastABCheck.returns(since);
 
 			await postModel.get();
@@ -80,7 +80,7 @@ describe('Post model', () => {
 			expect(database.setLastABCheck.lastCall.args[0]).to.be.above(since);
 		});
 
-		it('should return a dummy object representing the article', async function test() {
+		it('should return a dummy object representing the article', async () => {
 			database.getLastABCheck.returns(since);
 			fbApi.posts.returns([
 				'http://on.ft.com/test',
@@ -107,7 +107,7 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		it('should get canonical urls and attach to objects', async function test() {
+		it('should get canonical urls and attach to objects', async () => {
 			const post = {origUrl: 'http://on.ft.com/test'};
 			const canonical = 'http://www.ft.com/cms/s/0/00000000-0000-0000-0000-000000000000.html';
 			database.getCanonical
@@ -119,7 +119,7 @@ describe('Post model', () => {
 			expect(post).to.have.property('canonical', canonical);
 		});
 
-		it('should ignore elastic search errors and return null', async function test() {
+		it('should ignore elastic search errors and return null', async () => {
 			const post = {origUrl: 'http://on.ft.com/test'};
 			const err = new Error();
 			err.type = 'FtApiContentMissingException';
@@ -132,7 +132,7 @@ describe('Post model', () => {
 			expect(post).not.to.have.property('canonical');
 		});
 
-		it('should pass on other classes of error', async function test() {
+		it('should pass on other classes of error', async () => {
 			const post = {origUrl: 'http://on.ft.com/test'};
 			const err = new Error();
 			database.getCanonical
@@ -161,7 +161,7 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		it('should assign article details for post canonicals', async function test() {
+		it('should assign article details for post canonicals', async () => {
 			const snakePeopleDummy = {
 				canonical: snakePeople.canonical,
 			};
@@ -193,7 +193,7 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		it('should be false for never-seen-before posts', async function test() {
+		it('should be false for never-seen-before posts', async () => {
 			database.getFBLinkPost.returns(undefined);
 			const isDupe = postModel.isDupeFactory();
 			const results = await Promise.all([
@@ -205,7 +205,7 @@ describe('Post model', () => {
 			results.forEach(result => expect(result).to.be.false());
 		});
 
-		it('should return true for already seen post and mark as removed in database', async function test() {
+		it('should return true for already seen post and mark as removed in database', async () => {
 			database.getFBLinkPost.returns(undefined);
 			const isDupe = postModel.isDupeFactory(
 				new Map([
@@ -216,7 +216,7 @@ describe('Post model', () => {
 			expect(postModel.markRemoved).to.have.been.calledWith('test');
 		});
 
-		it('should return true for post already in database and mark as removed in database', async function test() {
+		it('should return true for post already in database and mark as removed in database', async () => {
 			database.getFBLinkPost.withArgs('test').returns({canonical: 'test'});
 			database.getFBLinkPost.returns(undefined);
 
@@ -227,7 +227,7 @@ describe('Post model', () => {
 			expect(postModel.markRemoved).to.have.been.calledWith('test');
 		});
 
-		it('should set status of removed posts', async function test() {
+		it('should set status of removed posts', async () => {
 			const test2 = {canonical: 'test2'};
 			const test3 = {canonical: 'test3'};
 			database.getFBLinkPost.withArgs('test2').returns(test2);
@@ -256,7 +256,7 @@ describe('Post model', () => {
 			transform.reset();
 		});
 
-		it('should split transformable and untransformable posts', async function test() {
+		it('should split transformable and untransformable posts', async () => {
 			transform.withArgs(snakePeopleClone).returns(Promise.resolve());
 			transform.withArgs(broken).returns(Promise.reject());
 
@@ -264,7 +264,7 @@ describe('Post model', () => {
 			expect(await postModel.canRenderPost(broken)).to.be.false();
 		});
 
-		it('should save transform result to rendered on transformables', async function test() {
+		it('should save transform result to rendered on transformables', async () => {
 			const rendered = {html: '', warnings: {}};
 			transform.withArgs(snakePeopleClone).returns(Promise.resolve(rendered));
 
@@ -272,7 +272,7 @@ describe('Post model', () => {
 			expect(snakePeopleClone).to.have.property('rendered', rendered);
 		});
 
-		it('should save transform error to error on untransformables', async function test() {
+		it('should save transform error to error on untransformables', async () => {
 			const error = new Error();
 			transform.withArgs(broken).returns(Promise.reject(error));
 
@@ -304,7 +304,7 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		it('should remove posts that do not have a canonical url', async function test() {
+		it('should remove posts that do not have a canonical url', async () => {
 			const test1 = {origUrl: 'http://on.ft.com/test1'};
 			const test2 = {origUrl: 'http://on.ft.com/test2'};
 			const test3 = {origUrl: 'http://on.ft.com/test3'};
@@ -332,7 +332,7 @@ describe('Post model', () => {
 			expect(test3).to.have.property('reason', 'it\'s not an article');
 		});
 
-		it('should remove posts that are dupes', async function test() {
+		it('should remove posts that are dupes', async () => {
 			const test1 = {origUrl: 'http://on.ft.com/test1'};
 			const test2 = {origUrl: 'http://on.ft.com/test2'};
 			const test3 = {origUrl: 'http://on.ft.com/test3'};
@@ -348,7 +348,7 @@ describe('Post model', () => {
 			expect(test3).to.have.property('reason', 'we\'ve seen it already');
 		});
 
-		it('should remove posts that can\'t be rendered', async function test() {
+		it('should remove posts that can\'t be rendered', async () => {
 			const test1 = {origUrl: 'http://on.ft.com/test1'};
 			const test2 = {origUrl: 'http://on.ft.com/test2'};
 			const test3 = {origUrl: 'http://on.ft.com/test3'};
@@ -367,7 +367,7 @@ describe('Post model', () => {
 			expect(test3).to.have.property('reason', 'we couldn\'t render it');
 		});
 
-		it('should hydrate posts with article details', async function test() {
+		it('should hydrate posts with article details', async () => {
 			const test1 = {origUrl: 'http://on.ft.com/test1'};
 			const test2 = {origUrl: 'http://on.ft.com/test2'};
 			const test3 = {origUrl: 'http://on.ft.com/test3'};
@@ -403,18 +403,18 @@ describe('Post model', () => {
 			stubs.forEach(stub => stub.restore());
 		});
 
-		it('should set post bucket', async function test() {
+		it('should set post bucket', async () => {
 			await postModel.bucketAndPublish(snakePeople);
 			expect(postModel.setWithBucket).to.have.been.calledWith(snakePeople);
 		});
 
-		it('should\'t post IA if the bucket is control', async function test() {
+		it('should\'t post IA if the bucket is control', async () => {
 			postModel.setWithBucket.returns('control');
 			await postModel.bucketAndPublish(snakePeople);
 			expect(articleModel.postAndSetStatus).not.to.have.been.called();
 		});
 
-		it('should post IA if the bucket is test', async function test() {
+		it('should post IA if the bucket is test', async () => {
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
 			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
@@ -425,7 +425,7 @@ describe('Post model', () => {
 			});
 		});
 
-		it('should post IA if the bucket is test', async function test() {
+		it('should post IA if the bucket is test', async () => {
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
 			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
@@ -436,7 +436,7 @@ describe('Post model', () => {
 			});
 		});
 
-		it('should publish if mode is production', async function test() {
+		it('should publish if mode is production', async () => {
 			mode.get.returns('production');
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
@@ -445,7 +445,7 @@ describe('Post model', () => {
 			});
 		});
 
-		it('should not publish if mode is development', async function test() {
+		it('should not publish if mode is development', async () => {
 			mode.get.returns('development');
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
@@ -464,7 +464,7 @@ describe('Post model', () => {
 			database.getFBLinkPosts.restore();
 		});
 
-		it('should return known posts without removed', async function test() {
+		it('should return known posts without removed', async () => {
 			database.getFBLinkPosts.returns(Promise.resolve([
 				snakePeople,
 				{bucket: 'removed'},
@@ -475,37 +475,37 @@ describe('Post model', () => {
 	});
 
 	describe('setWithBucket', () => {
-		it('should save post to database', async function test() {
+		it('should save post to database', async () => {
 			await postModel.setWithBucket(snakePeople);
 			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal(snakePeople);
 		});
 
-		it('should set bucket to random value', async function test() {
+		it('should set bucket to random value', async () => {
 			await postModel.setWithBucket(snakePeople);
 			expect(await database.getFBLinkPost(snakePeople.canonical)).property('bucket').to.be.oneOf(['test', 'control']);
 		});
 
-		it('should set bucket to test when second arg is true', async function test() {
+		it('should set bucket to test when second arg is true', async () => {
 			await postModel.setWithBucket(snakePeople, true);
 			expect(await database.getFBLinkPost(snakePeople.canonical)).to.have.property('bucket', 'test');
 		});
 
-		it('should set bucket to control when second arg is false', async function test() {
+		it('should set bucket to control when second arg is false', async () => {
 			await postModel.setWithBucket(snakePeople, false);
 			expect(await database.getFBLinkPost(snakePeople.canonical)).to.have.property('bucket', 'control');
 		});
 
-		it('should return set bucket', async function test() {
+		it('should return set bucket', async () => {
 			expect(await postModel.setWithBucket(snakePeople, true)).to.equal('test');
 		});
 	});
 
 	describe('markRemoved', () => {
-		before(async function before() {
+		before(async () => {
 			await database.setFBLinkPost(snakePeople.canonical, snakePeople);
 		});
 
-		it('should replace post record with removed flag', async function test() {
+		it('should replace post record with removed flag', async () => {
 			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal(snakePeople);
 			await postModel.markRemoved(snakePeople.canonical);
 			expect(await database.getFBLinkPost(snakePeople.canonical)).to.deep.equal({

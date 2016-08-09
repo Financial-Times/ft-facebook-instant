@@ -81,7 +81,7 @@ exports.partitionTestable = async function partitionTestable(posts) {
 
 		await exports.hydratePostWithArticle(post);
 
-		if(!(await exports.canRenderPost(post))) {
+		if(!await exports.canRenderPost(post)) {
 			post.reason = 'we couldn\'t render it';
 			return false;
 		}
