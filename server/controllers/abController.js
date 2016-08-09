@@ -10,7 +10,7 @@ const AB_POLL_INTERVAL = 1 * 60 * 1000;
 const getExtra = post => (post.status ? JSON.stringify(post.status) : post.error);
 
 const logRemovedPost = post => {
-	console.log(`${Date()}: A/B: removed ${post.origUrl} from test, because ${post.reason}${getExtra(post) ? `: ${getExtra(post)}` : ''}`);
+	console.log(`${Date()}: A/B: removed ${post.canonical || post.origUrl} from test, because ${post.reason}${getExtra(post) ? `: ${getExtra(post)}` : ''}`);
 };
 
 async function abController() {
