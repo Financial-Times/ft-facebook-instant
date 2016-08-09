@@ -9,7 +9,7 @@ redis() {
 }
 
 clear_linkposts() {
-	linkpost_keys=$(redis-cli keys 'linkpost:*')
+	linkpost_keys=$(redis keys 'linkpost:*')
 	if [ "$linkpost_keys" != "" ]; then
 		redis del $linkpost_keys
 	fi
