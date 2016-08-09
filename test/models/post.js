@@ -300,6 +300,44 @@ describe('Post model', () => {
 			expect(await postModel.canPublishPost(test)).to.be.false();
 			expect(test).to.have.property('error', err);
 		});
+
+		it('should return false if there\'s an error returned from publish', async () => {
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			const message = 'something went wrong';
+			fbApi.post.returns({
+				errors: [
+					{level: 'ERROR', message},
+				],
+			});
+
+			expect(await postModel.canPublishPost(test)).to.be.false();
+			expect(test.error).to.deep.equal([message]);
+		});
+
+		it('should return false if there\'s an warning returned from publish (that isn\'t Audience Optimization Tags)', async () => {
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			const message = 'something went wrong';
+			fbApi.post.returns({
+				errors: [
+					{level: 'WARNING', message},
+					{level: 'WARNING', message: 'Audience Optimization Tags are Disabled in Development Mode: Your Audience Optimization Tags will be ignored while you work on the article in development mode.'},
+				],
+			});
+
+			expect(await postModel.canPublishPost(test)).to.be.false();
+			expect(test.error).to.deep.equal([message]);
+		});
+
+		it('should return true if the only warning is Audience Optimization Tags', async () => {
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			fbApi.post.returns({
+				errors: [
+					{level: 'WARNING', message: 'Audience Optimization Tags are Disabled in Development Mode: Your Audience Optimization Tags will be ignored while you work on the article in development mode.'},
+				],
+			});
+
+			expect(await postModel.canPublishPost(test)).to.be.true();
+		});
 	});
 
 	describe('partitionTestable', () => {

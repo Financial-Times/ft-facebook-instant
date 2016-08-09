@@ -66,12 +66,28 @@ exports.isDupeFactory = (seenPosts = new Map(), dupePosts = new Map()) => async 
 
 exports.canPublishPost = async function canPublishPost(post) {
 	try {
-		const {id} = await fbApi.post({
+		const {id, errors = []} = await fbApi.post({
 			uuid: post.uuid,
 			html: post.rendered.html,
 			published: mode.get() === 'production',
 			wait: true,
 		});
+
+		if(errors.length) {
+			const actualErrors = errors.filter(({level}) => level === 'ERROR');
+			if(actualErrors.length) {
+				post.error = actualErrors.map(({message}) => message);
+				return false;
+			}
+
+			const nonDevWarnings = errors.filter(({message}) =>
+				!message.startsWith('Audience Optimization Tags are Disabled in Development Mode')
+			);
+			if(nonDevWarnings.length) {
+				post.error = nonDevWarnings.map(({message}) => message);
+				return false;
+			}
+		}
 
 		post.facebookId = id;
 	} catch(e) {
