@@ -39,9 +39,7 @@ exports.canRenderPost = post => transform(post).then(
 		return true;
 	},
 	error => {
-		post.errors = Object.assign({
-			render: error,
-		}, post.errors);
+		post.error = error;
 
 		return false;
 	}
