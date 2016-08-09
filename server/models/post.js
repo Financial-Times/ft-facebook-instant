@@ -65,6 +65,28 @@ exports.isDupeFactory = (seenPosts = new Map(), dupePosts = new Map()) => async 
 	return false;
 };
 
+exports.canPublishPost = async function canPublishPost(post) {
+	try {
+		const {id} = await fbApi.post({
+			uuid: post.uuid,
+			html: post.rendered.html,
+			published: mode.get() === 'production',
+			wait: true,
+		});
+
+		post.facebookId = id;
+	} catch(e) {
+		if(e.type === 'FbApiImportException') {
+			post.error = e;
+			return false;
+		}
+
+		throw e;
+	}
+
+	return true;
+};
+
 exports.partitionTestable = async function partitionTestable(posts) {
 	const isDupe = exports.isDupeFactory();
 
@@ -86,6 +108,11 @@ exports.partitionTestable = async function partitionTestable(posts) {
 			return false;
 		}
 
+		if(!await exports.canPublishPost(post)) {
+			post.reason = 'we couldn\'t post it to facebook';
+			return false;
+		}
+
 		return true;
 	});
 
@@ -95,12 +122,13 @@ exports.partitionTestable = async function partitionTestable(posts) {
 exports.bucketAndPublish = async function bucketAndPublish(post) {
 	const bucket = await exports.setWithBucket(post);
 	if(bucket === 'test') {
-		await articleModel.postAndSetStatus({
+		await articleModel.setImportStatus({
 			article: post,
 			published: mode.get() === 'production',
 			wait: true,
 			username: 'daemon',
 			type: 'ab',
+			id: post.facebookId,
 		});
 	}
 };

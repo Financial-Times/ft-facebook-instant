@@ -15,6 +15,7 @@ const fbApi = require('../../build/lib/fbApi');
 const database = require('../../build/lib/database');
 const articleModel = require('../../build/models/article');
 const mode = require('../../build/lib/mode');
+const RichError = require('../../build/lib/richError');
 
 const postModel = proxyquire('../../build/models/post', postModelStubs);
 
@@ -281,6 +282,73 @@ describe('Post model', () => {
 		});
 	});
 
+	describe('canPublishPost', () => {
+		const stubs = [];
+
+		before(() => {
+			stubs.push.apply(stubs, [
+				sinon.stub(fbApi, 'post'),
+				sinon.stub(mode, 'get'),
+			]);
+
+			fbApi.post.returns({});
+		});
+
+		beforeEach(() => {
+			stubs.forEach(stub => stub.reset());
+		});
+
+		after(() => {
+			stubs.forEach(stub => stub.restore());
+		});
+
+		it('should attempt to publish the post', async () => {
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			await postModel.canPublishPost(test);
+			expect(fbApi.post).to.have.been.calledWithMatch({
+				uuid: test.uuid,
+				html: test.rendered.html,
+			});
+		});
+
+		it('should publish if in production mode', async () => {
+			mode.get.returns('production');
+
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			await postModel.canPublishPost(test);
+			expect(fbApi.post).to.have.been.calledWithMatch({
+				published: true,
+			});
+		});
+
+		it('should return true if publish succeeds and set id to post', async () => {
+			const id = '123456789';
+			fbApi.post.returns({id});
+
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			expect(await postModel.canPublishPost(test)).to.be.true();
+			expect(test).to.have.property('facebookId', id);
+		});
+
+		it('should pass on error if not from facebook', async () => {
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			fbApi.post.throws(new Error());
+
+			await expect(postModel.canPublishPost(test)).to.be.rejected();
+		});
+
+		it('should return false and set error property', async () => {
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
+			const err = new RichError('Unexpected import status', {
+				type: 'FbApiImportException',
+			});
+			fbApi.post.throws(err);
+
+			expect(await postModel.canPublishPost(test)).to.be.false();
+			expect(test).to.have.property('error', err);
+		});
+	});
+
 	describe('partitionTestable', () => {
 		const stubs = [];
 		const isDupe = sinon.stub();
@@ -291,6 +359,7 @@ describe('Post model', () => {
 				sinon.stub(postModel, 'getPostCanonical'),
 				sinon.stub(postModel, 'hydratePostWithArticle'),
 				sinon.stub(postModel, 'canRenderPost'),
+				sinon.stub(postModel, 'canPublishPost'),
 			]);
 
 			postModel.isDupeFactory.returns(isDupe);
@@ -311,6 +380,7 @@ describe('Post model', () => {
 
 			isDupe.returns(false);
 			postModel.canRenderPost.returns(true);
+			postModel.canPublishPost.returns(true);
 
 			postModel.getPostCanonical
 				.withArgs(test1)
@@ -340,6 +410,7 @@ describe('Post model', () => {
 			isDupe.returns(false);
 			isDupe.withArgs(test3).returns(true);
 			postModel.canRenderPost.returns(true);
+			postModel.canPublishPost.returns(true);
 			postModel.getPostCanonical.returnsArg(0);
 
 			const {testable, untestable} = await postModel.partitionTestable([test1, test2, test3]);
@@ -359,12 +430,33 @@ describe('Post model', () => {
 			postModel.canRenderPost
 				.withArgs(test3)
 				.returns(false);
+			postModel.canPublishPost.returns(true);
 
 			await postModel.partitionTestable([test1, test2, test3]);
 			const {testable, untestable} = await postModel.partitionTestable([test1, test2, test3]);
 			expect(testable).to.deep.equal([test1, test2]);
 			expect(untestable).to.deep.equal([test3]);
 			expect(test3).to.have.property('reason', 'we couldn\'t render it');
+		});
+
+		it('should remove posts that can\'t be published', async () => {
+			const test1 = {origUrl: 'http://on.ft.com/test1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3'};
+
+			isDupe.returns(false);
+			postModel.getPostCanonical.returnsArg(0);
+			postModel.canPublishPost.returns(true);
+			postModel.canPublishPost
+				.withArgs(test3)
+				.returns(false);
+			postModel.canRenderPost.returns(true);
+
+			await postModel.partitionTestable([test1, test2, test3]);
+			const {testable, untestable} = await postModel.partitionTestable([test1, test2, test3]);
+			expect(testable).to.deep.equal([test1, test2]);
+			expect(untestable).to.deep.equal([test3]);
+			expect(test3).to.have.property('reason', 'we couldn\'t post it to facebook');
 		});
 
 		it('should hydrate posts with article details', async () => {
@@ -374,6 +466,7 @@ describe('Post model', () => {
 
 			isDupe.returns(false);
 			postModel.canRenderPost.returns(true);
+			postModel.canPublishPost.returns(true);
 			postModel.getPostCanonical.returnsArg(0);
 
 			await postModel.partitionTestable([test1, test2, test3]);
@@ -390,7 +483,7 @@ describe('Post model', () => {
 		before(() => {
 			stubs.push.apply(stubs, [
 				sinon.stub(postModel, 'setWithBucket'),
-				sinon.stub(articleModel, 'postAndSetStatus'),
+				sinon.stub(articleModel, 'setImportStatus'),
 				sinon.stub(mode, 'get'),
 			]);
 		});
@@ -411,13 +504,13 @@ describe('Post model', () => {
 		it('should\'t post IA if the bucket is control', async () => {
 			postModel.setWithBucket.returns('control');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.postAndSetStatus).not.to.have.been.called();
+			expect(articleModel.setImportStatus).not.to.have.been.called();
 		});
 
 		it('should post IA if the bucket is test', async () => {
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
 				article: snakePeople,
 				username: 'daemon',
 				type: 'ab',
@@ -428,7 +521,7 @@ describe('Post model', () => {
 		it('should post IA if the bucket is test', async () => {
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
 				article: snakePeople,
 				username: 'daemon',
 				type: 'ab',
@@ -440,7 +533,7 @@ describe('Post model', () => {
 			mode.get.returns('production');
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
 				published: true,
 			});
 		});
@@ -449,7 +542,7 @@ describe('Post model', () => {
 			mode.get.returns('development');
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
+			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
 				published: false,
 			});
 		});
