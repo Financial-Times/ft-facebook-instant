@@ -25,33 +25,36 @@ const snakePeople = {
 	uuid: '94e97eee-ce9a-11e5-831d-09f7778e7377',
 };
 
+const stubAll = createStubs => {
+	const stubs = [];
+
+	before(() => {
+		stubs.push.apply(stubs, createStubs());
+	});
+
+	beforeEach(() => {
+		stubs.forEach(s => s.reset());
+	});
+
+	after(() => {
+		stubs.forEach(s => s.restore && s.restore());
+	});
+};
+
 describe('Post model', () => {
 	after(async () => {
 		await fakeRedisClient.flushdbAsync();
 	});
 
 	describe('get', () => {
-		const stubs = [];
 		const since = 14e11;
 
-		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(fbApi, 'posts'),
-				sinon.stub(database, 'getLastABCheck'),
-				sinon.stub(database, 'setLastABCheck'),
-				sinon.stub(articleModel, 'get'),
-			]);
-
-			fbApi.posts.returns([]);
-		});
-
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
-		});
-
-		after(() => {
-			stubs.forEach(stub => stub.restore());
-		});
+		stubAll(() => [
+			sinon.stub(fbApi, 'posts').returns([]),
+			sinon.stub(database, 'getLastABCheck'),
+			sinon.stub(database, 'setLastABCheck'),
+			sinon.stub(articleModel, 'get'),
+		]);
 
 		it('should get posts since timestamp', async () => {
 			database.getLastABCheck.returns(since);
@@ -92,21 +95,9 @@ describe('Post model', () => {
 	});
 
 	describe('getPostCanonical', () => {
-		const stubs = [];
-
-		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(database, 'getCanonical'),
-			]);
-		});
-
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
-		});
-
-		after(() => {
-			stubs.forEach(stub => stub.restore());
-		});
+		stubAll(() => [
+			sinon.stub(database, 'getCanonical'),
+		]);
 
 		it('should get canonical urls and attach to objects', async () => {
 			const post = {origUrl: 'http://on.ft.com/test'};
@@ -146,21 +137,9 @@ describe('Post model', () => {
 	});
 
 	describe('hydratePostWithArticle', () => {
-		const stubs = [];
-
-		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(articleModel, 'get'),
-			]);
-		});
-
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
-		});
-
-		after(() => {
-			stubs.forEach(stub => stub.restore());
-		});
+		stubAll(() => [
+			sinon.stub(articleModel, 'get'),
+		]);
 
 		it('should assign article details for post canonicals', async () => {
 			const snakePeopleDummy = {
@@ -177,22 +156,10 @@ describe('Post model', () => {
 	});
 
 	describe('isDupe', () => {
-		const stubs = [];
-
-		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(database, 'getFBLinkPost'),
-				sinon.stub(postModel, 'markRemoved'),
-			]);
-		});
-
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
-		});
-
-		after(() => {
-			stubs.forEach(stub => stub.restore());
-		});
+		stubAll(() => [
+			sinon.stub(database, 'getFBLinkPost'),
+			sinon.stub(postModel, 'markRemoved'),
+		]);
 
 		it('should be false for never-seen-before posts', async () => {
 			database.getFBLinkPost.returns(undefined);
@@ -283,24 +250,10 @@ describe('Post model', () => {
 	});
 
 	describe('canPublishPost', () => {
-		const stubs = [];
-
-		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(fbApi, 'post'),
-				sinon.stub(mode, 'get'),
-			]);
-
-			fbApi.post.returns({});
-		});
-
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
-		});
-
-		after(() => {
-			stubs.forEach(stub => stub.restore());
-		});
+		stubAll(() => [
+			sinon.stub(fbApi, 'post').returns({}),
+			sinon.stub(mode, 'get'),
+		]);
 
 		it('should attempt to publish the post', async () => {
 			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
@@ -350,27 +303,19 @@ describe('Post model', () => {
 	});
 
 	describe('partitionTestable', () => {
-		const stubs = [];
 		const isDupe = sinon.stub();
 
+		stubAll(() => [
+			sinon.stub(postModel, 'isDupeFactory'),
+			sinon.stub(postModel, 'getPostCanonical'),
+			sinon.stub(postModel, 'hydratePostWithArticle'),
+			sinon.stub(postModel, 'canRenderPost'),
+			sinon.stub(postModel, 'canPublishPost'),
+			isDupe,
+		]);
+
 		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(postModel, 'isDupeFactory'),
-				sinon.stub(postModel, 'getPostCanonical'),
-				sinon.stub(postModel, 'hydratePostWithArticle'),
-				sinon.stub(postModel, 'canRenderPost'),
-				sinon.stub(postModel, 'canPublishPost'),
-			]);
-
 			postModel.isDupeFactory.returns(isDupe);
-		});
-
-		beforeEach(() => {
-			[...stubs, isDupe].forEach(stub => stub.reset());
-		});
-
-		after(() => {
-			stubs.forEach(stub => stub.restore());
 		});
 
 		it('should remove posts that do not have a canonical url', async () => {
@@ -478,23 +423,11 @@ describe('Post model', () => {
 	});
 
 	describe('bucketAndPublish', () => {
-		const stubs = [];
-
-		before(() => {
-			stubs.push.apply(stubs, [
-				sinon.stub(postModel, 'setWithBucket'),
-				sinon.stub(articleModel, 'setImportStatus'),
-				sinon.stub(mode, 'get'),
-			]);
-		});
-
-		beforeEach(() => {
-			stubs.forEach(stub => stub.reset());
-		});
-
-		after(() => {
-			stubs.forEach(stub => stub.restore());
-		});
+		stubAll(() => [
+			sinon.stub(postModel, 'setWithBucket'),
+			sinon.stub(articleModel, 'setImportStatus'),
+			sinon.stub(mode, 'get'),
+		]);
 
 		it('should set post bucket', async () => {
 			await postModel.bucketAndPublish(snakePeople);
@@ -549,13 +482,9 @@ describe('Post model', () => {
 	});
 
 	describe('getBuckets', () => {
-		before(() => {
-			sinon.stub(database, 'getFBLinkPosts');
-		});
-
-		after(() => {
-			database.getFBLinkPosts.restore();
-		});
+		stubAll(() => [
+			sinon.stub(database, 'getFBLinkPosts'),
+		]);
 
 		it('should return known posts without removed', async () => {
 			database.getFBLinkPosts.returns(Promise.resolve([
