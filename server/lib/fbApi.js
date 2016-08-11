@@ -463,11 +463,11 @@ const posts = ({since} = {}) => call(
 	'GET',
 	{
 		since,
-		fields: ['link', 'type'].join(','),
+		fields: ['link', 'type', 'is_hidden', 'is_published'].join(','),
 	}
 ).then(({data: links}) =>
 	links
-		.filter(({type}) => type === 'link')
+		.filter(({type, is_hidden, is_published}) => type === 'link' && is_published && !is_hidden) // eslint-disable-line camelcase
 		.map(({link}) => link)
 );
 
