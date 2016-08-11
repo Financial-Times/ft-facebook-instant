@@ -21,16 +21,14 @@ async function abController() {
 		return; // don't convert posts if there aren't any
 	}
 
+	console.log(`${Date()}: A/B: seen posts ${posts.map(({origUrl}) => origUrl).join(', ')}`);
+
 	const {testable, untestable} = await postModel.partitionTestable(posts);
 	untestable.forEach(logRemovedPost);
 	await Promise.all(testable.map(postModel.bucketAndPublish));
 
 	if(testable.length) {
-		const testUuids = testable.filter(({bucket}) => bucket === 'test').map(({uuid}) => uuid);
-		const controlUuids = testable.filter(({bucket}) => bucket === 'control').map(({uuid}) => uuid);
-		console.log(`${Date()}: A/B: post buckets
-test: ${testUuids.join()}
-control: ${controlUuids.join()}`);
+		console.log(`${Date()}: A/B: post buckets ${testable.map(({uuid, bucket}) => `${uuid} (${bucket})`).join(', ')}`);
 	} else {
 		console.log(`${Date()}: A/B: none of the new posts could be added to the test`);
 	}
