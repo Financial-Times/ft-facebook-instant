@@ -545,37 +545,52 @@ const mergeResults = ({posts, canonicals, resolvedCanonicals}) => Object.keys(po
 	return post;
 });
 
-const createCanonicalsQuery = ({ids}) => ids.map(id => ({
-	method: 'POST',
-	relative_url: `${id}`,
-}));
-
-const resolveCanonicals = posts => {
-	const ids = Object.keys(posts)
+// NB: this is using our canonical URL resolution, which may or may not match Facebook's.
+// This is dangerous, as the Facebook Crawler might resolve a URL differently. Waiting for
+// this issue to be resolved: https://developers.facebook.com/bugs/707338012747506/
+const resolveCanonicalsLocally = posts => {
+	const canonicals = {};
+	const promises = Object.keys(posts)
 		.map(id => posts[id])
 		.filter(post => post.type === 'link')
-		.map(post => post.link);
+		.map(post => post.link)
+		.map(url =>
+			articleModel.getCanonical(url)
+				.then(canonical => Object.assign(canonicals, {[url]: canonical}))
+				// Ignore errors, as many URLs are not FT.com properties, or missing from ElasticSearch
+				.catch(() => {})
+		);
 
-	const canonicals = {};
-
-	return fbApi.many(
-		{ids},
-		(batch) =>
-			fbApi.call('', 'POST', {
-				batch: createCanonicalsQuery({ids: batch.ids}),
-				include_headers: false,
-				__dependent: [false, true, true],
-				__batched: true,
-			})
-			.then(objects => batch.ids.forEach((url, index) => {
-				canonicals[url] = objects[index].url;
-			})),
-		'array'
-	)
-	.then(() => canonicals);
+	return Promise.all(promises)
+		.then(() => canonicals);
 };
 
-const processResults = ([posts, canonicals]) => resolveCanonicals(posts)
+// const resolveCanonicals = posts => {
+// 	const ids = Object.keys(posts)
+// 		.map(id => posts[id])
+// 		.filter(post => post.type === 'link')
+// 		.map(post => post.link);
+
+// 	const canonicals = {};
+
+// 	return fbApi.many(
+// 		{ids},
+// 		(batch) =>
+// 			fbApi.call('', 'POST', {
+// 				batch: createCanonicalsQuery({ids: batch.ids}),
+// 				include_headers: false,
+// 				__dependent: [false, true, true],
+// 				__batched: true,
+// 			})
+// 			.then(objects => batch.ids.forEach((url, index) => {
+// 				canonicals[url] = objects[index].url;
+// 			})),
+// 		'array'
+// 	)
+// 	.then(() => canonicals);
+// };
+
+const processResults = ([posts, canonicals]) => resolveCanonicalsLocally(posts)
 .then(resolvedCanonicals => mergeResults({posts, canonicals, resolvedCanonicals}));
 
 const batchErrorHandler = ({previousResult, batchPart}) => {
