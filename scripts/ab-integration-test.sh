@@ -15,7 +15,9 @@ clear_linkposts() {
 	fi
 }
 
-redis set ab:last_poll 1
+last_week=$(node -pe 'require("moment")().subtract(1, "week").unix()')
+
+redis set ab:last_poll $last_week
 clear_linkposts
 
 node -e 'require("./build/controllers/abController").abController().then(() => process.exit(0), e => {console.log(e.stack || e); process.exit(1)})'
