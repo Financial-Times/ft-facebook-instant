@@ -10,7 +10,7 @@ const mode = require('../lib/mode');
 
 exports.get = async function get() {
 	const since = await database.getLastABCheck();
-	const current = Date.now(); // get this as soon as possible because this might take a while
+	const current = Date.now() / 1000; // get this as soon as possible because this might take a while
 	const results = !since ? [] : await fbApi.posts({since}); // don't do anything for the first run
 
 	await database.setLastABCheck(current);

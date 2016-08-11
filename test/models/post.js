@@ -47,7 +47,7 @@ describe('Post model', () => {
 	});
 
 	describe('get', () => {
-		const since = 14e11;
+		const since = 14e8;
 
 		stubAll(() => [
 			sinon.stub(fbApi, 'posts').returns([]),
