@@ -557,6 +557,8 @@ const resolveCanonicalsLocally = posts => {
 		.map(url =>
 			articleModel.getCanonical(url)
 				.then(canonical => Object.assign(canonicals, {[url]: canonical}))
+				// Ignore errors, as many URLs are not FT.com properties, or missing from ElasticSearch
+				.catch(() => {})
 		);
 
 	return Promise.all(promises)
