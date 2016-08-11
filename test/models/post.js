@@ -320,7 +320,8 @@ describe('Post model', () => {
 			fbApi.post.returns({
 				errors: [
 					{level: 'WARNING', message},
-					{level: 'WARNING', message: 'Audience Optimization Tags are Disabled in Development Mode: Your Audience Optimization Tags will be ignored while you work on the article in development mode.'},
+					{level: 'WARNING', message: 'Audience Optimization Tags are Disabled in Development Mode: ' +
+						'Your Audience Optimization Tags will be ignored while you work on the article in development mode.'},
 				],
 			});
 
@@ -332,7 +333,8 @@ describe('Post model', () => {
 			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
 			fbApi.post.returns({
 				errors: [
-					{level: 'WARNING', message: 'Audience Optimization Tags are Disabled in Development Mode: Your Audience Optimization Tags will be ignored while you work on the article in development mode.'},
+					{level: 'WARNING', message: 'Audience Optimization Tags are Disabled in Development Mode: ' +
+						'Your Audience Optimization Tags will be ignored while you work on the article in development mode.'},
 				],
 			});
 
