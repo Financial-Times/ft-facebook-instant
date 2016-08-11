@@ -219,7 +219,7 @@ const call = (...params) => {
 	delete options.__batched;
 	delete options.__errorHandler;
 
-	// console.log(`${Date()}: FACEBOOK API: ${params.map(truncate).map(JSON.stringify).join(' ')}`);
+	console.log(`${Date()}: FACEBOOK API: ${params.map(truncate).map(JSON.stringify).join(' ')}`);
 	return addAccessToken(params)
 		.then(newParams => callApi(newParams, {batched, dependent, limit, errorHandler}));
 };
