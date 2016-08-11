@@ -5,7 +5,7 @@ const denodeify = require('denodeify');
 const csvStringify = denodeify(require('csv-stringify'));
 const promiseLoopInterval = require('@quarterto/promise-loop-interval');
 
-const AB_POLL_INTERVAL = 1 * 60 * 1000;
+const AB_POLL_INTERVAL = 5 * 60 * 1000;
 
 const getExtra = post => (post.status ? JSON.stringify(post.status) : post.error);
 
