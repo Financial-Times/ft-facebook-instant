@@ -264,13 +264,13 @@ describe('Post model', () => {
 			});
 		});
 
-		it('should publish if in production mode', async () => {
+		it('should never publish even in production', async () => {
 			mode.get.returns('production');
 
 			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
 			await postModel.canPublishPost(test);
 			expect(fbApi.post).to.have.been.calledWithMatch({
-				published: true,
+				published: false,
 			});
 		});
 
@@ -463,7 +463,7 @@ describe('Post model', () => {
 	describe('bucketAndPublish', () => {
 		stubAll(() => [
 			sinon.stub(postModel, 'setWithBucket'),
-			sinon.stub(articleModel, 'setImportStatus'),
+			sinon.stub(articleModel, 'postAndSetStatus'),
 			sinon.stub(mode, 'get'),
 		]);
 
@@ -475,13 +475,13 @@ describe('Post model', () => {
 		it('should\'t post IA if the bucket is control', async () => {
 			postModel.setWithBucket.returns('control');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.setImportStatus).not.to.have.been.called();
+			expect(articleModel.postAndSetStatus).not.to.have.been.called();
 		});
 
 		it('should post IA if the bucket is test', async () => {
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
 				article: snakePeople,
 				username: 'daemon',
 				type: 'ab',
@@ -492,7 +492,7 @@ describe('Post model', () => {
 		it('should post IA if the bucket is test', async () => {
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
 				article: snakePeople,
 				username: 'daemon',
 				type: 'ab',
@@ -504,7 +504,7 @@ describe('Post model', () => {
 			mode.get.returns('production');
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
 				published: true,
 			});
 		});
@@ -513,7 +513,7 @@ describe('Post model', () => {
 			mode.get.returns('development');
 			postModel.setWithBucket.returns('test');
 			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.setImportStatus).to.have.been.calledWithMatch({
+			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
 				published: false,
 			});
 		});

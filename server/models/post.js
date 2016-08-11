@@ -69,7 +69,7 @@ exports.canPublishPost = async function canPublishPost(post) {
 		const {id, errors = []} = await fbApi.post({
 			uuid: post.uuid,
 			html: post.rendered.html,
-			published: mode.get() === 'production',
+			published: false, // dry run, we actually publish it later
 			wait: true,
 		});
 
@@ -137,7 +137,7 @@ exports.partitionTestable = async function partitionTestable(posts) {
 exports.bucketAndPublish = async function bucketAndPublish(post) {
 	const bucket = await exports.setWithBucket(post);
 	if(bucket === 'test') {
-		await articleModel.setImportStatus({
+		await articleModel.postAndSetStatus({
 			article: post,
 			published: mode.get() === 'production',
 			wait: true,
