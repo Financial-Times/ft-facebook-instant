@@ -21,4 +21,5 @@
 	<xsl:include href="links.xsl" />
 	<xsl:include href="pullquotes.xsl" />
 	<xsl:include href="info-box.xsl" />
+	<xsl:include href="ft-concept.xsl" />
 </xsl:stylesheet>
