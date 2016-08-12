@@ -3,6 +3,7 @@
 const fbApi = require('./fbApi');
 const ftApi = require('./ftApi');
 const articleModel = require('../models/article');
+const getCanonical = require('../models/canonical');
 const s3 = require('./s3');
 const database = require('./database');
 const numbers = require('numbers');
@@ -555,7 +556,7 @@ const resolveCanonicalsLocally = posts => {
 		.filter(post => post.type === 'link')
 		.map(post => post.link)
 		.map(url =>
-			articleModel.getCanonical(url)
+			getCanonical(url)
 				.then(canonical => Object.assign(canonicals, {[url]: canonical}))
 				// Ignore errors, as many URLs are not FT.com properties, or missing from ElasticSearch
 				.catch(() => {})
