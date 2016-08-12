@@ -42,6 +42,7 @@ const notificationsController = require('./controllers/notifications');
 const insightsController = require('./controllers/insights');
 const republishController = require('./controllers/updateRepublish');
 const apiController = require('./controllers/api');
+const abController = require('./controllers/abController');
 
 const port = process.env.PORT || 6247;
 
@@ -71,7 +72,6 @@ assertEnv([
 if(errorsToSentry) {
 	app.use(raven.requestHandler(ravenClient));
 }
-
 
 /* Middleware */
 
@@ -113,6 +113,7 @@ app.route('^/article/:url/api$').get(apiController);
 app.route(`^/article/:url/:mode(${mode})?/:action$`).all(noCache).all(articleController);
 
 app.route('^/republish$').post(republishController.route);
+app.route('^/ab/buckets$').get(abController.route);
 
 app.route('^/reload-s3o$').get((req, res, next) => {
 	res.render('reload-s30');
@@ -188,6 +189,20 @@ if(process.env.DISABLE_REPUBLISH) {
 	console.log(`${Date()}: DISABLE_REPUBLISH flag prevented republishController initialisation`);
 } else if(app.get('env') !== 'production') {
 	republishController();
+}
+
+if((mode === 'production' && process.env.INSTANT_AB === 'true') || process.env.INSTANT_AB === 'force') {
+	console.log(
+		process.env.INSTANT_AB === 'force' ?
+		`${Date()}: INSTANT_AB flag is set to "force". Initialising abController despite being in development mode` :
+		`${Date()}: INSTANT_AB flag is set. Initialising abController`
+	);
+
+	app.locals.abTestInProgress = true;
+	abController();
+} else {
+	app.locals.abTestInProgress = false;
+	console.log(`${Date()}: INSTANT_AB flag is not set. Will not initialise abController`);
 }
 
 app.listen(port, () => console.log(`${Date()}: Up and running on port ${port} in ${mode} mode.`));

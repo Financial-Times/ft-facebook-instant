@@ -117,19 +117,13 @@ const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords
 
 				return transform(article)
 					.then(({html, warnings}) =>
-						fbApi.post({
-							html,
-							uuid: article.uuid,
+						articleModel.postAndSetStatus({
+							article,
 							published: wasPublished,
 							wait: true,
-						})
-						.then(({id}) => articleModel.setImportStatus({
-							article,
-							id,
 							warnings,
 							type: 'notifications-api-canonical-change',
-							published: wasPublished,
-						}))
+						})
 					);
 			})
 		);
@@ -198,22 +192,17 @@ const updateArticle = stale => articleModel.update(stale)
 	console.log(`${Date()}: NOTIFICATIONS API: updating known article: [${article.uuid}], mode: [${mode}], ` +
 		`was published: [${published}]`);
 	return transform(article)
-		.then(({html, warnings}) =>
-			fbApi.post({
-				uuid: article.uuid,
-				html,
-				published,
-				wait: true,
-			})
-			.then(({id}) => articleModel.setImportStatus({
-				article,
-				id,
-				warnings,
-				published,
-				username: 'daemon',
-				type: 'notifications-api',
-			}))
-		);
+					.then(({html, warnings}) =>
+	articleModel.postAndSetStatus({
+		article,
+		html,
+		warnings,
+		published,
+		wait: true,
+		username: 'daemon',
+		type: 'notifications-api',
+	})
+);
 });
 
 const updateArticles = articles => Promise.all(articles.map(updateArticle))

@@ -7,3 +7,4 @@ cache/*
 insights/*
 redis.conf
 .eslintcache
+env.mk

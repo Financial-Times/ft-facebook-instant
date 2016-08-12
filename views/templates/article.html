@@ -42,7 +42,7 @@
 						}
 					</style>
 					<p>Dev-only cookie checker (not shown in live). <a href="http://facebookinstant.ft.com/dev/showCookies">List all cookies</a>. <a href="http://facebookinstant.ft.com/dev/clearCookies">Clear all cookies</a></p>
-					<pre class="cookies" style="white-space: nowrap;"></pre>
+					<pre class="cookies"></pre>
 					<script>
 						var cookies = document.cookie.split(';');
 						var mapped = cookies.map(function(cookie) {
@@ -52,9 +52,9 @@
 							};
 						});
 						document.querySelector('.cookies').innerHTML = mapped.map(function(cookie) {
-							return '<strong>' + cookie.key + '</strong>: ' + cookie.val;
+							return cookie.key + ': ' + cookie.val;
 						})
-						.join('<br />');
+						.join('\n');
 					</script>
 				</iframe>
 			</figure>

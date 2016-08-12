@@ -458,6 +458,19 @@ const del = ({canonical = null} = {}) => {
 const wipe = () => list({fields: ['id']})
 .then(items => Promise.all(items.map(item => del({id: item.id}))));
 
+const posts = ({since} = {}) => call(
+	`/${pageId}/posts`,
+	'GET',
+	{
+		since,
+		fields: ['link', 'type', 'is_hidden', 'is_published'].join(','),
+	}
+).then(({data: links}) =>
+	links
+		.filter(({type, is_hidden, is_published}) => type === 'link' && is_published && !is_hidden) // eslint-disable-line camelcase
+		.map(({link}) => link)
+);
+
 module.exports = {
 	list,
 	many,
@@ -470,4 +483,5 @@ module.exports = {
 	findMany,
 	wipe,
 	call,
+	posts,
 };

@@ -82,10 +82,20 @@
 		<div class="o-techdocs-card__title">
 			Facebook actions:
 		</div>
+
+
+		{{#if abTestInProgress}}
+		{{#ifEqual mode "production"}}
+		<div class="o-techdocs-card__subtitle">
+			Publishing Instant Articles is disabled while AB testing is in progress. You can still submit an article to preview.
+		</div>
+		{{/ifEqual}}
+		{{/if}}
+
 		<div class="actions">
 			{{#ifEqual mode "production"}}
 				{{#ifEqual most_recent_import_status.status "SUCCESS"}}
-				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');"><i class="fa fa-arrow-circle-up"></i> {{#if published}}Re-publish Instant Article{{else}}Publish Instant Article{{/if}}</button>
+				<button class="o-techdocs-card__actionbutton {{mode}}-publish-status" onclick="runModeAction('{{mode}}', 'publish');" {{#if abTestInProgress}}disabled{{/if}}><i class="fa fa-arrow-circle-up"></i> {{#if published}}Re-publish Instant Article{{else}}Publish Instant Article{{/if}}</button>
 				{{/ifEqual}}
 			{{/ifEqual}}
 			{{#unless published}}
