@@ -94,6 +94,7 @@ const handleBatchedResults = (results, [path, verb, params], dependent, errorHan
 				result,
 				batchPart,
 				error: e.toString(),
+				type: 'parse error',
 			});
 		}
 
@@ -110,19 +111,23 @@ const handleBatchedResults = (results, [path, verb, params], dependent, errorHan
 				return;
 			} catch(e) {
 				return errors.push({
-					result,
+					status,
+					parsed,
 					batchPart,
 					previousResult: results[batchPart - 1],
 					error: e.toString(),
+					type: 'dependent error',
 				});
 			}
 		}
 
 		if(status !== 200) {
 			return errors.push({
-				result,
+				status,
+				parsed,
 				batchPart,
 				error: parsed && parsed.error,
+				type: 'status error',
 			});
 		}
 
@@ -184,7 +189,7 @@ const callApi = (params, {batched, dependent, limit, errorHandler, attempts = 0}
 
 	// Add extra detail to error object for Sentry
 	e.tags = {from: 'fbApi.callApi'};
-	e.extra = {response: e.response, params, batched, dependent, limit, attempts};
+	e.extra = Object.assign(e.extra, {response: e.response, params, batched, dependent, limit, attempts});
 
 	throw e;
 });
