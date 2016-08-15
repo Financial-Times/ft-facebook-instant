@@ -12,7 +12,10 @@ const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
 
-const BATCH_SIZE = 50;
+// Should be 50, but wtf?
+// 	https://developers.facebook.com/bugs/524602507730017/
+// 	https://business.facebook.com/direct-support/question/526936397517457/
+const BATCH_SIZE = 40;
 
 // See introspect()
 const defaultFields = {
