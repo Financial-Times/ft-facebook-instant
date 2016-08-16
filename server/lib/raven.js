@@ -22,6 +22,7 @@ const init = (sendToSentry = false) => {
 	ravenClient = new raven.Client((sendToSentry && process.env.SENTRY_DSN), {
 		release: version,
 		name: process.env.HEROKU_APP_NAME || os.hostname(),
+		environment: process.env.NODE_ENV,
 		extra: {
 			env: process.env,
 		},
