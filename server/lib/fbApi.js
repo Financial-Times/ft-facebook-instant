@@ -12,10 +12,7 @@ const pageId = process.env.FB_PAGE_ID;
 const mode = require('./mode').get();
 const accessTokens = require('./accessTokens');
 
-// Should be 50, but wtf?
-// 	https://developers.facebook.com/bugs/524602507730017/
-// 	https://business.facebook.com/direct-support/question/526936397517457/
-const BATCH_SIZE = 40;
+const BATCH_SIZE = 50;
 
 // See introspect()
 const defaultFields = {
@@ -267,11 +264,12 @@ const getIds = ({type = 'article', ids = [], fields = []} = {}) => {
 		return Promise.reject(Error('Missing required parameter [ids]'));
 	}
 
-	if(!type || !defaultFields[type]) {
-		return Promise.reject(Error(`Missing or invalid type parameter: [${type}]`));
+	if(!fields.length) {
+		if(!type || !defaultFields[type]) {
+			return Promise.reject(Error(`Missing or invalid type parameter: [${type}]`));
+		}
+		fields = defaultFields[type];
 	}
-
-	fields = fields.length ? fields : defaultFields[type];
 
 	return call(
 		'/',
