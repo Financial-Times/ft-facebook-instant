@@ -36,7 +36,7 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 		return Promise.resolve(null);
 	}
 
-	console.log(`${Date()}: UPDATE/REPUBLISH: updating ${article.uuid}`, {sentToFacebook, shouldRepublish});
+	console.log(`${Date()}: UPDATE/REPUBLISH: updating ${article.uuid}: ${JSON.stringify({sentToFacebook, shouldRepublish})}`);
 	return transform(article)
 		.then(({html, warnings}) =>
 			fbApi.post({
@@ -55,7 +55,7 @@ const update = (article, {onlyAfterRedeploy = true} = {}) => {
 					type: 'update-redeploy',
 				})
 				.then(() => {
-					console.log(`${Date()}: UPDATE/REPUBLISH: updated ${article.uuid}`, {wasPublished, warnings, importId: id});
+					console.log(`${Date()}: UPDATE/REPUBLISH: updated ${article.uuid}: ${JSON.stringify({wasPublished, warnings, importId: id})}`);
 				})
 			)
 		);
