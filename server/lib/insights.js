@@ -302,8 +302,6 @@ Object.keys(iaMetricTypes).forEach(key => {
 	}
 });
 
-const postsResultPath = 'posts:$.*.link';
-
 const getPostIds = params => {
 	params.fields = 'id';
 	const paramsQuery = Object.keys(params).map(key => `${key}=${params[key]}`).join('&');
@@ -312,48 +310,6 @@ const getPostIds = params => {
 		__limit: 0,
 	})
 	.then(result => result.data.map(item => item.id));
-};
-
-const createPostsQuery = ids => {
-	const postEdgesQuery = postEdgeKeys.map(key => `${key}.limit(0).summary(true)`);
-	const insightsQuery = `insights.metric(${Object.keys(insightsMetricsKeys).join(',')}){${insightsKeys.join(',')}}`;
-	const postAttributesQuery = postAttributeKeys.concat(postEdgesQuery).concat(insightsQuery).join(',');
-
-	const params = {
-		ids,
-		fields: postAttributesQuery,
-	};
-	const paramsQuery = Object.keys(params).map(key => `${key}=${params[key]}`).join('&');
-
-	return `?${paramsQuery}`;
-};
-
-const createIasQuery = () => {
-	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
-		// The importer script went live at 2016-06-09 (1465430400), and didn't know
-		// about posts published before then. Limit historic data to this cut-off, in case
-		// a pre-existing IA is re-promoted with a new post.
-		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1465430400).until(now).as(metrics_${key})`
-	);
-	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
-	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
-	const canonicalAttributesQuery = canonicalKeys.concat(iaQuery).join(',');
-
-	return `?ids={result=${postsResultPath}}&fields=${canonicalAttributesQuery}`;
-};
-
-const createQuery = ({ids}) => {
-	const queries = {
-		posts: createPostsQuery(ids),
-		canonicals: createIasQuery(),
-	};
-
-	return Object.keys(queries).map(key => ({
-		method: 'GET',
-		omit_response_on_success: false,
-		name: key,
-		relative_url: queries[key],
-	}));
 };
 
 const getAggregationStatistics = values => ({
@@ -531,12 +487,47 @@ const flattenPost = post => Promise.resolve()
 	.then(() => flat)
 );
 
-const mergeResults = ({posts, canonicals, resolvedCanonicals}) => Object.keys(posts).map(id => {
+// NB: this is using our canonical URL resolution, which may or may not match Facebook's.
+// This is dangerous, as the Facebook Crawler might resolve a URL differently. Waiting for
+// this issue to be resolved: https://developers.facebook.com/bugs/707338012747506/
+const addLocallyResolvedCanonical = posts => {
+	const promises = posts.filter(post => post.type === 'link')
+		.map(post =>
+			getCanonical(post.link)
+				.then(canonicalUrl => Object.assign(post, {canonicalUrl}))
+				// Ignore errors, as many URLs are not FT.com properties, or missing from ElasticSearch
+				.catch(() => {})
+		);
+
+	return Promise.all(promises)
+		.then(() => posts);
+};
+
+const getPostAttributeFields = () => {
+	const postEdgesQuery = postEdgeKeys.map(key => `${key}.limit(0).summary(true)`);
+	const insightsQuery = `insights.metric(${Object.keys(insightsMetricsKeys).join(',')}){${insightsKeys.join(',')}}`;
+	return postAttributeKeys.concat(postEdgesQuery).concat(insightsQuery);
+};
+
+const getIaAttributeFields = () => {
+	const iaMetricQueries = Object.keys(iaMetricTypes).map(key =>
+		// The importer script went live at 2016-06-09 (1465430400), and didn't know
+		// about posts published before then. Limit historic data to this cut-off, in case
+		// a pre-existing IA is re-promoted with a new post.
+		`insights.metric(${key}).period(${iaMetricTypes[key].period}).since(1465430400).until(now).as(metrics_${key})`
+	);
+	const iaKeysStatusOnlyQuery = iaKeysStatusOnly.map(key => `${key}{status}`);
+	const iaQuery = `instant_article{${iaKeys.concat(iaKeysStatusOnlyQuery).concat(iaMetricQueries).join(',')}}`;
+	return canonicalKeys.concat(iaQuery);
+};
+
+const mergeResults = ({posts, canonicals}) => Object.keys(posts).map(id => {
 	const post = posts[id];
 
-	if(post.link && canonicals[post.link] && resolvedCanonicals[post.link]) {
-		post.canonical = canonicals[post.link];
-		post.canonical.canonical_url = resolvedCanonicals[post.link];
+	if(post.canonicalUrl && canonicals[post.canonicalUrl]) {
+		post.canonical = canonicals[post.canonicalUrl];
+		post.canonical.canonical_url = post.canonicalUrl;
+		delete post.canonicalUrl;
 	}
 
 	const insights = post.insights.data;
@@ -546,88 +537,24 @@ const mergeResults = ({posts, canonicals, resolvedCanonicals}) => Object.keys(po
 	return post;
 });
 
-// NB: this is using our canonical URL resolution, which may or may not match Facebook's.
-// This is dangerous, as the Facebook Crawler might resolve a URL differently. Waiting for
-// this issue to be resolved: https://developers.facebook.com/bugs/707338012747506/
-const resolveCanonicalsLocally = posts => {
-	const canonicals = {};
-	const promises = Object.keys(posts)
-		.map(id => posts[id])
-		.filter(post => post.type === 'link')
-		.map(post => post.link)
-		.map(url =>
-			getCanonical(url)
-				.then(canonical => Object.assign(canonicals, {[url]: canonical}))
-				// Ignore errors, as many URLs are not FT.com properties, or missing from ElasticSearch
-				.catch(() => {})
-		);
-
-	return Promise.all(promises)
-		.then(() => canonicals);
-};
-
-// const resolveCanonicals = posts => {
-// 	const ids = Object.keys(posts)
-// 		.map(id => posts[id])
-// 		.filter(post => post.type === 'link')
-// 		.map(post => post.link);
-
-// 	const canonicals = {};
-
-// 	return fbApi.many(
-// 		{ids},
-// 		(batch) =>
-// 			fbApi.call('', 'POST', {
-// 				batch: createCanonicalsQuery({ids: batch.ids}),
-// 				include_headers: false,
-// 				__dependent: [false, true, true],
-// 				__batched: true,
-// 			})
-// 			.then(objects => batch.ids.forEach((url, index) => {
-// 				canonicals[url] = objects[index].url;
-// 			})),
-// 		'array'
-// 	)
-// 	.then(() => canonicals);
-// };
-
-const processResults = ([posts, canonicals]) => resolveCanonicalsLocally(posts)
-.then(resolvedCanonicals => mergeResults({posts, canonicals, resolvedCanonicals}));
-
-const batchErrorHandler = ({previousResult, batchPart}) => {
-	switch(batchPart) {
-		case 1:
-			if(Object.keys(previousResult).every(postId => previousResult[postId].link)) {
-				throw new RichError('All posts returned by batch part 1 have `post.link` set, so the JSONPath error for batch part 2 is valid.', {
-					tags: {from: 'batchErrorHandler'},
-					extra: {previousResult},
-				});
-			}
-			// The previous result had some posts with no 'link' value, so a JSONPath
-			// exception is expected and OK. Return an empty set for the 'links' batch
-			// part
-			return {};
-		default:
-			throw new RichError('Unrecognised batchPart', {
-				tags: {from: 'batchErrorHandler'},
-				extra: {batchPart, previousResult},
-			});
-	}
-};
-
 const getPostsData = ({ids}) => fbApi.many(
 	{ids},
-	(batch) =>
-		fbApi.call('', 'POST', {
-			batch: createQuery({ids: batch.ids}),
-			include_headers: false,
-			__dependent: [false, true, true],
-			__batched: true,
-			__errorHandler: batchErrorHandler,
-		})
-		.then(processResults),
-	'array'
-);
+	(batch) => fbApi.getMany({ids: batch.ids, fields: getPostAttributeFields()}),
+	'object'
+)
+.then(posts => Object.keys(posts).map(id => posts[id]))
+.then(addLocallyResolvedCanonical)
+.then(posts => {
+	const canonicalUrls = posts.filter(post => !!post.canonicalUrl)
+		.map(post => post.canonicalUrl);
+
+	return fbApi.many(
+		{ids: canonicalUrls},
+		(batch) => fbApi.getMany({ids: batch.ids, fields: getIaAttributeFields()}),
+		'object'
+	)
+	.then(canonicals => mergeResults({posts, canonicals}));
+});
 
 const addExplainerRow = data => {
 	const explainer = {
