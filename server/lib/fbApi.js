@@ -189,7 +189,7 @@ const callApi = (params, {batched, dependent, limit, errorHandler, attempts = 0}
 
 	// Add extra detail to error object for Sentry
 	e.tags = {from: 'fbApi.callApi'};
-	e.extra = Object.assign(e.extra, {response: e.response, params, batched, dependent, limit, attempts});
+	e.extra = Object.assign({}, e.extra, {response: e.response, params, batched, dependent, limit, attempts});
 
 	throw e;
 });
