@@ -26,7 +26,13 @@ module.exports = (req, res, next) => {
 		switch(action) {
 			case 'get':
 				return articleModel.get(url)
-					.then(article => res.json(article));
+					.then(article => res.json(article))
+					.catch(e => {
+						if(e.type === 'FtApiContentMissingException') {
+							return res.status(404).json({error: e.toString()});
+						}
+						throw e;
+					});
 
 			case 'db':
 				return database.get(url)
