@@ -72,11 +72,12 @@ const moveCanonical = ({uuid, cachedCanonical, freshCanonical}) =>
 
 const handleCanonicalChange = ({uuid, cachedCanonical, freshCanonical, fbRecords}) => database.get(cachedCanonical)
 .then(databaseRecord => {
-	const sentToFacebook = existsOnFacebook(fbRecords);
+	const sentToFacebook = existsOnFacebook({fbRecords});
 	const wasPublished = sentToFacebook && fbRecords[mode].published;
 
 	console.log(`${Date()}: NOTIFICATIONS API: handleCanonicalChange for UUID ${uuid} ` +
-		` from ${cachedCanonical} to ${freshCanonical}. Exists on Facebook: ${!!sentToFacebook}, wasPublished: ${wasPublished}.`);
+		` from ${cachedCanonical} to ${freshCanonical}. Exists on Facebook: ${!!sentToFacebook}, ` +
+			`wasPublished: ${wasPublished}, hasDatabaseRecord: ${!!databaseRecord}.`);
 
 	const movePromise = moveCanonical({uuid, freshCanonical, cachedCanonical});
 
