@@ -17,14 +17,19 @@ const fetchByUuid = uuid => retry.fetch(
 	}
 )
 .then(fetchres.json)
-.then(json => json._source || Promise.reject(Error('not found')))
 .catch(e => Promise.reject(
-	new RichError('UUID is not in Elastic Search', {
-		type: 'FtApiContentMissingException',
+	new RichError('Error fetching UUID from Elastic Search', {
+		type: 'FtApiContentException',
 		tags: {from: 'fetchByUuid'},
 		extra: {uuid, e},
 	})
-));
+))
+.then(json => json._source || Promise.reject(new RichError('UUID not found in Elastic Search', {
+	type: 'FtApiContentMissingException',
+	tags: {from: 'fetchByUuid'},
+	extra: {uuid, json},
+})));
+
 
 const fetchByCanonical = canonical => retry.fetch(
 	`https://${elasticSearchUrl}/${index}/_search`,
@@ -43,6 +48,13 @@ const fetchByCanonical = canonical => retry.fetch(
 	}
 )
 .then(fetchres.json)
+.catch(e => Promise.reject(
+	new RichError('Error fetching canonical URL from Elastic Search', {
+		type: 'FtApiContentException',
+		tags: {from: 'fetchByCanonical'},
+		extra: {canonical, e},
+	})
+))
 .then(json => {
 	try {
 		return json.hits.hits[0]._source;
@@ -52,16 +64,13 @@ const fetchByCanonical = canonical => retry.fetch(
 			return fetchByUuid(uuid);
 		}
 
-		throw Error('No result');
+		throw new RichError('Canonical URL not found in Elastic Search', {
+			type: 'FtApiContentMissingException',
+			tags: {from: 'fetchByCanonical'},
+			extra: {canonical, json, e},
+		});
 	}
-})
-.catch(e => Promise.reject(
-	new RichError('Error fetching canonical URL from Elastic Search', {
-		type: 'FtApiContentMissingException',
-		tags: {from: 'fetchByCanonical'},
-		extra: {canonical, e},
-	})
-));
+});
 
 const getCanonicalFromUuid = uuid => retry.fetch(
 	`https://${elasticSearchUrl}/${index}/item/_search`,
@@ -81,20 +90,24 @@ const getCanonicalFromUuid = uuid => retry.fetch(
 	}
 )
 .then(fetchres.json)
+.catch(e => Promise.reject(
+	new RichError('Error fetching UUID from Elastic Search', {
+		type: 'FtApiContentException',
+		tags: {from: 'getCanonicalFromUuid'},
+		extra: {uuid, e},
+	})
+))
 .then(json => {
 	try {
 		return json.hits.hits[0]._source.webUrl;
 	} catch(e) {
-		throw Error('No result');
+		throw new RichError('UUID not found in Elastic Search', {
+			type: 'FtApiContentMissingException',
+			tags: {from: 'getCanonicalFromUuid'},
+			extra: {uuid, json, e},
+		});
 	}
-})
-.catch(e => Promise.reject(
-	new RichError('Error fetching UUID from Elastic Search', {
-		type: 'FtApiContentMissingException',
-		tags: {from: 'getCanonicalFromUuid'},
-		extra: {uuid, e},
-	})
-));
+});
 
 const verifyCanonical = canonical => retry.fetch(
 	`https://${elasticSearchUrl}/${index}/_search`,
@@ -114,20 +127,24 @@ const verifyCanonical = canonical => retry.fetch(
 	}
 )
 .then(fetchres.json)
+.catch(e => Promise.reject(
+	new RichError('Error verifying canonical URL', {
+		type: 'FtApiContentException',
+		tags: {from: 'verifyCanonical'},
+		extra: {canonical, e},
+	})
+))
 .then(json => {
 	try {
 		return json.hits.hits[0]._source.webUrl;
 	} catch(e) {
-		throw Error('No result');
+		throw new RichError('Canonical URL not found in Elastic Search', {
+			type: 'FtApiContentMissingException',
+			tags: {from: 'verifyCanonical'},
+			extra: {canonical, json, e},
+		});
 	}
-})
-.catch(e => Promise.reject(
-	new RichError('Error verifying canonical URL', {
-		type: 'FtApiContentMissingException',
-		tags: {from: 'verifyCanonical'},
-		extra: {canonical, e},
-	})
-));
+});
 
 const updateEsRegion = (region, uuid) => retry.fetch(
 	`https://ft-next-es-interface-${region}.herokuapp.com/api/item?apiKey=${process.env.ES_INTERFACE_API_KEY}`,
@@ -157,7 +174,7 @@ const fetchAsset = uuid => retry.fetch(
 )
 .then(fetchres.json)
 .catch(e => Promise.reject(
-	new RichError('Asset is not in Elastic Search', {
+	new RichError('Asset is not in CAPI v1', {
 		type: 'FtApiContentMissingException',
 		tags: {from: 'fetchAsset'},
 		extra: {uuid, e},
