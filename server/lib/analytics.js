@@ -6,7 +6,7 @@ let slug;
 let server;
 let release;
 
-const matches = packageVersion.match(/^(\d+\.\d+\.\d+)-(.*?)-?([a-z0-9]{7})?$/);
+const matches = packageVersion.match(/^(\d+\.\d+\.\d+)-([^-]+)(?:-([a-z0-9]{7}))?$/);
 if(matches) {
 	version = matches[1];
 	server = matches[2];
