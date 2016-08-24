@@ -9,12 +9,15 @@ endif
 SRC = server
 LIB = build
 TEST = test
+INTEGRATION = integration
 SRC_FILES = $(shell find $(SRC) -name '*.js')
 LIB_FILES = $(patsubst $(SRC)/%.js, $(LIB)/%.js, $(SRC_FILES))
 LIB_DIRS = $(dir $(LIB_FILES))
 TEST_FILES = $(shell find $(TEST) -name '*.js')
 TEST_DIRS = $(dir $(TEST_FILES))
 TEST_UTILS = $(shell find test-utils -name '*.js')
+INTEGRATION_FILES = $(shell find $(INTEGRATION) -name '*.js')
+INTEGRATION_DIRS = $(dir $(INTEGRATION_FILES))
 
 NPM_BIN := $(shell npm bin)
 
@@ -28,7 +31,7 @@ LINTSPACE = $(NPM_BIN)/lintspaces
 LINTSPACE_OPTS = -n -d tabs -l 2
 
 MOCHA = $(NPM_BIN)/mocha
-MOCHA_OPTS = --compilers js:babel-register
+MOCHA_OPTS = --compilers js:babel-register --no-timeouts
 
 HEROKU_CONFIG_TO_ENV = $(NPM_BIN)/heroku-config-to-env
 HEROKU_CONFIG_OPTS = -i HEROKU_ -i REDIS_URL -i NODE_ENV -l REDIS_URL=redis://localhost:6379/ -l NODE_ENV=development
@@ -62,11 +65,11 @@ lintspace: $(LINTSPACE_FILES)
 lint: $(SRC_FILES) $(TEST_FILES) $(TEST_UTILS)
 	$(ESLINT) $(ESLINT_OPTS) $^
 
-test: lint lintspace babel $(TEST_DIRS) $(TEST_FILES) $(TEST_UTILS)
+test: lint lintspace babel
 	$(MOCHA) $(MOCHA_OPTS) test/**/*.js
 
-ab-integration-test: babel
-	scripts/ab-integration-test.sh
+ab-integration-test: lint lintspace babel $(INTEGRATION_DIRS) $(INTEGRATION_FILES)
+	$(MOCHA) $(MOCHA_OPTS) integration/**/*.js
 
 $(TEST)/stylesheets/%.js: $(SRC)/stylesheets/%.xsl
 	@: # dummy target just to inform watch-make

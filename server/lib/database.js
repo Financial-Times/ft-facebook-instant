@@ -16,6 +16,7 @@ const types = {
 	notifications_last_poll: 'integer',
 	ab_last_poll: 'integer',
 	linkpost: 'json',
+	abtestdata: 'json',
 };
 
 const format = (type, val) => {
@@ -142,6 +143,10 @@ const setLastABCheck = timestamp => client.setAsync('ab:last_poll', timestamp);
 const getLastABCheck = () => client.getAsync('ab:last_poll')
 .then(timestamp => format(types.ab_last_poll, timestamp));
 
+const setAbTestStats = (url, data) => client.setAsync(`abtestdata:${url}`, JSON.stringify(data));
+
+const getAbTestStats = url => client.getAsync(`abtestdata:${url}`).then(post => format(types.abtestdata, post));
+
 const setCanonical = (key, canonical) => client.multi()
 .set(`canonical_map:${key}`, canonical)
 .sadd(`canonical_keys:${canonical}`, key)
@@ -215,4 +220,6 @@ module.exports = {
 	getFBLinkPost,
 	getFBLinkPosts,
 	setFBLinkPost,
+	setAbTestStats,
+	getAbTestStats,
 };

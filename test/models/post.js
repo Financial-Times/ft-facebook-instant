@@ -87,10 +87,10 @@ describe('Post model', () => {
 		it('should return a dummy object representing the article', async () => {
 			database.getLastABCheck.returns(since);
 			fbApi.posts.returns([
-				'http://on.ft.com/test',
+				{link: 'http://on.ft.com/test', id: '123_1'},
 			]);
 
-			expect(await postModel.get()).to.deep.equal([{origUrl: 'http://on.ft.com/test'}]);
+			expect(await postModel.get()).to.deep.equal([{origUrl: 'http://on.ft.com/test', id: '123_1'}]);
 		});
 	});
 
@@ -100,7 +100,7 @@ describe('Post model', () => {
 		]);
 
 		it('should get canonical urls and attach to objects', async () => {
-			const post = {origUrl: 'http://on.ft.com/test'};
+			const post = {origUrl: 'http://on.ft.com/test', id: '123_1'};
 			const canonical = 'http://www.ft.com/cms/s/0/00000000-0000-0000-0000-000000000000.html';
 			database.getCanonical
 				.withArgs(post.origUrl)
@@ -112,7 +112,7 @@ describe('Post model', () => {
 		});
 
 		it('should ignore elastic search errors and return null', async () => {
-			const post = {origUrl: 'http://on.ft.com/test'};
+			const post = {origUrl: 'http://on.ft.com/test', id: '123_1'};
 			const err = new Error();
 			err.type = 'FtApiContentMissingException';
 			database.getCanonical
@@ -125,7 +125,7 @@ describe('Post model', () => {
 		});
 
 		it('should pass on other classes of error', async () => {
-			const post = {origUrl: 'http://on.ft.com/test'};
+			const post = {origUrl: 'http://on.ft.com/test', id: '123_1'};
 			const err = new Error();
 			database.getCanonical
 				.withArgs(post.origUrl)
@@ -274,13 +274,12 @@ describe('Post model', () => {
 			});
 		});
 
-		it('should return true if publish succeeds and set id to post', async () => {
+		it('should return true if publish succeeds', async () => {
 			const id = '123456789';
 			fbApi.post.returns({id});
 
 			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}};
 			expect(await postModel.canPublishPost(test)).to.be.true();
-			expect(test).to.have.property('facebookId', id);
 		});
 
 		it('should pass on error if not from facebook', async () => {
@@ -359,9 +358,9 @@ describe('Post model', () => {
 		});
 
 		it('should remove posts that do not have a canonical url', async () => {
-			const test1 = {origUrl: 'http://on.ft.com/test1'};
-			const test2 = {origUrl: 'http://on.ft.com/test2'};
-			const test3 = {origUrl: 'http://on.ft.com/test3'};
+			const test1 = {origUrl: 'http://on.ft.com/test1', id: '123_1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2', id: '123_2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3', id: '123_3'};
 
 			isDupe.returns(false);
 			postModel.canRenderPost.returns(true);
@@ -388,9 +387,9 @@ describe('Post model', () => {
 		});
 
 		it('should remove posts that are dupes', async () => {
-			const test1 = {origUrl: 'http://on.ft.com/test1'};
-			const test2 = {origUrl: 'http://on.ft.com/test2'};
-			const test3 = {origUrl: 'http://on.ft.com/test3'};
+			const test1 = {origUrl: 'http://on.ft.com/test1', id: '123_1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2', id: '123_2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3', id: '123_3'};
 
 			isDupe.returns(false);
 			isDupe.withArgs(test3).returns(true);
@@ -405,9 +404,9 @@ describe('Post model', () => {
 		});
 
 		it('should remove posts that can\'t be rendered', async () => {
-			const test1 = {origUrl: 'http://on.ft.com/test1'};
-			const test2 = {origUrl: 'http://on.ft.com/test2'};
-			const test3 = {origUrl: 'http://on.ft.com/test3'};
+			const test1 = {origUrl: 'http://on.ft.com/test1', id: '123_1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2', id: '123_2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3', id: '123_3'};
 
 			isDupe.returns(false);
 			postModel.getPostCanonical.returnsArg(0);
@@ -425,9 +424,9 @@ describe('Post model', () => {
 		});
 
 		it('should remove posts that can\'t be published', async () => {
-			const test1 = {origUrl: 'http://on.ft.com/test1'};
-			const test2 = {origUrl: 'http://on.ft.com/test2'};
-			const test3 = {origUrl: 'http://on.ft.com/test3'};
+			const test1 = {origUrl: 'http://on.ft.com/test1', id: '123_1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2', id: '123_2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3', id: '123_3'};
 
 			isDupe.returns(false);
 			postModel.getPostCanonical.returnsArg(0);
@@ -445,9 +444,9 @@ describe('Post model', () => {
 		});
 
 		it('should hydrate posts with article details', async () => {
-			const test1 = {origUrl: 'http://on.ft.com/test1'};
-			const test2 = {origUrl: 'http://on.ft.com/test2'};
-			const test3 = {origUrl: 'http://on.ft.com/test3'};
+			const test1 = {origUrl: 'http://on.ft.com/test1', id: '123_1'};
+			const test2 = {origUrl: 'http://on.ft.com/test2', id: '123_2'};
+			const test3 = {origUrl: 'http://on.ft.com/test3', id: '123_3'};
 
 			isDupe.returns(false);
 			postModel.canRenderPost.returns(true);
@@ -491,17 +490,6 @@ describe('Post model', () => {
 			});
 		});
 
-		it('should post IA if the bucket is test', async () => {
-			postModel.setWithBucket.returns('test');
-			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
-				article: snakePeople,
-				username: 'daemon',
-				type: 'ab',
-				wait: true,
-			});
-		});
-
 		it('should publish if mode is production', async () => {
 			mode.get.returns('production');
 			postModel.setWithBucket.returns('test');
@@ -521,9 +509,28 @@ describe('Post model', () => {
 		});
 	});
 
+	describe('getPostStats', () => {
+		stubAll(() => [
+			sinon.stub(database, 'getAbTestStats'),
+		]);
+
+		it('should return known posts without removed', async () => {
+			database.getAbTestStats
+				.withArgs(snakePeople.canonical)
+				.returns(Promise.resolve({stat1: 123}));
+
+			const post = Object.assign({}, snakePeople);
+			const expected = Object.assign({}, post, {stats: {stat1: 123}});
+
+			expect(await postModel.getPostStats(post)).to.deep.equal(expected);
+		});
+	});
+
+
 	describe('getBuckets', () => {
 		stubAll(() => [
 			sinon.stub(database, 'getFBLinkPosts'),
+			sinon.stub(database, 'getAbTestStats'),
 		]);
 
 		it('should return known posts without removed', async () => {
@@ -531,8 +538,35 @@ describe('Post model', () => {
 				snakePeople,
 				{bucket: 'removed'},
 			]));
+			database.getAbTestStats.returns(Promise.resolve());
 
 			expect(await postModel.getBuckets()).to.deep.equal([snakePeople]);
+		});
+
+		it('should add add empty post stats object', async () => {
+			database.getFBLinkPosts.returns(Promise.resolve([
+				snakePeople,
+				{bucket: 'removed'},
+			]));
+
+			database.getAbTestStats.returns(Promise.resolve(null));
+
+			const expected = Object.assign({}, snakePeople, {stats: {}});
+			expect(await postModel.getBuckets()).to.deep.equal([expected]);
+		});
+
+		it('should add post stats', async () => {
+			database.getFBLinkPosts.returns(Promise.resolve([
+				snakePeople,
+				{bucket: 'removed'},
+			]));
+
+			database.getAbTestStats
+				.withArgs(snakePeople.canonical)
+				.returns(Promise.resolve({stat1: 123}));
+
+			const expected = Object.assign({}, snakePeople, {stats: {stat1: 123}});
+			expect(await postModel.getBuckets()).to.deep.equal([expected]);
 		});
 	});
 

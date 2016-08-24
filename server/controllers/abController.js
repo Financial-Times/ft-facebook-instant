@@ -41,11 +41,33 @@ module.exports = promiseLoopInterval(() => abController().catch(e => {
 
 module.exports.abController = abController;
 
-module.exports.route = (req, res, next) => {
-	const columns = ['canonical', 'bucket'];
+const getPostData = post => Object.assign({canonical: post.canonical, bucket: post.bucket}, post.stats);
 
+const getColumns = posts => {
+	const columns = [];
+	posts.forEach(post =>
+		Object.keys(post).forEach(key => columns.indexOf(key) === -1 && columns.push(key))
+	);
+	return columns;
+};
+
+const sanitizePostData = ({post, columns}) => {
+	columns.forEach(column => {
+		post[column] = post[column] || 0;
+	});
+	return post;
+};
+
+const sanitizePostsData = posts => {
+	const columns = getColumns(posts);
+	return posts.map(post => sanitizePostData({post, columns}));
+};
+
+module.exports.route = (req, res, next) => {
 	postModel.getBuckets()
-		.then(posts => csvStringify(posts, {columns, header: true}))
+		.then(posts => posts.map(getPostData))
+		.then(sanitizePostsData)
+		.then(posts => csvStringify(posts, {columns: getColumns(posts), header: true}))
 		.then(csv => {
 			res.type('csv');
 			res.send(csv);

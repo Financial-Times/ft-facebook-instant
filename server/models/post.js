@@ -14,7 +14,7 @@ exports.get = async function get() {
 	const results = !since ? [] : await fbApi.posts({since}); // don't do anything for the first run
 
 	await database.setLastABCheck(current);
-	return results.map(origUrl => ({origUrl}));
+	return results.map(({link: origUrl, id}) => ({origUrl, id}));
 };
 
 exports.getPostCanonical = post => getCanonical(post.origUrl).then(
@@ -66,7 +66,7 @@ exports.isDupeFactory = (seenPosts = new Map(), dupePosts = new Map()) => async 
 
 exports.canPublishPost = async function canPublishPost(post) {
 	try {
-		const {id, errors = []} = await fbApi.post({
+		const {errors = []} = await fbApi.post({
 			uuid: post.uuid,
 			html: post.rendered.html,
 			published: false, // dry run, we actually publish it later
@@ -88,8 +88,6 @@ exports.canPublishPost = async function canPublishPost(post) {
 				return false;
 			}
 		}
-
-		post.facebookId = id;
 	} catch(e) {
 		if(e.type === 'FbApiImportException') {
 			post.error = e;
@@ -143,12 +141,17 @@ exports.bucketAndPublish = async function bucketAndPublish(post) {
 			wait: true,
 			username: 'daemon',
 			type: 'ab',
-			id: post.facebookId,
 		});
 	}
 };
 
-exports.getBuckets = () => database.getFBLinkPosts().then(postUrls => postUrls.filter(post => post.bucket !== 'removed'));
+exports.getPostStats = post => database.getAbTestStats(post.canonical)
+	.then(stats => stats || {})
+	.then(stats => Object.assign(post, {stats}));
+
+exports.getBuckets = () => database.getFBLinkPosts()
+	.then(posts => posts.filter(post => post.bucket !== 'removed'))
+	.then(posts => Promise.all(posts.map(exports.getPostStats)));
 
 exports.setWithBucket = async function setWithBucket(post, testBucket = Math.random() < 0.5) {
 	post.bucket = testBucket ? 'test' : 'control';

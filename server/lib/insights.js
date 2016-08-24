@@ -746,6 +746,20 @@ const saveLastRun = (now, posts) => {
 	return database.setLastInsight(now.valueOf(), data);
 };
 
+const getABStats = post => {
+	const stats = {};
+	integerColumns.forEach(column => (stats[column] = post[column]));
+	return stats;
+};
+
+const saveAbTestData = ({posts, abTestPosts}) => {
+	const idsInTest = abTestPosts.map(({id}) => id);
+	const postsInTest = posts.filter(({id}) => idsInTest.includes(id));
+
+	return Promise.all(
+		postsInTest.map(post => database.setAbTestStats(post.canonical, getABStats(post)))
+	);
+};
 
 module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 .then(() => {
@@ -765,8 +779,11 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 
 	return Promise.resolve()
 		.then(() => upload && uploadHistoricCsvs())
-		.then(database.getLastInsight)
-		.then(lastRun => {
+		.then(() => Promise.all([
+			database.getLastInsight(),
+			database.getFBLinkPosts(),
+		]))
+		.then(([lastRun, abTestPosts]) => {
 			const now = moment.utc().startOf('hour');
 			let since;
 
@@ -813,6 +830,7 @@ module.exports.fetch = ({upload = false} = {}) => Promise.resolve()
 			.then(posts => Promise.all(posts.map(flattenPost)))
 			.then(addInstantArticleMetadata)
 			.then(posts => posts.map(validate))
+			.then(posts => (saveAbTestData({posts, abTestPosts}), posts))
 			.then(posts =>
 				getHistoricValues(lastRun, now, posts)
 					.then(historic => writeCsv(now, historic))
