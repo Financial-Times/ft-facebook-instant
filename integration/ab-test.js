@@ -39,6 +39,9 @@ describe('AB Test', () => {
 		const lastWeek = moment().subtract(1, 'week').unix();
 		await redis(`set ab:last_poll ${lastWeek}`);
 
-		await abController.abController();
+		await abController.abController().catch(e => {
+			console.log('Error encountered in abController(): ', e);
+			throw e;
+		});
 	});
 });
