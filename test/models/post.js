@@ -491,17 +491,6 @@ describe('Post model', () => {
 			});
 		});
 
-		it('should post IA if the bucket is test', async () => {
-			postModel.setWithBucket.returns('test');
-			await postModel.bucketAndPublish(snakePeople);
-			expect(articleModel.postAndSetStatus).to.have.been.calledWithMatch({
-				article: snakePeople,
-				username: 'daemon',
-				type: 'ab',
-				wait: true,
-			});
-		});
-
 		it('should publish if mode is production', async () => {
 			mode.get.returns('production');
 			postModel.setWithBucket.returns('test');
