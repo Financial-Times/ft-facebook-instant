@@ -4,7 +4,7 @@
   "description": "Facebook Instant Articles",
   "main": "build/index.js",
   "scripts": {
-    "prestart": "enforce-node-version && make babel && wmake babel &",
+    "prestart": "enforce-node-version; make babel; wmake babel &",
     "start": "source scripts/env.sh && nodemon",
     "postinstall": "make",
     "test": "make test ab-integration-test",
