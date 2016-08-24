@@ -1,6 +1,7 @@
 'use strict';
 
 const moment = require('moment');
+const inspect = require('util').inspect;
 const denodeify = require('denodeify');
 const exec = denodeify(require('child_process').exec);
 const abController = require('../build/controllers/abController');
@@ -40,7 +41,8 @@ describe('AB Test', () => {
 		await redis(`set ab:last_poll ${lastWeek}`);
 
 		await abController.abController().catch(e => {
-			console.log('Error encountered in abController(): ', e);
+			console.log('Error encountered in abController(): ');
+			console.log(inspect(e, {depth: null}));
 			throw e;
 		});
 	});
