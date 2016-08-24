@@ -27,7 +27,8 @@
 		"S3_REMOTE_PATH": {"required": true},
 		"ENABLE_INSIGHTS_FETCH": {"required": true},
 		"LIGHT_SIGNUP_URL": {"required": true},
-		"ENABLE_LIGHT_SIGNUP": {"required": true}
+		"ENABLE_LIGHT_SIGNUP": {"required": true},
+		"INSTANT_AB": {"required": false}
 	},
 	"addons": [
 		"papertrail"
