@@ -474,7 +474,7 @@ const posts = ({since} = {}) => call(
 ).then(({data: links}) =>
 	links
 		.filter(({type, is_hidden, is_published}) => type === 'link' && is_published && !is_hidden) // eslint-disable-line camelcase
-		.map(({link}) => link)
+		.map(({link, id}) => ({link, id}))
 );
 
 module.exports = {
