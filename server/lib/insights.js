@@ -18,11 +18,13 @@ const path = require('path');
 const mode = require('./mode').get();
 const ravenClient = require('./raven').client;
 const RichError = require('./richError');
+const batcher = require('./batch');
 
 const pageId = process.env.FB_PAGE_ID;
 const VERBOSE_AGGREGATIONS = false;
 const EXPLAINER_ROW = false;
 const MAX_POST_AGE_MONTHS = 6;
+const batchSize = 20;
 
 let importStart = null;
 
@@ -490,18 +492,15 @@ const flattenPost = post => Promise.resolve()
 // NB: this is using our canonical URL resolution, which may or may not match Facebook's.
 // This is dangerous, as the Facebook Crawler might resolve a URL differently. Waiting for
 // this issue to be resolved: https://developers.facebook.com/bugs/707338012747506/
-const addLocallyResolvedCanonical = posts => {
-	const promises = posts.filter(post => post.type === 'link')
-		.map(post =>
-			getCanonical(post.link)
-				.then(canonicalUrl => Object.assign(post, {canonicalUrl}))
-				// Ignore errors, as many URLs are not FT.com properties, or missing from ElasticSearch
-				.catch(() => {})
-		);
-
-	return Promise.all(promises)
-		.then(() => posts);
-};
+const addLocallyResolvedCanonical = posts => batcher(
+	posts.filter(post => post.type === 'link'),
+	batchSize,
+	post => getCanonical(post.link)
+		.then(canonicalUrl => Object.assign(post, {canonicalUrl}))
+		// Ignore errors, as many URLs are not FT.com properties, or missing from ElasticSearch
+		.catch(() => {})
+)
+.then(() => posts);
 
 const getPostAttributeFields = () => {
 	const postEdgesQuery = postEdgeKeys.map(key => `${key}.limit(0).summary(true)`);

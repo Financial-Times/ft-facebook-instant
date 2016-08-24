@@ -3,27 +3,12 @@
 const articleModel = require('../models/article');
 const transform = require('../lib/transform');
 const fbApi = require('../lib/fbApi');
+const batch = require('../lib/batch');
 const ravenClient = require('../lib/raven').client;
 const {version} = require('../../package.json');
 
 const mode = require('../lib/mode').get();
-
 const batchSize = 20;
-
-const batch = (promises, fn) => Promise.resolve(promises)
-.then(arr => arr
-		.map((item, index) =>
-			(index % batchSize ? [] : arr.slice(index, index + batchSize)))
-		.map(group =>
-			all =>
-				Promise.all(group.map(fn))
-				.then(res => all.concat(res))
-		)
-		.reduce(
-			(chain, work) => chain.then(work),
-			Promise.resolve([])
-		)
-);
 
 const update = (article, {onlyAfterRedeploy = true} = {}) => {
 	const isDevelopment = version === '0.0.0-development';
@@ -77,7 +62,7 @@ const republish = options => fbApi.list({fields: ['canonical_url'], __limit: 0})
 	}
 	return articles;
 })
-.then(articles => batch(articles, article => update(article, options).catch(handleError)))
+.then(articles => batch(articles, batchSize, article => update(article, options).catch(handleError)))
 .then(articles => articles.filter(article => !!article));
 
 module.exports = (options) => republish(options)
