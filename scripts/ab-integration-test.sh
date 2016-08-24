@@ -5,7 +5,12 @@ set -x -e
 export REDIS_URL=http://localhost:6379
 
 redis() {
-	! redis-cli $@ | grep ERR
+	local out=$(redis-cli $@)
+	echo $out
+
+	if echo $out | grep ERR; then
+		exit 1
+	fi
 }
 
 clear_linkposts() {
