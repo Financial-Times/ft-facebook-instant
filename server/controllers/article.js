@@ -12,6 +12,8 @@ module.exports = (req, res, next) => {
 	const action = req.params.action;
 	const username = req.cookies.s3o_username;
 
+	const renderJsonArticle = article => res.json(Object.assign(article, res.app.locals));
+
 	if(!url) {
 		throw Error(`Missing required parameter [url] for action [${action}].`);
 	}
@@ -26,7 +28,7 @@ module.exports = (req, res, next) => {
 		switch(action) {
 			case 'get':
 				return articleModel.get(url)
-					.then(article => res.json(article))
+					.then(renderJsonArticle)
 					.catch(e => {
 						if(e.type === 'FtApiContentMissingException') {
 							return res.status(404).json({error: e.toString()});
@@ -51,7 +53,7 @@ module.exports = (req, res, next) => {
 			case 'update':
 				return articleModel.get(url)
 					.then(articleModel.update)
-					.then(html => res.send(html));
+					.then(renderJsonArticle);
 
 			case 'import':
 				return articleModel.get(url)
@@ -60,7 +62,7 @@ module.exports = (req, res, next) => {
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui'}))
 						)
 					)
-					.then(article => res.json(article));
+					.then(renderJsonArticle);
 
 			case 'publish':
 				return articleModel.get(url)
@@ -69,20 +71,20 @@ module.exports = (req, res, next) => {
 							.then(({id}) => articleModel.setImportStatus({article, id, warnings, username, type: 'ui', published: true}))
 						)
 					)
-					.then(article => res.json(article));
+					.then(renderJsonArticle);
 
 			case 'reingest':
 				return articleModel.get(url)
 					.then(article => ftApi.updateEs(article.uuid))
 					.then(() => articleModel.get(url))
 					.then(articleModel.update)
-					.then(html => res.send(html));
+					.then(renderJsonArticle);
 
 			case 'delete':
 				return fbApi.delete({canonical: url})
 					.then(() => articleModel.get(url))
 					.then(article => articleModel.setImportStatus({article, username, type: 'ui-delete'}))
-					.then(article => res.json(article));
+					.then(renderJsonArticle);
 
 			default:
 				throw Error(`Action [${action}] not recognised.`);
