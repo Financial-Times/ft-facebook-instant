@@ -252,6 +252,7 @@ describe('Post model', () => {
 	describe('canPublishPost', () => {
 		stubAll(() => [
 			sinon.stub(fbApi, 'post').returns({}),
+			sinon.stub(fbApi, 'delete').returns({}),
 			sinon.stub(mode, 'get'),
 		]);
 
@@ -338,6 +339,15 @@ describe('Post model', () => {
 			});
 
 			expect(await postModel.canPublishPost(test)).to.be.true();
+		});
+
+		it('should delete the preview post', async () => {
+			const test = {uuid: '00000000-0000-0000-0000-000000000000', rendered: {html: 'html'}, canonical: 'http://ft.com/abc'};
+			await postModel.canPublishPost(test);
+
+			expect(fbApi.delete).to.have.been.calledWithMatch({
+				canonical: 'http://ft.com/abc',
+			});
 		});
 	});
 

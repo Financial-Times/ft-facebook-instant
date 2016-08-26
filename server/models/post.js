@@ -73,6 +73,10 @@ exports.canPublishPost = async function canPublishPost(post) {
 			wait: true,
 		});
 
+		// Ensure dry run post is deleted - we don't want it to hang around on prod, and
+		// there's no associated import status to give meaningful information
+		await fbApi.delete(post);
+
 		if(errors.length) {
 			const actualErrors = errors.filter(({level}) => level === 'ERROR');
 			if(actualErrors.length) {
