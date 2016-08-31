@@ -19,7 +19,7 @@ TEST_UTILS = $(shell find test-utils -name '*.js')
 INTEGRATION_FILES = $(shell find $(INTEGRATION) -name '*.js')
 INTEGRATION_DIRS = $(dir $(INTEGRATION_FILES))
 
-NPM_BIN := $(shell npm bin)
+NPM_BIN := node_modules/.bin
 
 BABEL = $(NPM_BIN)/babel
 BABEL_OPTS =
