@@ -3,6 +3,7 @@
 const util = require('util');
 const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
+const fetchres = require('fetchres');
 const RichError = require('./richError');
 const DEFAULT_ITERATIONS = 3;
 
@@ -39,11 +40,18 @@ const fetch = (url, options = {}) => {
 	const from = options.errorFrom || 'unknown';
 	const extra = options.errorExtra || {};
 	const fn = options.signedAws ? signedFetch : nodeFetch;
+	const asJson = !!options.asJson;
 
 	delete options.retry;
 	delete options.errorFrom;
 	delete options.errorExtra;
 	delete options.signedAws;
+
+	if(url.indexOf('.ft.com') > 0) {
+		// Ensure ft.com requests hit Next, so as to avoid an anonymous opt-in redirect loop
+		options.headers = Object.assign({}, options.headers);
+		options.headers.cookie = `FT_SITE=NEXT; ${options.headers.cookie || ''}`;
+	}
 
 	return retry(
 		() => fn(url, options)
@@ -61,7 +69,8 @@ const fetch = (url, options = {}) => {
 			type: e.type,
 			extra: Object.assign({maxIterations, url, options, e}, extra),
 		})
-	));
+	))
+	.then(res => (asJson ? fetchres.json(res) : res));
 };
 
 module.exports = (fn, maxIterations) => retry(fn, maxIterations);
