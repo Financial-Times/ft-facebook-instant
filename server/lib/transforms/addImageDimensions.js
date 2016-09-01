@@ -1,7 +1,6 @@
 'use strict';
 
 const retry = require('../retry');
-const fetchres = require('fetchres');
 
 function getWidthAndRatio(metaUrl, options) {
 	return retry.fetch(metaUrl, {
