@@ -30,9 +30,9 @@ module.exports = article => {
 			product: 'Facebook Instant',
 			url: article.canonical,
 
-			// These should be in system, but those keys aren't automatically mapped to
-			// Redshift. This should ideally be resolved, as context isn't the right place
-			// for this data.
+			// These should only be in system, but those keys aren't automatically mapped
+			// to Redshift. This should ideally be resolved, as context isn't the right
+			// place for this data.
 			system: {
 				package_version: packageVersion,
 				slug,
@@ -48,6 +48,10 @@ module.exports = article => {
 			is_live: !!prod,
 
 			version,
+			package_version: packageVersion,
+			slug,
+			release,
+			server,
 		},
 	};
 

@@ -1,7 +1,6 @@
 'use strict';
 
 const retry = require('./retry');
-const fetchres = require('fetchres');
 const uuidRegex = require('./uuid');
 const RichError = require('./richError');
 
@@ -14,9 +13,9 @@ const fetchByUuid = uuid => retry.fetch(
 		signedAws: true,
 		errorFrom: 'FtApi.fetchByUuid',
 		errorExtra: {uuid},
+		asJson: true,
 	}
 )
-.then(fetchres.json)
 .catch(e => Promise.reject(
 	new RichError('Error fetching UUID from Elastic Search', {
 		type: 'FtApiContentException',
@@ -38,6 +37,7 @@ const fetchByCanonical = canonical => retry.fetch(
 		errorFrom: 'FtApi.fetchByCanonical',
 		errorExtra: {canonical},
 		method: 'POST',
+		asJson: true,
 		body: JSON.stringify({
 			query: {
 				match: {
@@ -47,7 +47,6 @@ const fetchByCanonical = canonical => retry.fetch(
 		}),
 	}
 )
-.then(fetchres.json)
 .catch(e => Promise.reject(
 	new RichError('Error fetching canonical URL from Elastic Search', {
 		type: 'FtApiContentException',
@@ -79,6 +78,7 @@ const getCanonicalFromUuid = uuid => retry.fetch(
 		errorFrom: 'FtApi.getCanonicalFromUuid',
 		errorExtra: {uuid},
 		method: 'POST',
+		asJson: true,
 		body: JSON.stringify({
 			query: {
 				match: {
@@ -89,7 +89,6 @@ const getCanonicalFromUuid = uuid => retry.fetch(
 		}),
 	}
 )
-.then(fetchres.json)
 .catch(e => Promise.reject(
 	new RichError('Error fetching UUID from Elastic Search', {
 		type: 'FtApiContentException',
@@ -116,6 +115,7 @@ const verifyCanonical = canonical => retry.fetch(
 		errorFrom: 'FtApi.verifyCanonical',
 		errorExtra: {canonical},
 		method: 'POST',
+		asJson: true,
 		body: JSON.stringify({
 			query: {
 				match: {
@@ -126,7 +126,6 @@ const verifyCanonical = canonical => retry.fetch(
 		}),
 	}
 )
-.then(fetchres.json)
 .catch(e => Promise.reject(
 	new RichError('Error verifying canonical URL', {
 		type: 'FtApiContentException',
@@ -156,9 +155,9 @@ const updateEsRegion = (region, uuid) => retry.fetch(
 		body: JSON.stringify({id: uuid}),
 		errorFrom: 'FtApi.updateEsRegion',
 		errorExtra: {region, uuid},
+		asJson: true,
 	}
 )
-.then(fetchres.json)
 .catch(e => Promise.reject(
 	new RichError('Failed to update ES region', {
 		tags: {from: 'updateEsRegion'},
@@ -170,9 +169,12 @@ const updateEs = uuid => Promise.all(['eu', 'us'].map(region => updateEsRegion(r
 
 const fetchAsset = uuid => retry.fetch(
 	`https://api.ft.com/content/items/v1/${uuid}?apiKey=${process.env.API_V1_KEY}`,
-	{errorFrom: 'FtApi.fetchAsset', errorExtra: {uuid}}
+	{
+		errorFrom: 'FtApi.fetchAsset',
+		errorExtra: {uuid},
+		asJson: true,
+	}
 )
-.then(fetchres.json)
 .catch(e => Promise.reject(
 	new RichError('Asset is not in CAPI v1', {
 		type: 'FtApiContentMissingException',
