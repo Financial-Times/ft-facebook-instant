@@ -4,8 +4,11 @@ const retry = require('../retry');
 const fetchres = require('fetchres');
 
 function getWidthAndRatio(metaUrl, options) {
-	return retry.fetch(metaUrl, {errorFrom: 'getWidthAndRatio', errorExtra: {metaUrl}})
-		.then(fetchres.json)
+	return retry.fetch(metaUrl, {
+		errorFrom: 'getWidthAndRatio',
+		errorExtra: {metaUrl},
+		asJson: true,
+	})
 		.then(
 			meta => Object.assign(meta, {ratio: meta.height / meta.width}),
 			(e) => {

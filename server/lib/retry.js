@@ -3,6 +3,7 @@
 const util = require('util');
 const nodeFetch = require('node-fetch');
 const signedFetch = require('signed-aws-es-fetch');
+const fetchres = require('fetchres');
 const RichError = require('./richError');
 const DEFAULT_ITERATIONS = 3;
 
@@ -39,6 +40,7 @@ const fetch = (url, options = {}) => {
 	const from = options.errorFrom || 'unknown';
 	const extra = options.errorExtra || {};
 	const fn = options.signedAws ? signedFetch : nodeFetch;
+	const asJson = !!options.asJson;
 
 	delete options.retry;
 	delete options.errorFrom;
@@ -61,7 +63,8 @@ const fetch = (url, options = {}) => {
 			type: e.type,
 			extra: Object.assign({maxIterations, url, options, e}, extra),
 		})
-	));
+	))
+	.then(res => (asJson ? fetchres.json(res) : res));
 };
 
 module.exports = (fn, maxIterations) => retry(fn, maxIterations);
