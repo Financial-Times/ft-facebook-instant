@@ -47,6 +47,12 @@ const fetch = (url, options = {}) => {
 	delete options.errorExtra;
 	delete options.signedAws;
 
+	if(url.indexOf('.ft.com') > 0) {
+		// Ensure ft.com requests hit Next, so as to avoid an anonymous opt-in redirect loop
+		options.headers = Object.assign({}, options.headers);
+		options.headers.cookie = `FT_SITE=NEXT; ${options.headers.cookie || ''}`;
+	}
+
 	return retry(
 		() => fn(url, options)
 			.catch(e => {
