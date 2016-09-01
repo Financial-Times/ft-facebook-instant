@@ -87,6 +87,6 @@
     "proxyquire": "^1.7.9",
     "sinon": "^1.17.4",
     "sinon-chai": "^2.8.0",
-    "watch-make": "^1.0.0"
+    "watch-make": "^2.0.1"
   }
 }
