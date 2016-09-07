@@ -8,6 +8,7 @@ const getAnalyticsUrl = require('./analytics');
 const validateArticleElements = require('./validator');
 const getRelatedArticles = require('./related');
 const RichError = require('./richError');
+const mode = require('./mode').get();
 
 const requiredParams = [
 	'apiRecord',
@@ -119,7 +120,11 @@ module.exports = article => {
 			mainImageHtml,
 			analyticsUrl,
 			relatedArticles,
-			tags: getAnnotations(article.apiRecord, {warnings, params}),
+
+			// Only add `op:tags` in production, to avoid "Audience Optimization Tags are
+			// Disabled in Development Mode" warnings
+			tags: (mode === 'production') && getAnnotations(article.apiRecord, {warnings, params}),
+
 			title: getTitle(article.apiRecord, {warnings, params}),
 			subtitle: getSubtitle(article.apiRecord, {warnings, params}),
 			authors: getAuthors(article.apiRecord, {warnings, params}),
