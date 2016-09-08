@@ -77,6 +77,16 @@ const basicValidate = article => Promise.resolve()
 	}
 });
 
+const getAdvert = article => {
+	let annotations = article.annotations || [];
+	annotations = annotations.filter(item => !!(item.idV2 === '164d0c3b-8a5a-4163-9519-96b57ed159bf'));
+	if(annotations.length) {
+		return true;
+	} else {
+		return false
+	}
+}
+
 module.exports = article => {
 	const warnings = [];
 
@@ -123,6 +133,7 @@ module.exports = article => {
 			title: getTitle(article.apiRecord, {warnings, params}),
 			subtitle: getSubtitle(article.apiRecord, {warnings, params}),
 			authors: getAuthors(article.apiRecord, {warnings, params}),
+			advert: getAdvert(article.apiRecord, {warnings, params}),
 		});
 
 		return handlebarsTransform(`${process.cwd()}/views/templates/article.html`, fullParams)

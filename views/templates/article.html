@@ -6,6 +6,9 @@
 		<meta property="op:markup_version" content="v1.0">
 		{{#if tags}}<meta property="op:tags" content="{{tags}}">{{/if}}
 		<meta property="fb:article_style" content="{{style}}">
+		{{#if advert}}
+			<meta property="fb:use_automatic_ad_placement" content="true">
+		{{/if}}
 	</head>
 	<body>
 		<article>
@@ -24,7 +27,14 @@
 				</address>
 				{{/each}}
 
+				{{#if advert}}
+					<figure class="op-ad">
+						<iframe src="http://pubads.g.doubleclick.net/gampad/adx?iu=/5887/distributed.content/fb.ft.instant/technology&amp;sz=300x250&amp;scp=pos%3Dmid&amp;tile=1" height="250" width="300"></iframe>
+					</figure>
+				{{/if}}
+
 			</header>
+
 
 			{{#if analyticsUrl}}
 			<figure class="op-tracker">
