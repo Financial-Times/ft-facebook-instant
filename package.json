@@ -10,7 +10,7 @@
     "test": "make test ab-integration-test",
     "heroku-config": "heroku-config-to-env -i HEROKU_ -i REDIS_URL -i NODE_ENV -l REDIS_URL=redis://localhost:6379/ -l NODE_ENV=development ft-facebook-instant-staging scripts/env.sh",
     "watch": "wmake",
-    "heroku-postbuild": "heroku-version-infer && package-version-sentry-release && package-version-jira-release && package-version-github-release"
+    "heroku-postbuild": "heroku-version-infer && package-version-sentry-release && package-version-github-release"
   },
   "engines": {
     "node": "^6.0.0"
@@ -31,7 +31,6 @@
     "@quarterto/filter-promise": "^1.0.0",
     "@quarterto/heroku-version-infer": "^3.2.3",
     "@quarterto/package-version-github-release": "^1.0.0",
-    "@quarterto/package-version-jira-release": "^1.1.0",
     "@quarterto/package-version-sentry-release": "^1.2.0",
     "@quarterto/partition-promise": "^1.0.0",
     "@quarterto/partition-promise-parallel": "^1.1.0",
